@@ -21,4 +21,5 @@ urlpatterns = [
     path('models/', views.get_available_models_for_user, name='get_available_models_for_user'),
     path('sidebar-menu-items/', views.get_sidebar_menu_items, name='get_sidebar_menu_items'),
     path('session/<int:session_id>/message/<uuid:message_id>/edit/', views.edit_message, name='edit_message'),
+    path('api/global-settings/', views.get_global_settings, name='get_global_settings'),
 ]

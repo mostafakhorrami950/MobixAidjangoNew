@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-pk=p+s=fjcjid-gx+pgeka=7s%q!&e0y3h+se&(4y=j^o7u!2j"
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
 
 
 # Application definition
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.SubscriptionMiddleware",  # Custom middleware for subscription caching
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -136,16 +138,16 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = 'accounts.User'
 
 # OTP Service Settings
-IPANEL_API_KEY = 'OWY3NDM3MDYtNGJhMC00OThiLWE3ZWMtNTkzM2FmY2ZiODYwNmY5NTY3Y2E3YzBlZmM1NWMyNzI2OWVhYTgxMjk5ZmQ='
-IPANEL_PATTERN_CODE = 'sg2dmjt3h4l2l1w'
-IPANEL_FROM_NUMBER = '+983000505'
+IPANEL_API_KEY = config('IPANEL_API_KEY')
+IPANEL_PATTERN_CODE = config('IPANEL_PATTERN_CODE')
+IPANEL_FROM_NUMBER = config('IPANEL_FROM_NUMBER')
 
 # OpenRouter API Settings
-OPENROUTER_API_KEY = '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'
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
 
 # ZarinPal Settings
-ZARINPAL_MERCHANT_ID = '3224fed3-eadd-436e-a10b-139ecf6a8ca2'
-ZARINPAL_SANDBOX = True  # Set to False for production
+ZARINPAL_MERCHANT_ID = config('ZARINPAL_MERCHANT_ID')
+ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 
 # Media files (Uploaded images)
 MEDIA_URL = '/media/'

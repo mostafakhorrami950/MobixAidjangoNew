@@ -2,6 +2,7 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import FileUploadSettings, FileUploadUsage, UploadedFile
 from subscriptions.models import SubscriptionType
+from core.models import GlobalSettings
 
 class FileUploadService:
     @staticmethod
@@ -154,5 +155,85 @@ class FileUploadService:
             max_size_mb = settings.max_file_size / (1024 * 1024)
             file_size_mb = file_size / (1024 * 1024)
             return False, f"حجم فایل ({file_size_mb:.2f} MB) بیشتر از حد مجاز ({max_size_mb:.2f} MB) است"
+        
+        return True, ""
+
+
+class GlobalFileService:
+    """Service for handling file operations based on global settings"""
+    
+    @staticmethod
+    def get_global_settings():
+        """Get the active global settings"""
+        return GlobalSettings.get_settings()
+    
+    @staticmethod
+    def check_file_extension_allowed(file_extension):
+        """Check if file extension is allowed based on global settings"""
+        settings = GlobalFileService.get_global_settings()
+        
+        # Get allowed extensions list
+        allowed_extensions = settings.get_allowed_extensions_list()
+        
+        # If no extensions are specified, deny all uploads for security
+        if not allowed_extensions:
+            return False, "هیچ فرمت فایلی مجاز نیست"
+        
+        # Check if file extension is in allowed list
+        file_ext = file_extension.lower().strip('.')
+        if file_ext in allowed_extensions:
+            return True, ""
+        
+        return False, f"فرمت فایل .{file_ext} مجاز نیست. فرمت‌های مجاز: {', '.join(allowed_extensions)}"
+    
+    @staticmethod
+    def check_file_size_limit(file_size):
+        """Check if file size is within global limit"""
+        settings = GlobalFileService.get_global_settings()
+        max_size_bytes = settings.get_max_file_size_bytes()
+        
+        # Check if file size is within limit
+        if file_size > max_size_bytes:
+            # Convert bytes to MB for display
+            max_size_mb = settings.max_file_size_mb
+            file_size_mb = file_size / (1024 * 1024)
+            return False, f"حجم فایل ({file_size_mb:.2f} MB) بیشتر از حد مجاز ({max_size_mb} MB) است"
+        
+        return True, ""
+    
+    @staticmethod
+    def check_files_count_per_message(files_count):
+        """Check if number of files per message is within limit"""
+        settings = GlobalFileService.get_global_settings()
+        
+        if files_count > settings.max_files_per_message:
+            return False, f"تعداد فایل‌ها ({files_count}) بیشتر از حد مجاز ({settings.max_files_per_message}) است"
+        
+        return True, ""
+    
+    @staticmethod
+    def validate_files(files):
+        """Comprehensive validation for uploaded files based on global settings"""
+        if not files:
+            return True, ""
+        
+        # Check files count
+        files_count = len(files)
+        count_valid, count_msg = GlobalFileService.check_files_count_per_message(files_count)
+        if not count_valid:
+            return False, count_msg
+        
+        # Check each file
+        for file in files:
+            # Check file size
+            size_valid, size_msg = GlobalFileService.check_file_size_limit(file.size)
+            if not size_valid:
+                return False, f"فایل {file.name}: {size_msg}"
+            
+            # Check file extension
+            file_extension = file.name.split('.')[-1] if '.' in file.name else ''
+            ext_valid, ext_msg = GlobalFileService.check_file_extension_allowed(file_extension)
+            if not ext_valid:
+                return False, f"فایل {file.name}: {ext_msg}"
         
         return True, ""

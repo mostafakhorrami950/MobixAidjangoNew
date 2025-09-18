@@ -343,8 +343,8 @@ def initiate_payment(request, subscription_id):
 
         from zarinpal import RequestInput
         
-        # Fix the callback URL to use localhost instead of 127.0.0.1 to match ZarinPal settings
-        callback_url = 'http://localhost:8000/subscriptions/callback/'
+        # Create dynamic callback URL based on current request
+        callback_url = request.build_absolute_uri(reverse('payment_callback'))
         payment_data = RequestInput(
             amount=amount_in_rials,
             description=f"خرید اشتراک {subscription.name}",

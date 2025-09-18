@@ -9,7 +9,7 @@ from django.urls import reverse
 from ai_models.services import OpenRouterService
 from subscriptions.models import UserSubscription
 from subscriptions.services import UsageService
-from .file_services import FileUploadService
+from .file_services import FileUploadService, GlobalFileService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
 import json
 
@@ -584,8 +584,13 @@ def send_message(request, session_id):
             # پردازش چندین فایل آپلود شده - Multiple files processing
             uploaded_file_records = []
             if uploaded_files:
+                # First, validate all files using global settings
+                files_valid, files_message = GlobalFileService.validate_files(uploaded_files)
+                if not files_valid:
+                    return JsonResponse({'error': files_message}, status=403)
+                
                 for file_index, uploaded_file in enumerate(uploaded_files):
-                    # Check file upload limits for each file
+                    # Check subscription-based file upload limits for each file (if subscription exists)
                     if subscription_type:
                         within_limit, message = FileUploadService.check_file_upload_limit(
                             request.user, subscription_type, session
@@ -593,14 +598,14 @@ def send_message(request, session_id):
                         if not within_limit:
                             return JsonResponse({'error': f"محدودیت آپلود فایل: {message}"}, status=403)
                         
-                        # Check file size limit
+                        # Also check subscription-based file size limit (more restrictive than global)
                         within_limit, message = FileUploadService.check_file_size_limit(
                             subscription_type, uploaded_file.size
                         )
                         if not within_limit:
                             return JsonResponse({'error': f"فایل '{uploaded_file.name}': {message}"}, status=403)
                         
-                        # Check file extension
+                        # Check subscription-based file extension (if more restrictive than global)
                         file_extension = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''
                         if file_extension and not FileUploadService.check_file_extension_allowed(
                             subscription_type, file_extension
@@ -1750,3 +1755,22 @@ def edit_message(request, session_id, message_id):
         logger = logging.getLogger(__name__)
         logger.error(f"Error in edit_message: {str(e)}", exc_info=True)
         return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+@login_required
+def get_global_settings(request):
+    """API endpoint to get global file upload settings"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        settings = GlobalFileService.get_global_settings()
+        return JsonResponse({
+            'max_file_size_mb': settings.max_file_size_mb,
+            'max_files_per_message': settings.max_files_per_message,
+            'allowed_extensions': settings.get_allowed_extensions_list(),
+            'messages_per_page': settings.messages_per_page,
+            'api_requests_per_minute': settings.api_requests_per_minute
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
