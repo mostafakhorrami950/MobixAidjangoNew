@@ -190,10 +190,52 @@ function addMessageToChat(message) {
         });
     }
     
-    // Check for file references in the message content and add file previews
+    // Add uploaded files display if files are present in message data
     let fileContent = '';
-    if (message.type === 'user') {
-        // Extract file information from message content
+    if (message.type === 'user' && message.uploaded_files && message.uploaded_files.length > 0) {
+        fileContent = '<div class="files-container mt-2">';
+        fileContent += '<div class="uploaded-files-header"><small class="text-muted"><i class="fas fa-paperclip"></i> فایل‌های آپلود شده:</small></div>';
+        
+        message.uploaded_files.forEach((file, index) => {
+            // Determine file icon based on mimetype
+            let iconClass = 'fas fa-file text-muted';
+            if (file.mimetype.startsWith('image/')) {
+                iconClass = 'fas fa-file-image text-primary';
+            } else if (file.mimetype === 'application/pdf') {
+                iconClass = 'fas fa-file-pdf text-danger';
+            } else if (file.mimetype.startsWith('text/')) {
+                iconClass = 'fas fa-file-alt text-info';
+            } else if (file.mimetype.includes('word')) {
+                iconClass = 'fas fa-file-word text-primary';
+            } else if (file.mimetype.includes('excel') || file.mimetype.includes('sheet')) {
+                iconClass = 'fas fa-file-excel text-success';
+            }
+            
+            // Format file size
+            let sizeText = formatFileSize(file.size);
+            
+            fileContent += `
+                <div class="uploaded-file-item d-flex align-items-center p-2 mb-1 bg-light rounded">
+                    <i class="${iconClass} me-2"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">${file.filename}</div>
+                        <div class="small text-muted">${sizeText}</div>
+                    </div>
+                    <div class="file-actions">
+                        ${file.mimetype.startsWith('image/') ? 
+                            `<button class="btn btn-sm btn-outline-primary me-1 preview-image-btn" data-image-url="${file.download_url}" title="پیش‌نمایش"><i class="fas fa-eye"></i></button>` : ''
+                        }
+                        <a href="${file.download_url}" download="${file.filename}" class="btn btn-sm btn-outline-success" title="دانلود">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                </div>
+            `;
+        });
+        
+        fileContent += '</div>';
+    } else if (message.type === 'user') {
+        // Fallback: Extract file information from message content (legacy support)
         const fileMatches = message.content.match(/\((فایل|تصویر|فایل متنی|فایل PDF|فایل اداری|فایل فشرده): ([^)]+)\)/g);
         if (fileMatches) {
             fileContent = '<div class="files-container mt-2"></div>';
@@ -241,9 +283,15 @@ function addMessageToChat(message) {
     // Add copy buttons to code blocks and quotes
     addCopyButtonsToContent(messageElement);
     
-    // If this is a user message with files, extract and display file previews from the message content
+    // If this is a user message with files, set up file functionality
     if (message.type === 'user' && messageElement.querySelector('.files-container')) {
-        displayFilesFromMessage(message.content, messageElement.querySelector('.files-container'));
+        if (message.uploaded_files && message.uploaded_files.length > 0) {
+            // Set up image preview functionality for uploaded files
+            setupImagePreviewButtons(messageElement);
+        } else {
+            // Fallback: display files from message content (legacy support)
+            displayFilesFromMessage(message.content, messageElement.querySelector('.files-container'));
+        }
     }
     
     // Add event listener for copy button
@@ -697,6 +745,78 @@ function updateOrAddAssistantMessage(content, messageId = null) {
     if (isUserAtBottom()) {
         scrollToBottom();
     }
+}
+
+// Function to format file sizes
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Function to set up image preview buttons
+function setupImagePreviewButtons(messageElement) {
+    const previewButtons = messageElement.querySelectorAll('.preview-image-btn');
+    previewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const imageUrl = this.getAttribute('data-image-url');
+            showImagePreview(imageUrl);
+        });
+    });
+}
+
+// Function to show image preview in a modal
+function showImagePreview(imageUrl) {
+    // Create modal HTML
+    const modalHtml = `
+        <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="imagePreviewModalLabel">
+                            <i class="fas fa-image"></i> پیش‌نمایش تصویر
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <img src="${imageUrl}" alt="Preview" class="img-fluid rounded" style="max-width: 100%; max-height: 70vh;">
+                    </div>
+                    <div class="modal-footer">
+                        <a href="${imageUrl}" download class="btn btn-primary">
+                            <i class="fas fa-download"></i> دانلود تصویر
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i> بستن
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if it exists
+    const existingModal = document.getElementById('imagePreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Show modal
+    const imageModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    imageModal.show();
+    
+    // Remove modal from DOM when hidden
+    document.getElementById('imagePreviewModal').addEventListener('hidden.bs.modal', function () {
+        modalContainer.remove();
+    });
 }
 
 // Update the streaming handler to handle images

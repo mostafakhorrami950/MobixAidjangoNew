@@ -193,6 +193,14 @@ class MultiFileUploadManager {
                 break;
             }
             
+            // اگر این یک چت‌بات تصویری است و تصویر آپلود می‌شود، راهنمایی نشان بده
+            if (file.type.startsWith('image/') && currentSessionId) {
+                const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                if (sessionData.chatbot_type === 'image_editing') {
+                    this.showImageMergingTip();
+                }
+            }
+            
             // اعتبارسنجی فایل
             if (!this.validateFile(file)) {
                 continue;
@@ -425,6 +433,50 @@ class MultiFileUploadManager {
         // می‌توانید از toast یا modal برای نمایش خطا استفاده کنید
         alert(message);
         console.error('Multi File Upload Error:', message);
+    }
+    
+    /**
+     * نمایش راهنمایی ادغام تصاویر
+     * Show image merging tip
+     */
+    showImageMergingTip() {
+        // بررسی اینکه آیا قبلاً نشان داده شده یا نه
+        if (sessionStorage.getItem('imageMergingTipShown')) {
+            return;
+        }
+        
+        // نمایش راهنمایی در زیر فیلد متن
+        const hintElement = document.getElementById('image-merge-hint');
+        if (hintElement) {
+            hintElement.classList.remove('d-none');
+            
+            // مخفی کردن بعد از 5 ثانیه
+            setTimeout(() => {
+                hintElement.classList.add('d-none');
+            }, 5000);
+        }
+        
+        // ایجاد نوتیفیکیشن راهنما
+        const tip = document.createElement('div');
+        tip.className = 'alert alert-info alert-dismissible fade show position-fixed';
+        tip.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 350px;';
+        tip.innerHTML = `
+            <i class="fas fa-lightbulb me-2"></i>
+            <strong>نکته:</strong> برای ادغام با تصاویر قبلی، کلمه "ادغام" یا "ترکیب" را در پیام خود بنویسید.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(tip);
+        
+        // نشان‌دار کردن اینکه نشان داده شده
+        sessionStorage.setItem('imageMergingTipShown', 'true');
+        
+        // حذف خودکار بعد از 10 ثانیه
+        setTimeout(() => {
+            if (tip.parentNode) {
+                tip.remove();
+            }
+        }, 10000);
     }
     
     /**

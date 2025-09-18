@@ -106,6 +106,13 @@
                 <form id="chat-form" class="d-flex">
                     <div class="input-group">
                         <textarea class="form-control" id="message-input" placeholder="پیام خود را تایپ کنید..." rows="2"></textarea>
+                        <!-- Hidden hint for image editing chatbot -->
+                        <div class="image-merge-hint d-none position-absolute" id="image-merge-hint">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                برای ادغام با تصویر قبلی، کلمه "ادغام" یا "ترکیب" را بنویسید
+                            </small>
+                        </div>
                         <!-- Add file upload button -->
                         <button class="btn btn-secondary" type="button" id="upload-btn" title="آپلود فایل">
                             <i class="fas fa-paperclip"></i>
@@ -388,6 +395,53 @@
 
 .web-search-toggle-container small {
     font-size: 0.8rem;
+}
+
+/* Enhanced file display styles */
+.uploaded-files-header {
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.uploaded-file-item {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.uploaded-file-item:hover {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.file-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.file-actions .btn i {
+    font-size: 0.8rem;
+}
+
+/* Image preview modal styles */
+#imagePreviewModal .modal-body img {
+    border: 2px solid #dee2e6;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Image merge hint styles */
+.image-merge-hint {
+    bottom: -25px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 10;
 }
 
 /* File preview styles for multiple files - استایل پیشنمایش فایل برای چندین فایل */

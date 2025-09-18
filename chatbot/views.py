@@ -484,31 +484,102 @@ def send_message(request, session_id):
             if user_message_content:
                 content_parts.append({"type": "text", "text": user_message_content})
 
-            # Check if this is an image editing request without a new file upload
-            if (session.chatbot and session.chatbot.chatbot_type == 'image_editing' and 
-                not uploaded_files and user_message_content):
-                # Find the last assistant-generated image in this session
-                last_image_message = session.messages.filter(
-                    message_type='assistant'
-                ).exclude(image_url='').order_by('-created_at').first()
+            # Check if this is an image editing request
+            if (session.chatbot and session.chatbot.chatbot_type == 'image_editing'):
+                # Check if user uploaded new image(s) in this request
+                new_image_uploaded = any(f for f in uploaded_files if f.content_type and f.content_type.startswith('image/'))
                 
-                if last_image_message and last_image_message.image_url:
-                    # Get the first image URL (in case there are multiple)
-                    image_urls = last_image_message.image_url.split(',')
-                    if image_urls:
-                        first_image_url = image_urls[0].strip()
-                        # Convert to absolute path if it's a relative path
+                # Ensure variable is defined for all code paths to avoid UnboundLocalError
+                last_uploaded_image = None
+                
+                if new_image_uploaded:
+                    # For image editing chatbots, ALWAYS merge with the last generated image automatically
+                    # Find the last generated image to merge with (prioritize assistant-generated images)
+                    last_image_message = session.messages.filter(
+                        message_type='assistant'
+                    ).exclude(image_url='').order_by('-created_at').first()
+                    
+                    if last_image_message and last_image_message.image_url:
+                        # Get the first image URL from the last generated image
+                        image_urls = last_image_message.image_url.split(',')
+                        if image_urls:
+                            first_image_url = image_urls[0].strip()
+                            # Convert to absolute path if it's a relative path
+                            from django.conf import settings
+                            import os
+                            image_path = os.path.join(settings.MEDIA_ROOT, first_image_url[7:])  # Remove '/media/' prefix
+                            # Check if file exists
+                            if os.path.exists(image_path):
+                                # Read and encode the previous image
+                                with open(image_path, "rb") as image_file:
+                                    encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+                                    mime_type = 'image/png'  # Default, could be improved
+                                    image_data_url = f"data:{mime_type};base64,{encoded_image}"
+                                    content_parts.append({"type": "image_url", "image_url": {"url": image_data_url}})
+                                
+                                # Update message content to indicate automatic merging
+                                user_message_to_save += " (با تصویر قبلی)"
+                    
+                    # The new uploaded image(s) will be processed in the file upload section below
+                elif not uploaded_files and user_message_content:
+                    # No new file upload, use existing logic for editing with previous images
+                    # Find the last uploaded image in this session (prefer user uploads over generated ones)
+                    # First check for user-uploaded images
+                    last_uploaded_image = session.uploaded_images.order_by('-uploaded_at').first()
+                
+                if last_uploaded_image and last_uploaded_image.image_file:
+                    # Use the last uploaded image
+                    try:
                         from django.conf import settings
                         import os
-                        image_path = os.path.join(settings.MEDIA_ROOT, first_image_url[7:])  # Remove '/media/' prefix
-                        # Check if file exists
-                        if os.path.exists(image_path):
-                            # Read and encode the image
-                            with open(image_path, "rb") as image_file:
-                                encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-                                mime_type = 'image/png'  # Default, could be improved
-                                image_data_url = f"data:{mime_type};base64,{encoded_image}"
-                                content_parts.append({"type": "image_url", "image_url": {"url": image_data_url}})
+                        
+                        image_file_path = str(last_uploaded_image.image_file)
+                        full_image_path = os.path.join(str(settings.MEDIA_ROOT), image_file_path)
+                        
+                        if os.path.exists(full_image_path):
+                            with open(full_image_path, "rb") as image_file:
+                                image_data = image_file.read()
+                            encoded_image = base64.b64encode(image_data).decode('utf-8')
+                            # Get proper mime type
+                            mime_type = 'image/png'  # Default
+                            if '.' in image_file_path:
+                                ext = image_file_path.split('.')[-1].lower()
+                                if ext in ['jpg', 'jpeg']:
+                                    mime_type = 'image/jpeg'
+                                elif ext == 'png':
+                                    mime_type = 'image/png'
+                                elif ext == 'gif':
+                                    mime_type = 'image/gif'
+                                elif ext == 'webp':
+                                    mime_type = 'image/webp'
+                            
+                            image_data_url = f"data:{mime_type};base64,{encoded_image}"
+                            content_parts.append({"type": "image_url", "image_url": {"url": image_data_url}})
+                    except Exception as e:
+                        logger.error(f"Error processing uploaded image: {str(e)}")
+                else:
+                    # Fallback to last assistant-generated image if no user uploads found
+                    last_image_message = session.messages.filter(
+                        message_type='assistant'
+                    ).exclude(image_url='').order_by('-created_at').first()
+                    
+                    if last_image_message and last_image_message.image_url:
+                        # Get the first image URL (in case there are multiple)
+                        image_urls = last_image_message.image_url.split(',')
+                        if image_urls:
+                            first_image_url = image_urls[0].strip()
+                            # Convert to absolute path if it's a relative path
+                            from django.conf import settings
+                            import os
+                            image_path = os.path.join(settings.MEDIA_ROOT, first_image_url[7:])  # Remove '/media/' prefix
+                            # Check if file exists
+                            if os.path.exists(image_path):
+                                # Read and encode the image
+                                with open(image_path, "rb") as image_file:
+                                    encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+                                    mime_type = 'image/png'  # Default, could be improved
+                                    image_data_url = f"data:{mime_type};base64,{encoded_image}"
+                                    content_parts.append({"type": "image_url", "image_url": {"url": image_data_url}})
 
             # پردازش چندین فایل آپلود شده - Multiple files processing
             uploaded_file_records = []
@@ -1409,6 +1480,10 @@ def edit_message(request, session_id, message_id):
         if not new_content:
             return JsonResponse({'error': 'Message content cannot be empty'}, status=400)
         
+        # Get the original uploaded files for this message
+        original_message_files = message.uploaded_files.all()
+        uploaded_file_records = [mf.uploaded_file for mf in original_message_files]
+        
         # Check usage limits before proceeding
         subscription_type = request.user.get_subscription_type()
         ai_model = session.ai_model or (session.chatbot and session.chatbot.get_default_model())
@@ -1460,10 +1535,80 @@ def edit_message(request, session_id, message_id):
         
         # Add conversation history up to the edited message
         for msg in messages_up_to_edited:
-            openrouter_messages.append({
-                'role': msg.message_type,
-                'content': msg.content
-            })
+            message_content = msg.content
+            
+            # If this is the edited message, we need to reconstruct content with files
+            if msg.id == message.id and uploaded_file_records:
+                # Prepare content parts for multimodal messages
+                content_parts = [{"type": "text", "text": new_content}]
+                
+                # Add file content based on file types
+                for file_record in uploaded_file_records:
+                    import os
+                    file_path = os.path.join(settings.MEDIA_ROOT, 'uploaded_files', file_record.filename)
+                    
+                    if os.path.exists(file_path):
+                        if file_record.mimetype and file_record.mimetype.startswith('image/'):
+                            # Image processing for vision capability
+                            with open(file_path, "rb") as image_file:
+                                image_data = image_file.read()
+                            encoded_image = base64.b64encode(image_data).decode('utf-8')
+                            image_url = f"data:{file_record.mimetype};base64,{encoded_image}"
+                            content_parts.append({"type": "image_url", "image_url": {"url": image_url}})
+                        
+                        elif file_record.mimetype and (file_record.mimetype.startswith('text/') or 
+                                                      file_record.mimetype in ['application/json', 'application/xml', 'application/javascript', 
+                                                                              'text/html', 'text/css', 'text/csv']):
+                            # Text file processing
+                            try:
+                                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                    file_content = f.read()
+                                # Limit file content to prevent token overflow
+                                if len(file_content) > 10000:  # Limit to 10KB
+                                    file_content = file_content[:10000] + "... (محتوای اضافی حذف شد)"
+                                
+                                file_info = f"محتوای فایل '{file_record.original_filename}':\n{file_content}"
+                                content_parts.append({"type": "text", "text": file_info})
+                            except Exception:
+                                content_parts.append({"type": "text", "text": f"کاربر فایل '{file_record.original_filename}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                        
+                        elif file_record.mimetype and file_record.mimetype == 'application/pdf':
+                            # PDF file processing
+                            try:
+                                with open(file_path, 'rb') as f:
+                                    pdf_reader = PyPDF2.PdfReader(f)
+                                    text_content = ""
+                                    for page in pdf_reader.pages:
+                                        text_content += page.extract_text() + "\n"
+                                
+                                # Limit PDF content to prevent token overflow
+                                if len(text_content) > 10000:
+                                    text_content = text_content[:10000] + "... (محتوای اضافی حذف شد)"
+                                
+                                file_info = f"محتوای فایل PDF '{file_record.original_filename}':\n{text_content}"
+                                content_parts.append({"type": "text", "text": file_info})
+                            except Exception:
+                                content_parts.append({"type": "text", "text": f"کاربر فایل PDF با نام '{file_record.original_filename}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                        else:
+                            # Other file types
+                            content_parts.append({"type": "text", "text": f"کاربر فایل '{file_record.original_filename}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                
+                # Use multimodal content if we have multiple parts or image content
+                if len(content_parts) > 1 or (len(content_parts) == 1 and content_parts[0].get('type') == 'image_url'):
+                    openrouter_messages.append({
+                        'role': msg.message_type,
+                        'content': content_parts
+                    })
+                else:
+                    openrouter_messages.append({
+                        'role': msg.message_type,
+                        'content': new_content
+                    })
+            else:
+                openrouter_messages.append({
+                    'role': msg.message_type,
+                    'content': msg.content
+                })
         
         # Send to AI for regeneration
         openrouter_service = OpenRouterService()

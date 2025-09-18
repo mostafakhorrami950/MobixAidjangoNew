@@ -147,11 +147,22 @@ function sendMessage() {
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
-                        // For image editing chatbots, refresh the page after successful image generation
+                        // For image editing chatbots, refresh the page after image generation is complete
                         console.log('Image generated successfully, refreshing page...');
+                        
+                        // Show a brief success notification before refresh
+                        showImageGenerationSuccess();
+                        
+                        // Refresh the page after a short delay to show the notification
                         setTimeout(() => {
-                            location.reload();
-                        }, 2000); // Refresh after 2 seconds to allow user to see the message
+                            console.log('Refreshing page after image generation completion');
+                            window.location.reload();
+                        }, 1500); // 1.5 seconds delay to show notification
+                    } else if (hasImages) {
+                        // For any other chatbot with images, ensure they're visible
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 200);
                     }
                     
                     // Re-enable input and reset button state
@@ -201,8 +212,13 @@ function sendMessage() {
                             const newImages = JSON.parse(imagesJson);
                             imagesData = imagesData.concat(newImages);
                             console.log('Received images data:', imagesData);
-                            // Update the streaming message with images
+                            // Update the streaming message with images immediately
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                            
+                            // Force scroll to show the new images
+                            setTimeout(() => {
+                                scrollToBottom();
+                            }, 100);
                         } catch (parseError) {
                             console.error('Error parsing images data:', parseError);
                         }
@@ -238,6 +254,11 @@ function sendMessage() {
                         streamingElement.remove();
                     }
                     hideTypingIndicator();
+                    
+                    // Check if we have images and this is an image editing chatbot
+                    let hasImages = false;
+                    let shouldRefresh = false;
+                    
                     // Add final message with whatever content we have so far
                     if (assistantContent) {
                         const messageData = {
@@ -261,13 +282,30 @@ function sendMessage() {
                             }).filter(url => url.trim() !== '');
                             
                             messageData.image_url = formattedImageUrls.join(',');
+                            hasImages = true;
                         }
                         addMessageToChat(messageData);
                     }
+                    
+                    // Check if this is an image editing chatbot and we have images
+                    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                        shouldRefresh = true;
+                        console.log('Image generated via abort, refreshing page...');
+                    }
+                    
                     // Re-enable input and reset button state after streaming is complete
                     messageInput.disabled = false;
                     messageInput.focus();
                     setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+                    
+                    // Refresh if needed
+                    if (shouldRefresh) {
+                        setTimeout(() => {
+                            console.log('Refreshing page after aborted image generation');
+                            window.location.reload();
+                        }, 1000);
+                    }
                 } else {
                     console.error('Streaming error:', error);
                     const streamingElement = document.getElementById('streaming-assistant');
@@ -300,6 +338,10 @@ function sendMessage() {
             console.log('درخواست توسط کاربر متوقف شد.');
             // پیام ناقص قبلاً در سمت سرور ذخیره شده است
             hideTypingIndicator();
+            
+            let hasImages = false;
+            let shouldRefresh = false;
+            
             // Add final message with whatever content we have so far
             if (assistantContent) {
                 const messageData = {
@@ -323,8 +365,29 @@ function sendMessage() {
                     }).filter(url => url.trim() !== '');
                     
                     messageData.image_url = formattedImageUrls.join(',');
+                    hasImages = true;
                 }
                 addMessageToChat(messageData);
+            }
+            
+            // Check if this is an image editing chatbot and we have images
+            const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+            if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                shouldRefresh = true;
+                console.log('Image generated via catch abort, refreshing page...');
+            }
+            
+            // Re-enable input and reset button state after streaming is complete
+            messageInput.disabled = false;
+            messageInput.focus();
+            setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+            
+            // Refresh if needed
+            if (shouldRefresh) {
+                setTimeout(() => {
+                    console.log('Refreshing page after catch aborted image generation');
+                    window.location.reload();
+                }, 1000);
             }
         } else {
             console.error('Error:', error);
@@ -334,11 +397,12 @@ function sendMessage() {
                 content: `خطا: ${error.message || 'خطای نامشخص'}`,
                 created_at: new Date().toISOString()
             });
+            
+            // Re-enable input and reset button state after streaming is complete
+            messageInput.disabled = false;
+            messageInput.focus();
+            setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
         }
-        // Re-enable input and reset button state after streaming is complete
-        messageInput.disabled = false;
-        messageInput.focus();
-        setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
     });
 }
 
@@ -498,7 +562,8 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     // Add image display if imagesData is present
     let imageContent = '';
     if (imagesData && imagesData.length > 0) {
-        imagesData.forEach(img => {
+        console.log('Processing images for display:', imagesData);
+        imagesData.forEach((img, index) => {
             if (img.image_url && img.image_url.url) {
                 // Handle both absolute URLs and relative paths
                 let imageUrl = img.image_url.url;
@@ -511,8 +576,9 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
                     // It's already correctly formatted
                 }
                 // If it's already an absolute URL, leave it as is
-                imageContent += `<div class="image-container mt-2">
-                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                console.log(`Image ${index + 1} URL:`, imageUrl);
+                imageContent += `<div class="image-container mt-2" data-image-index="${index}">
+                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;" onload="console.log('Image ${index + 1} loaded successfully')" onerror="console.error('Failed to load image ${index + 1}:', this.src)">
                     <div class="mt-1">
                         <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-download"></i> دانلود تصویر
@@ -521,6 +587,7 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
                 </div>`;
             }
         });
+        console.log('Generated image content HTML:', imageContent);
     }
     
     if (!assistantElement) {
@@ -572,10 +639,34 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
             }
         }
         
-        // Add images if they exist and haven't been added yet
-        // Fix: Only add images if they don't already exist to prevent duplicates
-        if (imageContent && !assistantElement.querySelector('.image-container')) {
+        // Add images if they exist
+        // Always update/replace images to ensure they're current
+        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
+        if (existingImageContainers.length > 0) {
+            // Remove existing image containers
+            existingImageContainers.forEach(container => container.remove());
+        }
+        
+        if (imageContent) {
+            // Add the new image content
             assistantElement.insertAdjacentHTML('beforeend', imageContent);
+            
+            // Force image loading and display
+            const newImages = assistantElement.querySelectorAll('.image-container img');
+            newImages.forEach(img => {
+                img.onload = function() {
+                    // Scroll to show the image when it loads
+                    setTimeout(() => {
+                        scrollToBottom();
+                    }, 50);
+                };
+                // Ensure image loads even if cached
+                if (img.complete) {
+                    setTimeout(() => {
+                        scrollToBottom();
+                    }, 50);
+                }
+            });
         }
     }
     
@@ -1025,4 +1116,31 @@ function ensureMessageIds() {
     messagesWithoutIds.forEach((message, index) => {
         console.warn('Message without ID found:', message);
     });
+}
+
+// Function to show image generation success notification
+function showImageGenerationSuccess() {
+    // Create a temporary success notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 320px;';
+    notification.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle me-2"></i>
+            <div>
+                <strong>تصویر با موفقیت تولید شد!</strong><br>
+                <small>صفحه در حال به‌روزرسانی...</small>
+            </div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove notification after 5 seconds (though page will refresh before that)
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
 }

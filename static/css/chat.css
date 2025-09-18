@@ -531,6 +531,39 @@ html, body {
 /* Accessibility & focus */
 :focus { outline: 3px solid rgba(79,70,229,0.12); outline-offset: 2px; border-radius: 8px; }
 
+/* ---------------------------
+   IMAGE STYLES
+   --------------------------- */
+.image-container {
+  margin: 12px 0;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(79,70,229,0.03);
+  border: 1px solid rgba(79,70,229,0.08);
+  box-shadow: 0 4px 16px rgba(79,70,229,0.06);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79,70,229,0.08);
+}
+
+.image-container img {
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  transition: all 0.3s ease;
+}
+
+.image-container img:hover {
+  transform: scale(1.02);
+}
+
 /* END OF FILE */
 .mobile-nav-menu.d-md-none {
   display: block; /* ensure visible on mobile */
