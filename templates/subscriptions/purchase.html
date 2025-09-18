@@ -3,14 +3,18 @@
 {% block title %}خرید اشتراک{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0 text-center">خرید اشتراک</h3>
-                </div>
-                <div class="card-body">
+<div class="chatgpt-container">
+    <div class="chatgpt-layout">
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <h3 id="current-session-title">
+                    <i class="fas fa-shopping-cart"></i> خرید اشتراک
+                </h3>
+            </div>
+            
+            <div class="chat-messages-container">
+                <div class="chat-messages">
                     {% if messages %}
                         {% for message in messages %}
                             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -27,42 +31,43 @@
                         <div id="remaining-value-result" class="mt-2"></div>
                     </div>
                     
+                    {% if subscriptions %}
                     <div class="row">
                         {% for subscription in subscriptions %}
                         <div class="col-md-6 mb-4">
-                            <div class="card h-100 border-primary">
+                            <div class="card h-100 border-primary chatbot-selection-card">
                                 <div class="card-header bg-primary text-white">
                                     <h5 class="mb-0 text-center">{{ subscription.name }}</h5>
                                 </div>
                                 <div class="card-body">
                                     <p class="card-text">{{ subscription.description }}</p>
-                                    <ul class="list-unstyled">
+                                    <ul class="list-unstyled small">
                                         <li><strong>قیمت:</strong> <span class="original-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان</li>
                                         <li><strong>مدت:</strong> {{ subscription.duration_days }} روز</li>
                                         <li><strong>SKU:</strong> {{ subscription.sku }}</li>
-                                        <li><strong>Max tokens:</strong> {{ subscription.max_tokens|default:"نامحدود" }}</li>
+                                        <li><strong>حداکثر توکن:</strong> {{ subscription.max_tokens|default:"نامحدود" }}</li>
                                     </ul>
                                     
                                     <!-- Discount Code Section -->
                                     <div class="mt-3">
                                         <div class="input-group">
-                                            <input type="text" class="form-control discount-code-input" 
+                                            <input type="text" class="form-control discount-code-input rounded-sm" 
                                                    placeholder="کد تخفیف" 
                                                    data-subscription-id="{{ subscription.id }}">
-                                            <button class="btn btn-outline-secondary apply-discount-btn" 
+                                            <button class="btn btn-outline-secondary apply-discount-btn rounded-sm" 
                                                     type="button" 
                                                     data-subscription-id="{{ subscription.id }}">
                                                 اعمال
                                             </button>
                                         </div>
-                                        <div class="discount-result mt-2" id="discount-result-{{ subscription.id }}"></div>
+                                        <div class="discount-result mt-2 small" id="discount-result-{{ subscription.id }}"></div>
                                     </div>
                                 </div>
                                 <div class="card-footer">
                                     <form method="post" action="{% url 'initiate_payment' subscription.id %}" class="payment-form">
                                         {% csrf_token %}
                                         <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
-                                        <button type="submit" class="btn btn-primary w-100">
+                                        <button type="submit" class="btn btn-primary w-100 send-button">
                                             <i class="fas fa-shopping-cart"></i> خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
                                         </button>
                                     </form>
@@ -71,12 +76,38 @@
                         </div>
                         {% endfor %}
                     </div>
-                    
-                    {% if not subscriptions %}
+                    {% else %}
                     <div class="alert alert-info text-center">
                         <i class="fas fa-info-circle"></i> در حال حاضر اشتراکی برای خرید موجود نیست.
                     </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h5>راهنمای خرید</h5>
+            </div>
+            <div class="sessions-container">
+                <div class="session-item">
+                    <div>
+                        <strong>محاسبه هوشمند</strong>
+                        <div class="small">ارزش باقیمانده اشتراک فعلی شما محاسبه و از قیمت جدید کسر می‌شود.</div>
+                    </div>
+                </div>
+                <div class="session-item">
+                    <div>
+                        <strong>کدهای تخفیف</strong>
+                        <div class="small">کدهای تخفیف خود را وارد کنید تا از تخفیف‌های ویژه بهره‌مند شوید.</div>
+                    </div>
+                </div>
+                <div class="session-item">
+                    <div>
+                        <strong>پشتیبانی</strong>
+                        <div class="small">در صورت بروز هرگونه مشکل با پشتیبانی تماس بگیرید.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -93,16 +124,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.error) {
             resultDiv.innerHTML = `<div class="alert alert-danger"><small>${data.error}</small></div>`;
         } else {
+            // Calculate remaining tokens with proper display
+            const remainingTokens = data.remaining_tokens;
+            const totalTokenLimit = data.total_token_limit;
+            const tokensUsed = data.total_tokens_used;
+            
             resultDiv.innerHTML = `
                 <div class="alert alert-success">
                     <small>
                         <strong>اطلاعات اشتراک فعلی:</strong><br>
                         نوع اشتراک: ${data.subscription_name}<br>
                         قیمت اشتراک: ${data.subscription_price_tomans.toFixed(0)} تومان<br>
-                        توکن‌های مصرف شده: ${data.total_tokens_used}<br>
+                        توکن‌های مصرف شده: ${tokensUsed}<br>
                         توکن‌های مصرف شده (مدل‌های رایگان): ${data.free_model_tokens_used}<br>
-                        Max tokens: ${data.total_token_limit}<br>
-                        توکن‌های باقیمانده: ${data.remaining_tokens}<br>
+                        حداکثر توکن: ${totalTokenLimit}<br>
+                        توکن‌های باقیمانده: ${remainingTokens}<br>
                         روزهای باقیمانده: ${data.remaining_days}<br>
                         <strong>ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان</strong>
                     </small>
@@ -196,6 +232,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             const remainingValue = parseFloat(remainingValueMatch[1].replace(/,/g, ''));
                             const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
                             finalPriceSpan.textContent = finalPrice.toFixed(0);
+                            
+                            // If final price is 0, show a special message
+                            if (finalPrice === 0) {
+                                resultDiv.innerHTML = `
+                                    <div class="alert alert-success mb-0">
+                                        <small>
+                                            ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.
+                                        </small>
+                                    </div>
+                                `;
+                            }
                         } else {
                             finalPriceSpan.textContent = originalPrice;
                         }

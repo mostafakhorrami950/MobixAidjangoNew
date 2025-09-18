@@ -1,0 +1,1024 @@
+// =================================
+// ارسال پیام‌ها و streaming (Message Sending & Streaming)
+// =================================
+
+// Send message with streaming support
+function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
+    
+    // دریافت فایل از مدیر آپلود فایل
+    // Get file from file upload manager
+    const file = getSelectedFile();
+
+    if (!message && !file) {
+        return;
+    }
+    
+    // بررسی وجود currentSessionId و ایجاد session پیش‌فرض در صورت نیاز
+    if (!currentSessionId) {
+        // ایجاد session پیش‌فرض
+        createDefaultSessionAndSendMessage(message, file);
+        return;
+    }
+
+    // Prepare display message
+    let displayMessage = message;
+    if (file) {
+        displayMessage += ` (فایل: ${file.name})`;
+    }
+
+    // Add user message to chat immediately
+    // Note: We'll replace this temporary message with the one from the server later
+    const tempUserMessage = {
+        type: 'user',
+        content: displayMessage,
+        created_at: new Date().toISOString()
+    };
+    console.log('Adding temporary user message:', tempUserMessage);
+    addMessageToChat(tempUserMessage);
+
+    // Clear inputs
+    messageInput.value = '';
+    resetFileInputState(); // Use the robust reset function
+    // Don't disable the send button immediately - keep it enabled for stop functionality
+    // document.getElementById('send-button').disabled = true;
+
+    // Disable input while processing
+    messageInput.disabled = true;
+
+    // Show typing indicator
+    showTypingIndicator();
+
+    // Check if this is the first message to generate title
+    checkAndGenerateTitle(message);
+
+    const isWebSearchEnabled = sessionStorage.getItem(`webSearch_${currentSessionId}`) === 'true';
+    const isImageGenerationEnabled = sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true';
+
+    // ALWAYS use FormData to send the request
+    const formData = new FormData();
+    formData.append('message', message);
+    formData.append('use_web_search', isWebSearchEnabled);
+    formData.append('generate_image', isImageGenerationEnabled);
+    if (file) {
+        formData.append('file', file);
+    }
+
+    let assistantContent = '';
+    let imagesData = [];
+    let userMessageData = null; // To store user message data from server
+    let userMessageElement = null; // To store reference to user message element
+    let assistantMessageId = null; // To store assistant message ID from server
+    
+    // ساخت یک کنترلر جدید برای هر درخواست
+    abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
+    setButtonState(true); // تغییر دکمه به حالت "توقف"
+
+    // Unified fetch request to 'send_message' endpoint
+    fetch(`/chat/session/${currentSessionId}/send/`, {
+        method: 'POST',
+        headers: {
+            // 'Content-Type' is automatically set to 'multipart/form-data' by the browser when using FormData
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData,
+        signal: abortController.signal // اتصال کنترلر به درخواست
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Error sending message');
+            });
+        }
+
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        function read() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    console.log('Message sending stream finished');
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                
+                    // Add final message with images if any
+                    const messageData = {
+                        type: 'assistant',
+                        content: assistantContent,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    // Add the assistant message ID if we have it
+                    if (assistantMessageId) {
+                        messageData.id = assistantMessageId;
+                    }
+                
+                    // Add image URLs if any images were generated
+                    let hasImages = false;
+                    if (imagesData.length > 0) {
+                        const formattedImageUrls = imagesData.map(img => {
+                            if (img.image_url && img.image_url.url) {
+                                let imageUrl = img.image_url.url;
+                                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                    imageUrl = '/media/' + imageUrl;
+                                }
+                                return imageUrl;
+                            }
+                            return '';
+                        }).filter(url => url.trim() !== '');
+                        
+                        if (formattedImageUrls.length > 0) {
+                            messageData.image_url = formattedImageUrls.join(',');
+                            hasImages = true;
+                        }
+                    }
+                
+                    addMessageToChat(messageData);
+                    hideTypingIndicator();
+                    
+                    // Check if this is an image editing chatbot and we have images
+                    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                        // For image editing chatbots, refresh the page after successful image generation
+                        console.log('Image generated successfully, refreshing page...');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000); // Refresh after 2 seconds to allow user to see the message
+                    }
+                    
+                    // Re-enable input and reset button state
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false);
+                    return;
+                }
+
+                try {
+                    const chunk = decoder.decode(value, { stream: true });
+                    console.log('Received chunk from message sending:', chunk);
+                    
+                    // Handle user message data
+                    if (chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]')) {
+                        const startIdx = chunk.indexOf('[USER_MESSAGE]') + 14;
+                        const endIdx = chunk.indexOf('[USER_MESSAGE_END]');
+                        const userMessageJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            userMessageData = JSON.parse(userMessageJson);
+                            console.log('Received user message data from server:', userMessageData);
+                            // Update the temporary user message with the real data from server
+                            updateUserMessageWithServerData(userMessageData);
+                        } catch (parseError) {
+                            console.error('Error parsing user message data:', parseError);
+                        }
+                    }
+                    // Handle assistant message ID
+                    else if (chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]')) {
+                        const startIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID]') + 22;
+                        const endIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID_END]');
+                        const assistantMessageJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const assistantData = JSON.parse(assistantMessageJson);
+                            assistantMessageId = assistantData.assistant_message_id;
+                            console.log('Received assistant message ID:', assistantMessageId);
+                        } catch (parseError) {
+                            console.error('Error parsing assistant message ID:', parseError);
+                        }
+                    }
+                    // Handle image data
+                    else if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
+                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
+                        const endIdx = chunk.indexOf('[IMAGES_END]');
+                        const imagesJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const newImages = JSON.parse(imagesJson);
+                            imagesData = imagesData.concat(newImages);
+                            console.log('Received images data:', imagesData);
+                            // Update the streaming message with images
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                        } catch (parseError) {
+                            console.error('Error parsing images data:', parseError);
+                        }
+                    }
+                    // Handle usage data (ignore for now)
+                    else if (chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]')) {
+                        // We don't need to do anything with usage data here
+                        // It's handled on the server side
+                        console.log('Received usage data, ignoring');
+                    }
+                    // Handle regular content
+                    else {
+                        console.log('Received assistant content:', chunk);
+                        assistantContent += chunk;
+                        // Update the streaming message with current content
+                        if (imagesData.length > 0) {
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                        } else {
+                            updateOrAddAssistantMessage(assistantContent, assistantMessageId);
+                        }
+                    }
+                } catch (decodeError) {
+                    console.error('Decoding error:', decodeError);
+                }
+                
+                read();
+            }).catch(error => {
+                if (error.name === 'AbortError') {
+                    console.log('درخواست توسط کاربر متوقف شد.');
+                    // پیام ناقص قبلاً در سمت سرور ذخیره شده است
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                    hideTypingIndicator();
+                    // Add final message with whatever content we have so far
+                    if (assistantContent) {
+                        const messageData = {
+                            type: 'assistant',
+                            content: assistantContent,
+                            created_at: new Date().toISOString()
+                        };
+                        // Add image URLs if any images were generated
+                        if (imagesData.length > 0) {
+                            // Format image URLs properly
+                            const formattedImageUrls = imagesData.map(img => {
+                                if (img.image_url && img.image_url.url) {
+                                    let imageUrl = img.image_url.url;
+                                    // If it's a relative path, prepend the media URL
+                                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                        imageUrl = '/media/' + imageUrl;
+                                    }
+                                    return imageUrl;
+                                }
+                                return '';
+                            }).filter(url => url.trim() !== '');
+                            
+                            messageData.image_url = formattedImageUrls.join(',');
+                        }
+                        addMessageToChat(messageData);
+                    }
+                    // Re-enable input and reset button state after streaming is complete
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+                } else {
+                    console.error('Streaming error:', error);
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                    hideTypingIndicator();
+                    addMessageToChat({
+                        type: 'assistant',
+                        content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                        created_at: new Date().toISOString()
+                    });
+                    // Re-enable input and reset button state after streaming is complete
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+                }
+            });
+        }
+        read();
+    })
+    .catch(error => {
+        // Remove the streaming assistant message if it exists
+        const streamingElement = document.getElementById('streaming-assistant');
+        if (streamingElement) {
+            streamingElement.remove();
+        }
+        
+        if (error.name === 'AbortError') {
+            console.log('درخواست توسط کاربر متوقف شد.');
+            // پیام ناقص قبلاً در سمت سرور ذخیره شده است
+            hideTypingIndicator();
+            // Add final message with whatever content we have so far
+            if (assistantContent) {
+                const messageData = {
+                    type: 'assistant',
+                    content: assistantContent,
+                    created_at: new Date().toISOString()
+                };
+                // Add image URLs if any images were generated
+                if (imagesData.length > 0) {
+                    // Format image URLs properly
+                    const formattedImageUrls = imagesData.map(img => {
+                        if (img.image_url && img.image_url.url) {
+                            let imageUrl = img.image_url.url;
+                            // If it's a relative path, prepend the media URL
+                            if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                imageUrl = '/media/' + imageUrl;
+                            }
+                            return imageUrl;
+                        }
+                        return '';
+                    }).filter(url => url.trim() !== '');
+                    
+                    messageData.image_url = formattedImageUrls.join(',');
+                }
+                addMessageToChat(messageData);
+            }
+        } else {
+            console.error('Error:', error);
+            hideTypingIndicator();
+            addMessageToChat({
+                type: 'assistant',
+                content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                created_at: new Date().toISOString()
+            });
+        }
+        // Re-enable input and reset button state after streaming is complete
+        messageInput.disabled = false;
+        messageInput.focus();
+        setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+    });
+}
+
+// Check if this is the first message and generate title
+async function checkAndGenerateTitle(message) {
+    // Only generate title for the first message
+    const chatContainer = document.getElementById('chat-container');
+    const messageElements = chatContainer.querySelectorAll('.message-user, .message-assistant');
+    
+    // If this is the first user message (should be the only user message in container)
+    // Count only user messages to determine if this is the first one
+    const userMessageElements = chatContainer.querySelectorAll('.message-user');
+    if (userMessageElements.length === 1 && currentSessionId) {
+        try {
+            // Get session info to get chatbot and model IDs
+            const response = await fetch(`/chat/session/${currentSessionId}/messages/`);
+            const sessionData = await response.json();
+            
+            // Generate title using the first message
+            const titleResponse = await fetch(CHAT_URLS.generateChatTitle, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    first_message: message,
+                    chatbot_id: sessionData.chatbot_id, // This will be the chatbot ID
+                    model_id: null // We'll use chatbot_id instead
+                })
+            });
+            
+            const titleData = await titleResponse.json();
+            const newTitle = titleData.title || 'چت جدید';
+            
+            // Update the session title
+            await fetch(`/chat/session/${currentSessionId}/update-title/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    title: newTitle
+                })
+            });
+            
+            // Update UI with new title
+            document.getElementById('current-session-title').textContent = newTitle;
+            
+            // Refresh sessions list
+            loadSessions();
+        } catch (error) {
+            console.error('Error generating title:', error);
+        }
+    }
+}
+
+// Update or add assistant message for streaming
+function updateOrAddAssistantMessage(content) {
+    const chatContainer = document.getElementById('chat-container');
+    let assistantElement = document.getElementById('streaming-assistant');
+    
+    // Render Markdown for the content
+    let renderedContent;
+    try {
+        renderedContent = md.render(content);
+    } catch (e) {
+        console.error('Error rendering markdown:', e);
+        // Show error message in Persian
+        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
+            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
+        } else {
+            // Fallback to plain text if markdown rendering fails
+            renderedContent = md.utils.escapeHtml(content);
+        }
+    }
+    
+    if (!assistantElement) {
+        // Create new assistant message element with same structure as addMessageToChat
+        assistantElement = document.createElement('div');
+        assistantElement.className = 'message-assistant';
+        assistantElement.id = 'streaming-assistant';
+        
+        // Format timestamp
+        const timestamp = new Date().toLocaleTimeString('fa-IR');
+        
+        // Create message content with metadata (similar to addMessageToChat)
+        let elementContent = `
+            <div class="message-header">
+                <strong>دستیار</strong>
+                <small class="text-muted float-end">${timestamp}</small>
+            </div>
+            <div class="message-content">${renderedContent}</div>
+        `;
+        assistantElement.innerHTML = elementContent;
+        chatContainer.appendChild(assistantElement);
+    } else {
+        // Update existing element content only
+        const contentDiv = assistantElement.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = renderedContent;
+            
+            // Apply syntax highlighting to new code blocks
+            if (hljs) {
+                const codeBlocks = contentDiv.querySelectorAll('pre code');
+                codeBlocks.forEach(block => {
+                    if (!block.dataset.highlighted) {
+                        try {
+                            // اطمینان از اینکه محتوا escape شده است
+                            if (block.innerHTML && !block.dataset.highlighted) {
+                                // بررسی امنیتی HTML
+                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
+                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                }
+                                hljs.highlightElement(block);
+                                block.dataset.highlighted = 'true';
+                            }
+                        } catch (e) {
+                            console.warn('Syntax highlighting failed for block:', e);
+                        }
+                    }
+                });
+            }
+        }
+    }
+    
+    // Add copy buttons to code blocks and quotes
+    addCopyButtonsToContent(assistantElement);
+    
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
+}
+
+// Update the streaming handler to handle images
+function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
+    const chatContainer = document.getElementById('chat-container');
+    let assistantElement = document.getElementById('streaming-assistant');
+    
+    // Render Markdown for the content
+    let renderedContent;
+    try {
+        renderedContent = md.render(content);
+    } catch (e) {
+        console.error('Error rendering markdown:', e);
+        // Show error message in Persian
+        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
+            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
+        } else {
+            // Fallback to plain text if markdown rendering fails
+            renderedContent = md.utils.escapeHtml(content);
+        }
+    }
+    
+    // Add image display if imagesData is present
+    let imageContent = '';
+    if (imagesData && imagesData.length > 0) {
+        imagesData.forEach(img => {
+            if (img.image_url && img.image_url.url) {
+                // Handle both absolute URLs and relative paths
+                let imageUrl = img.image_url.url;
+                // If it's a relative path, prepend the media URL
+                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                    imageUrl = '/media/' + imageUrl;
+                }
+                // If it already starts with /media/, make sure it's properly formatted
+                else if (imageUrl.startsWith('/media/')) {
+                    // It's already correctly formatted
+                }
+                // If it's already an absolute URL, leave it as is
+                imageContent += `<div class="image-container mt-2">
+                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                    <div class="mt-1">
+                        <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download"></i> دانلود تصویر
+                        </a>
+                    </div>
+                </div>`;
+            }
+        });
+    }
+    
+    if (!assistantElement) {
+        // Create new assistant message element with same structure as addMessageToChat
+        assistantElement = document.createElement('div');
+        assistantElement.className = 'message-assistant';
+        assistantElement.id = 'streaming-assistant';
+        
+        // Format timestamp
+        const timestamp = new Date().toLocaleTimeString('fa-IR');
+        
+        // Create message content with metadata (similar to addMessageToChat)
+        let elementContent = `
+            <div class="message-header">
+                <strong>دستیار</strong>
+                <small class="text-muted float-end">${timestamp}</small>
+            </div>
+            <div class="message-content">${renderedContent}</div>
+            ${imageContent}
+        `;
+        assistantElement.innerHTML = elementContent;
+        chatContainer.appendChild(assistantElement);
+    } else {
+        // Update existing element content only
+        const contentDiv = assistantElement.querySelector('.message-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = renderedContent;
+            
+            // Apply syntax highlighting to new code blocks
+            if (hljs) {
+                const codeBlocks = contentDiv.querySelectorAll('pre code');
+                codeBlocks.forEach(block => {
+                    if (!block.dataset.highlighted) {
+                        try {
+                            // اطمینان از اینکه محتوا escape شده است
+                            if (block.innerHTML && !block.dataset.highlighted) {
+                                // بررسی امنیتی HTML
+                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
+                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                }
+                                hljs.highlightElement(block);
+                                block.dataset.highlighted = 'true';
+                            }
+                        } catch (e) {
+                            console.warn('Syntax highlighting failed for block:', e);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Add images if they exist and haven't been added yet
+        // Fix: Only add images if they don't already exist to prevent duplicates
+        if (imageContent && !assistantElement.querySelector('.image-container')) {
+            assistantElement.insertAdjacentHTML('beforeend', imageContent);
+        }
+    }
+    
+    // Add copy buttons to code blocks and quotes
+    addCopyButtonsToContent(assistantElement);
+    
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
+}
+
+// Generate chat title using AI
+function generateChatTitle(firstMessage, chatbotId, modelId) {
+    const data = {
+        first_message: firstMessage
+    };
+    
+    // Add either chatbot_id or model_id based on what's provided
+    if (chatbotId) {
+        data.chatbot_id = chatbotId;
+    } else if (modelId) {
+        data.model_id = modelId;
+    }
+    
+    return fetch(CHAT_URLS.generateChatTitle, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => data.title || 'چت جدید');
+}
+
+// تابع برای تغییر وضعیت دکمه
+function setButtonState(isSending) {
+    const sendButton = document.getElementById('send-button');
+    const sendIcon = sendButton.querySelector('.send-icon');
+    const stopIcon = sendButton.querySelector('.stop-icon');
+
+    if (isSending) {
+        sendIcon.style.display = 'none';
+        stopIcon.style.display = 'inline-block';
+        sendButton.classList.add('btn-danger'); // تغییر رنگ به قرمز
+        sendButton.disabled = false; // فعال کردن دکمه در حالت توقف
+        sendButton.onclick = function(event) {
+            event.preventDefault();
+            abortController.abort(); // لغو درخواست در صورت کلیک
+        };
+    } else {
+        sendIcon.style.display = 'inline-block';
+        stopIcon.style.display = 'none';
+        sendButton.classList.remove('btn-danger');
+        sendButton.disabled = false; // همیشه دکمه را فعال نگه دار
+        sendButton.onclick = null; // حذف رویداد کلیک قبلی
+    }
+}
+
+// رویداد ترک صفحه
+window.addEventListener('beforeunload', function() {
+    // اگر درخواستی در حال پردازش است، آن را لغو کن
+    if (abortController && !abortController.signal.aborted) {
+        abortController.abort();
+    }
+});
+
+/**
+ * ایجاد جلسه پیش‌فرض و ارسال پیام
+ * Create default session and send message
+ */
+async function createDefaultSessionAndSendMessage(message, file) {
+    try {
+        // نمایش پیام انتظار
+        showTypingIndicator();
+        
+        // Prepare data for creating session
+        const sessionData = {};
+        
+        // If a model is selected for new session, use it
+        if (selectedModelForNewSession) {
+            sessionData.ai_model_id = selectedModelForNewSession;
+        }
+        
+        // ایجاد جلسه پیش‌فرض
+        const response = await fetch(CHAT_URLS.createDefaultSession, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(sessionData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            hideTypingIndicator();
+            alert('خطا در ایجاد چت جدید: ' + data.error);
+            return;
+        }
+        
+        // تنظیم session ID جدید
+        currentSessionId = data.session_id;
+        
+        // Redirect to the new session URL
+        const newUrl = `/chat/session/${currentSessionId}/`;
+        history.pushState({sessionId: currentSessionId}, '', newUrl);
+        
+        // بروزرسانی UI
+        document.getElementById('current-session-title').innerHTML = `
+            <i class="fas fa-comments"></i> ${data.title}
+        `;
+        document.getElementById('delete-session-btn').style.display = 'inline-block';
+        
+        // فعال کردن input ها
+        document.getElementById('message-input').disabled = false;
+        document.getElementById('send-button').disabled = false;
+        
+        // Load models for the message input area
+        if (data.chatbot_id) {
+            loadMessageInputModels(data.chatbot_id);
+        }
+        
+        // Check web search and image generation access
+        checkWebSearchAccess(currentSessionId);
+        checkImageGenerationAccess(currentSessionId);
+        
+        // Set web search state if it was enabled for new session
+        if (isWebSearchEnabledForNewSession) {
+            sessionStorage.setItem(`webSearch_${currentSessionId}`, 'true');
+            // Update the web search button UI
+            const webSearchBtn = document.getElementById('web-search-btn');
+            if (webSearchBtn) {
+                webSearchBtn.classList.remove('btn-outline-secondary');
+                webSearchBtn.classList.add('btn-success');
+                webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
+                webSearchBtn.title = 'غیرفعال کردن جستجو وب';
+            }
+        }
+        
+        // بروزرسانی لیست sessions
+        loadSessions();
+        
+        // مخفی کردن welcome message
+        const welcomeMessage = document.getElementById('welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.style.display = 'none';
+        }
+        
+        hideTypingIndicator();
+        
+        // حالا پیام را ارسال کنیم
+        sendMessageInternal(message, file);
+        
+    } catch (error) {
+        hideTypingIndicator();
+        console.error('Error creating default session:', error);
+        alert('خطا در ایجاد چت جدید: ' + error.message);
+    }
+}
+
+/**
+ * ارسال پیام داخلی (بدون بررسی session)
+ * Internal message sending (without session check)
+ */
+function sendMessageInternal(message, file) {
+    const messageInput = document.getElementById('message-input');
+    
+    // Add user message to chat immediately
+    let displayMessage = message;
+    if (file) {
+        displayMessage += ` (فایل: ${file.name})`;
+
+    }
+
+    addMessageToChat({
+        type: 'user',
+        content: displayMessage,
+        created_at: new Date().toISOString()
+    });
+
+    // Clear inputs
+    messageInput.value = '';
+    resetFileInputState(); // Use the robust reset function
+
+    // Disable input while processing
+    messageInput.disabled = true;
+
+    // Show typing indicator
+    showTypingIndicator();
+
+    // Check if this is the first message to generate title
+    checkAndGenerateTitle(message);
+
+    const isWebSearchEnabled = sessionStorage.getItem(`webSearch_${currentSessionId}`) === 'true';
+    const isImageGenerationEnabled = sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true';
+
+    // ALWAYS use FormData to send the request
+    const formData = new FormData();
+    formData.append('message', message);
+    formData.append('use_web_search', isWebSearchEnabled);
+    formData.append('generate_image', isImageGenerationEnabled);
+    if (file) {
+        formData.append('file', file);
+    }
+
+    let assistantContent = '';
+    let imagesData = [];
+    
+    // ساخت یک کنترلر جدید برای هر درخواست
+    abortController = new AbortController();
+    setButtonState(true); // تغییر دکمه به حالت "توقف"
+
+    // Unified fetch request to 'send_message' endpoint
+    fetch(`/chat/session/${currentSessionId}/send/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData,
+        signal: abortController.signal
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || 'Error sending message');
+            });
+        }
+
+        // Handle streaming response - same as in original sendMessage
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        function read() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                
+                    // Add final message with images if any
+                    const messageData = {
+                        type: 'assistant',
+                        content: assistantContent,
+                        created_at: new Date().toISOString()
+                    };
+                
+                    // Add image URLs if any images were generated
+                    if (imagesData.length > 0) {
+                        const formattedImageUrls = imagesData.map(img => {
+                            if (img.image_url && img.image_url.url) {
+                                let imageUrl = img.image_url.url;
+                                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                    imageUrl = '/media/' + imageUrl;
+                                }
+                                return imageUrl;
+                            }
+                            return '';
+                        }).filter(url => url.trim() !== '');
+                        
+                        messageData.image_url = formattedImageUrls.join(',');
+                    }
+                
+                    addMessageToChat(messageData);
+                    hideTypingIndicator();
+                    // Re-enable input and reset button state
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false);
+                    return;
+                }
+
+                try {
+                    const chunk = decoder.decode(value, { stream: true });
+                    
+                    // Handle image data
+                    if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
+                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
+                        const endIdx = chunk.indexOf('[IMAGES_END]');
+                        const imagesJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const newImages = JSON.parse(imagesJson);
+                            imagesData = imagesData.concat(newImages);
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                        } catch (parseError) {
+                            console.error('Error parsing images data:', parseError);
+                        }
+                    }
+                    // Handle usage data
+                    else if (chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]')) {
+                        // Ignore usage data
+                    }
+                    // Handle regular content
+                    else {
+                        assistantContent += chunk;
+                        if (imagesData.length > 0) {
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                        } else {
+                            updateOrAddAssistantMessage(assistantContent);
+                        }
+                    }
+                } catch (decodeError) {
+                    console.error('Decoding error:', decodeError);
+                }
+                
+                read();
+            }).catch(error => {
+                if (error.name === 'AbortError') {
+                    console.log('درخواست توسط کاربر متوقف شد.');
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                    hideTypingIndicator();
+                    if (assistantContent) {
+                        const messageData = {
+                            type: 'assistant',
+                            content: assistantContent,
+                            created_at: new Date().toISOString()
+                        };
+                        if (imagesData.length > 0) {
+                            const formattedImageUrls = imagesData.map(img => {
+                                if (img.image_url && img.image_url.url) {
+                                    let imageUrl = img.image_url.url;
+                                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                        imageUrl = '/media/' + imageUrl;
+                                    }
+                                    return imageUrl;
+                                }
+                                return '';
+                            }).filter(url => url.trim() !== '');
+                            
+                            messageData.image_url = formattedImageUrls.join(',');
+                        }
+                        addMessageToChat(messageData);
+                    }
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false);
+                } else {
+                    console.error('Streaming error:', error);
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                    hideTypingIndicator();
+                    addMessageToChat({
+                        type: 'assistant',
+                        content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                        created_at: new Date().toISOString()
+                    });
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false);
+                }
+            });
+        }
+        read();
+    })
+    .catch(error => {
+        if (error.name === 'AbortError') {
+            console.log('درخواست توسط کاربر متوقف شد.');
+            hideTypingIndicator();
+            if (assistantContent) {
+                const messageData = {
+                    type: 'assistant',
+                    content: assistantContent,
+                    created_at: new Date().toISOString()
+                };
+                if (imagesData.length > 0) {
+                    const formattedImageUrls = imagesData.map(img => {
+                        if (img.image_url && img.image_url.url) {
+                            let imageUrl = img.image_url.url;
+                            if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                imageUrl = '/media/' + imageUrl;
+                            }
+                            return imageUrl;
+                        }
+                        return '';
+                    }).filter(url => url.trim() !== '');
+                    
+                    messageData.image_url = formattedImageUrls.join(',');
+                }
+                addMessageToChat(messageData);
+            }
+        } else {
+            console.error('Error:', error);
+            hideTypingIndicator();
+            addMessageToChat({
+                type: 'assistant',
+                content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                created_at: new Date().toISOString()
+            });
+        }
+        messageInput.disabled = false;
+        messageInput.focus();
+        setButtonState(false);
+    });
+}
+
+// Function to update the temporary user message with real data from server
+function updateUserMessageWithServerData(userData) {
+    console.log('Updating user message with server data:', userData);
+    
+    // Find the last user message element (which should be our temporary one)
+    const userMessages = document.querySelectorAll('.message-user');
+    if (userMessages.length > 0) {
+        const lastUserMessage = userMessages[userMessages.length - 1];
+        
+        // Check if this message already has an ID
+        if (lastUserMessage.dataset.messageId) {
+            console.log('Last user message already has an ID:', lastUserMessage.dataset.messageId);
+            // If it already has an ID, make sure it matches the server ID
+            if (userData.id && lastUserMessage.dataset.messageId !== userData.id) {
+                console.warn('Message ID mismatch. Expected:', userData.id, 'Actual:', lastUserMessage.dataset.messageId);
+                // Update the ID to match the server
+                lastUserMessage.dataset.messageId = userData.id;
+            }
+            return;
+        }
+        
+        // Update the message ID data attribute for editing functionality
+        if (userData.id) {
+            lastUserMessage.dataset.messageId = userData.id;
+            console.log('Updated user message with server ID:', userData.id);
+        }
+        
+        // Update other attributes if needed
+        // Note: Content and other attributes should already be correct
+    } else {
+        console.warn('No user messages found to update with server data');
+    }
+}
+
+// Function to ensure all messages have proper IDs
+function ensureMessageIds() {
+    // Get all messages that don't have IDs
+    const messagesWithoutIds = document.querySelectorAll('.message-user:not([data-message-id]), .message-assistant:not([data-message-id])');
+    console.log('Found messages without IDs:', messagesWithoutIds.length);
+    
+    // For each message without an ID, we can't do much except log a warning
+    // In a real implementation, we might want to reload the session or handle this differently
+    messagesWithoutIds.forEach((message, index) => {
+        console.warn('Message without ID found:', message);
+    });
+}

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "otp_service",
     "ai_models",
     "subscriptions",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -140,8 +141,12 @@ IPANEL_PATTERN_CODE = 'sg2dmjt3h4l2l1w'
 IPANEL_FROM_NUMBER = '+983000505'
 
 # OpenRouter API Settings
-OPENROUTER_API_KEY = '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'
+OPENROUTER_API_KEY = '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'
 
 # ZarinPal Settings
 ZARINPAL_MERCHANT_ID = '3224fed3-eadd-436e-a10b-139ecf6a8ca2'
 ZARINPAL_SANDBOX = True  # Set to False for production
+
+# Media files (Uploaded images)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

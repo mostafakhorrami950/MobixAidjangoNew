@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AIModel, ModelSubscription
+from .models import AIModel, ModelSubscription, WebSearchSettings
 
 class ModelSubscriptionInline(admin.TabularInline):
     model = ModelSubscription
@@ -22,3 +22,19 @@ class AIModelAdmin(admin.ModelAdmin):
         else:
             return "Not Available"
     access_type.short_description = 'Access Type'
+
+@admin.register(WebSearchSettings)
+class WebSearchSettingsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'web_search_model', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('name',)
+    filter_horizontal = ('enabled_subscription_types',)
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        # Filter to only show text generation models
+        form.base_fields['web_search_model'].queryset = AIModel.objects.filter(
+            model_type='text', 
+            is_active=True
+        )
+        return form

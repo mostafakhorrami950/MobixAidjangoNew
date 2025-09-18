@@ -31,3 +31,29 @@ class ModelSubscription(models.Model):
     
     class Meta:
         db_table = 'model_subscriptions'
+
+class WebSearchSettings(models.Model):
+    """Settings for web search functionality"""
+    name = models.CharField(max_length=100, default="Web Search Settings")
+    web_search_model = models.ForeignKey(
+        AIModel, 
+        on_delete=models.CASCADE, 
+        related_name='web_search_settings',
+        help_text="AI model to use for web search functionality"
+    )
+    enabled_subscription_types = models.ManyToManyField(
+        'subscriptions.SubscriptionType',
+        blank=True,
+        help_text="Subscription types that can use web search functionality"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        db_table = 'web_search_settings'
+        verbose_name = "Web Search Settings"
+        verbose_name_plural = "Web Search Settings"

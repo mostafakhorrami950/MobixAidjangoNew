@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SubscriptionType, UserSubscription, UserUsage, DiscountCode, DiscountUse
+from .models import SubscriptionType, UserSubscription, UserUsage, DiscountCode, DiscountUse, FinancialTransaction
 
 @admin.register(SubscriptionType)
 class SubscriptionTypeAdmin(admin.ModelAdmin):
@@ -11,7 +11,7 @@ class SubscriptionTypeAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'price', 'is_active')
         }),
         ('Subscription Details', {
-            'fields': ('duration_days', 'sku', 'max_tokens')
+            'fields': ('duration_days', 'sku', 'max_tokens', 'max_tokens_free')
         }),
         ('Usage Limits - Hourly', {
             'fields': ('hourly_max_messages', 'hourly_max_tokens'),
@@ -37,12 +37,8 @@ class SubscriptionTypeAdmin(admin.ModelAdmin):
             'fields': ('monthly_max_messages', 'monthly_max_tokens', 'monthly_free_model_messages', 'monthly_free_model_tokens'),
             'classes': ('collapse',)
         }),
-        ('Web Search Limits', {
-            'fields': ('daily_web_search_limit', 'weekly_web_search_limit', 'monthly_web_search_limit'),
-            'classes': ('collapse',)
-        }),
-        ('PDF Processing Limits', {
-            'fields': ('daily_pdf_processing_limit', 'weekly_pdf_processing_limit', 'monthly_pdf_processing_limit', 'max_pdf_file_size'),
+        ('Image Generation Limits', {
+            'fields': ('daily_image_generation_limit', 'weekly_image_generation_limit', 'monthly_image_generation_limit'),
             'classes': ('collapse',)
         }),
     )
@@ -55,8 +51,8 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(UserUsage)
 class UserUsageAdmin(admin.ModelAdmin):
-    list_display = ('user', 'subscription_type', 'messages_count', 'tokens_count', 'period_start', 'period_end')
-    list_filter = ('subscription_type', 'period_start', 'period_end')
+    list_display = ('user', 'subscription_type', 'messages_count', 'tokens_count', 'created_at')
+    list_filter = ('subscription_type', 'created_at')
     search_fields = ('user__name',)
 
 @admin.register(DiscountCode)
@@ -100,3 +96,27 @@ class DiscountUseAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         return False  # Prevent manual creation of discount uses
+
+
+@admin.register(FinancialTransaction)
+class FinancialTransactionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'transaction_type', 'status', 'amount', 'authority', 'created_at')
+    list_filter = ('transaction_type', 'status', 'created_at')
+    search_fields = ('user__name', 'user__phone_number', 'authority', 'reference_id')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Transaction Information', {
+            'fields': ('user', 'subscription_type', 'transaction_type', 'status')
+        }),
+        ('Financial Details', {
+            'fields': ('amount', 'original_amount', 'discount_amount', 'discount_code')
+        }),
+        ('Payment Gateway Details', {
+            'fields': ('authority', 'reference_id')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

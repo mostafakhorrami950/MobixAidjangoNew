@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Chatbot, ChatSession, ChatMessage, GeneratedImage, UserUploadedImage, WebSearch, PDFDocument
+from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem
 
 class ChatSessionInline(admin.TabularInline):
     model = ChatSession
@@ -36,34 +36,72 @@ class ChatMessageAdmin(admin.ModelAdmin):
     search_fields = ('content', 'session__user__name')
     readonly_fields = ('created_at',)
     
+    @admin.display(description='Content Preview')
     def content_preview(self, obj):
         return obj.content[:50] + '...' if len(obj.content) > 50 else obj.content
-    content_preview.short_description = 'Content Preview'
 
-@admin.register(GeneratedImage)
-class GeneratedImageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'session', 'user', 'created_at', 'is_active')
+@admin.register(UploadedFile)
+class UploadedFileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'session', 'original_filename', 'size', 'uploaded_at')
+    list_filter = ('uploaded_at', 'user')
+    search_fields = ('original_filename', 'user__name', 'user__phone_number')
+    readonly_fields = ('filename', 'original_filename', 'mimetype', 'size', 'uploaded_at')
+
+@admin.register(FileUploadSettings)
+class FileUploadSettingsAdmin(admin.ModelAdmin):
+    list_display = ('subscription_type', 'max_file_size', 'max_files_per_chat', 
+                   'daily_file_limit', 'weekly_file_limit', 'monthly_file_limit', 'is_active')
+    list_filter = ('subscription_type', 'is_active')
+    search_fields = ('subscription_type__name',)
+    fields = ('subscription_type', 'max_file_size', 'allowed_extensions', 
+              'max_files_per_chat', 'daily_file_limit', 'weekly_file_limit', 
+              'monthly_file_limit', 'is_active')
+
+@admin.register(FileUploadUsage)
+class FileUploadUsageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'subscription_type', 'daily_files_count', 
+                   'weekly_files_count', 'monthly_files_count', 'session_files_count')
+    list_filter = ('subscription_type', 'user')
+    search_fields = ('user__name', 'user__phone_number')
+    readonly_fields = ('daily_period_start', 'weekly_period_start', 'monthly_period_start', 
+                      'created_at', 'updated_at')
+
+@admin.register(ImageGenerationUsage)
+class ImageGenerationUsageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'subscription_type', 'daily_images_count', 
+                   'weekly_images_count', 'monthly_images_count')
+    list_filter = ('subscription_type', 'user')
+    search_fields = ('user__name', 'user__phone_number')
+    readonly_fields = ('daily_period_start', 'weekly_period_start', 'monthly_period_start', 
+                      'created_at', 'updated_at')
+
+@admin.register(DefaultChatSettings)
+class DefaultChatSettingsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'default_chatbot', 'default_ai_model', 'is_active', 'created_at')
+    list_filter = ('is_active', 'default_chatbot', 'created_at')
+    search_fields = ('name', 'default_chatbot__name', 'default_ai_model__name')
+    fields = ('name', 'default_chatbot', 'default_ai_model', 'is_active')
+    readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(VisionProcessingSettings)
+class VisionProcessingSettingsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'ai_model', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
-    search_fields = ('session__title', 'user__name')
-    readonly_fields = ('id', 'created_at')
+    search_fields = ('name', 'ai_model__name')
+    fields = ('name', 'ai_model', 'is_active')
 
-@admin.register(UserUploadedImage)
-class UserUploadedImageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'session', 'user', 'created_at', 'is_active')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('session__title', 'user__name')
-    readonly_fields = ('id', 'created_at')
+@admin.register(UploadedImage)
+class UploadedImageAdmin(admin.ModelAdmin):
+    list_display = ('user', 'session', 'uploaded_at')
+    list_filter = ('uploaded_at', 'user')
+    search_fields = ('user__name', 'session__title')
+    readonly_fields = ('uploaded_at',)
 
-@admin.register(WebSearch)
-class WebSearchAdmin(admin.ModelAdmin):
-    list_display = ('id', 'session', 'user', 'query', 'created_at', 'is_active')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('session__title', 'user__name', 'query')
-    readonly_fields = ('id', 'created_at')
-
-@admin.register(PDFDocument)
-class PDFDocumentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'session', 'user', 'file_name', 'file_size', 'processing_engine', 'created_at', 'is_active')
-    list_filter = ('is_active', 'processing_engine', 'created_at')
-    search_fields = ('session__title', 'user__name', 'file_name')
-    readonly_fields = ('id', 'created_at')
+@admin.register(SidebarMenuItem)
+class SidebarMenuItemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'url_name', 'icon_class', 'order', 'is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated', 'required_permission')
+    list_filter = ('is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated', 'created_at', 'updated_at')
+    search_fields = ('name', 'url_name', 'required_permission')
+    list_editable = ('order', 'is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated')
+    fields = ('name', 'url_name', 'icon_class', 'order', 'is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated', 'required_permission')
+    readonly_fields = ('created_at', 'updated_at')

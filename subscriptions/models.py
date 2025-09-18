@@ -10,6 +10,7 @@ class SubscriptionType(models.Model):
     duration_days = models.IntegerField(default=30, help_text="Subscription duration in days")
     sku = models.CharField(max_length=50, unique=True, help_text="Stock Keeping Unit for the subscription")
     max_tokens = models.IntegerField(default=0, help_text="Maximum tokens allowed for this subscription (0 for unlimited)")
+    max_tokens_free = models.IntegerField(default=0, help_text="Maximum free tokens allowed for this subscription (0 for unlimited)")
     
     # Usage limits for different time periods
     hourly_max_messages = models.IntegerField(default=0, help_text="Maximum messages per hour (0 for unlimited)")
@@ -33,17 +34,6 @@ class SubscriptionType(models.Model):
     daily_image_generation_limit = models.IntegerField(default=10, help_text="Maximum images that can be generated per day (0 for unlimited)")
     weekly_image_generation_limit = models.IntegerField(default=50, help_text="Maximum images that can be generated per week (0 for unlimited)")
     monthly_image_generation_limit = models.IntegerField(default=200, help_text="Maximum images that can be generated per month (0 for unlimited)")
-    
-    # Web Search limits for Text Generator
-    daily_web_search_limit = models.IntegerField(default=10, help_text="Maximum web searches per day (0 for unlimited)")
-    weekly_web_search_limit = models.IntegerField(default=50, help_text="Maximum web searches per week (0 for unlimited)")
-    monthly_web_search_limit = models.IntegerField(default=200, help_text="Maximum web searches per month (0 for unlimited)")
-    
-    # PDF processing limits for Text Generator
-    daily_pdf_processing_limit = models.IntegerField(default=5, help_text="Maximum PDFs that can be processed per day (0 for unlimited)")
-    weekly_pdf_processing_limit = models.IntegerField(default=20, help_text="Maximum PDFs that can be processed per week (0 for unlimited)")
-    monthly_pdf_processing_limit = models.IntegerField(default=50, help_text="Maximum PDFs that can be processed per month (0 for unlimited)")
-    max_pdf_file_size = models.IntegerField(default=10, help_text="Maximum PDF file size in MB (0 for unlimited)")
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -75,17 +65,14 @@ class UserUsage(models.Model):
     tokens_count = models.IntegerField(default=0)
     free_model_messages_count = models.IntegerField(default=0)
     free_model_tokens_count = models.IntegerField(default=0)
-    period_start = models.DateTimeField()
-    period_end = models.DateTimeField()
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.user.name} - {self.subscription_type.name} - {self.period_start}"
+        return f"{self.user.name} - {self.subscription_type.name} - {self.created_at}"
     
     class Meta:
         db_table = 'user_usage'
-        unique_together = ('user', 'subscription_type', 'period_start')
 
 class DiscountCode(models.Model):
     DISCOUNT_TYPES = [
@@ -170,3 +157,48 @@ class DiscountUse(models.Model):
         db_table = 'discount_uses'
         verbose_name = "Discount Use"
         verbose_name_plural = "Discount Uses"
+
+
+class FinancialTransaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('subscription_purchase', 'Subscription Purchase'),
+        ('subscription_upgrade', 'Subscription Upgrade'),
+        ('subscription_renewal', 'Subscription Renewal'),
+    ]
+    
+    TRANSACTION_STATUS = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='financial_transactions')
+    subscription_type = models.ForeignKey(SubscriptionType, on_delete=models.CASCADE, null=True, blank=True)
+    transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPES)
+    status = models.CharField(max_length=20, choices=TRANSACTION_STATUS, default='pending')
+    
+    # Financial details
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Amount in Tomans")
+    original_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Original amount before discounts in Tomans")
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Discount amount in Tomans")
+    
+    # Payment gateway details
+    authority = models.CharField(max_length=100, unique=True, help_text="Payment authority from gateway")
+    reference_id = models.CharField(max_length=100, null=True, blank=True, help_text="Reference ID from payment gateway")
+    
+    # Discount information
+    discount_code = models.ForeignKey(DiscountCode, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.name} - {self.get_transaction_type_display()} - {self.amount} Tomans"
+    
+    class Meta:
+        db_table = 'financial_transactions'
+        verbose_name = "Financial Transaction"
+        verbose_name_plural = "Financial Transactions"
+        ordering = ['-created_at']

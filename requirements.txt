@@ -1,4 +1,10 @@
-Django>=4.2.7
-requests>=2.32.4
-zarinpal-py-sdk>=0.1.4
-openai==1.107.2
+Django==5.1.2
+psycopg2-binary==2.9.9
+requests>=2.32.3
+python-decouple==3.8
+zarinpal>=1.0.0
+PyPDF2==3.0.1
+python-docx==1.2.0
+openpyxl==3.1.5
+tiktoken>=0.8.0
+pydantic>=2.0.0

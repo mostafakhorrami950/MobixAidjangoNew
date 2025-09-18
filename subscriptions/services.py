@@ -1,15 +1,34 @@
+import logging
 from django.utils import timezone
 from datetime import timedelta
-from .models import UserUsage, SubscriptionType
-from chatbot.models import ChatSessionUsage
+from django.apps import apps
+from django.db.models import Sum
+import tiktoken
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 class UsageService:
     @staticmethod
     def calculate_tokens_for_message(content):
         """
-        Calculate tokens for a message (1 token per character)
+        Calculate tokens for a message using tiktoken with cl100k_base encoding (GPT-4/GPT-3.5)
         """
-        return len(content) if content else 0
+        if not content:
+            return 0
+        
+        try:
+            # Use cl100k_base encoding which is used by GPT-4 and GPT-3.5-turbo
+            encoding = tiktoken.get_encoding("cl100k_base")
+            token_count = len(encoding.encode(str(content)))
+            logger.debug(f"Calculated tokens for message using tiktoken: {token_count}")
+            return token_count
+        except Exception as e:
+            logger.error(f"Error calculating tokens with tiktoken: {str(e)}")
+            # Fallback to character-based estimation (roughly 4 characters per token)
+            token_count = max(1, len(str(content)) // 4)
+            logger.debug(f"Used fallback token calculation: {token_count}")
+            return token_count
     
     @staticmethod
     def calculate_tokens_for_messages(messages):
@@ -19,73 +38,8 @@ class UsageService:
         total_tokens = 0
         for message in messages:
             total_tokens += UsageService.calculate_tokens_for_message(message.content)
+        logger.debug(f"Calculated total tokens for messages: {total_tokens}")
         return total_tokens
-    
-    @staticmethod
-    def check_image_generation_limit(user, subscription_type, is_free_model=False):
-        """
-        Check if user has exceeded image generation limits based on subscription type configuration
-        """
-        # Get current time
-        now = timezone.now()
-        
-        # Check daily limit
-        if subscription_type.daily_image_generation_limit > 0:
-            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            daily_end = daily_start + timedelta(days=1)
-            
-            daily_images = UsageService._count_image_generations(user, subscription_type, daily_start, daily_end)
-            if daily_images >= subscription_type.daily_image_generation_limit:
-                return False, f"شما به حد مجاز تولید تصویر روزانه ({subscription_type.daily_image_generation_limit} عدد) رسیده‌اید"
-        
-        # Check weekly limit
-        if subscription_type.weekly_image_generation_limit > 0:
-            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            weekly_end = weekly_start + timedelta(weeks=1)
-            
-            weekly_images = UsageService._count_image_generations(user, subscription_type, weekly_start, weekly_end)
-            if weekly_images >= subscription_type.weekly_image_generation_limit:
-                return False, f"شما به حد مجاز تولید تصویر هفتگی ({subscription_type.weekly_image_generation_limit} عدد) رسیده‌اید"
-        
-        # Check monthly limit
-        if subscription_type.monthly_image_generation_limit > 0:
-            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if now.month == 12:
-                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-            else:
-                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
-            
-            monthly_images = UsageService._count_image_generations(user, subscription_type, monthly_start, monthly_end)
-            if monthly_images >= subscription_type.monthly_image_generation_limit:
-                return False, f"شما به حد مجاز تولید تصویر ماهانه ({subscription_type.monthly_image_generation_limit} عدد) رسیده‌اید"
-        
-        # Also check general usage limits
-        within_limit, message = UsageService.check_usage_limit(user, subscription_type, 100, is_free_model)
-        if not within_limit:
-            return False, message
-            
-        return True, "Usage within limits"
-    
-    @staticmethod
-    def _count_image_generations(user, subscription_type, start_time, end_time):
-        """
-        Count the number of image generations within a time period
-        """
-        from chatbot.models import ChatMessage, ChatSession
-        
-        # Count assistant messages with image URLs in image generation chat sessions
-        image_count = ChatMessage.objects.filter(
-            session__user=user,
-            session__chatbot__chatbot_type='image',
-            session__chatbot__subscription_types=subscription_type,
-            message_type='assistant',
-            image_url__isnull=False,
-            image_url__startswith='http',  # Only count actual generated images, not user uploads
-            created_at__gte=start_time,
-            created_at__lte=end_time
-        ).count()
-        
-        return image_count
     
     @staticmethod
     def check_usage_limit(user, subscription_type, tokens_count=1, is_free_model=False):
@@ -93,317 +47,236 @@ class UsageService:
         Check if user has exceeded usage limits across ALL time periods
         Also check if total tokens exceed the subscription's max_tokens limit
         """
+        logger.info(f"Checking usage limits for user {user.id}, is_free_model: {is_free_model}")
+        
         # Get current time
         now = timezone.now()
+        logger.debug(f"Current time: {now}")
         
         # First check: Total tokens vs Max tokens limit
         if not is_free_model and subscription_type.max_tokens > 0:
             # Calculate total tokens used across all periods
             total_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)[0]
+            logger.debug(f"Total tokens used: {total_tokens_used}, Max tokens: {subscription_type.max_tokens}")
             
             # Check if adding new tokens would exceed the limit
             if total_tokens_used + tokens_count > subscription_type.max_tokens:
-                return False, f"تعداد توکن‌های مجاز شما به پایان رسیده است. لطفاً اشتراک خود را ارتقاء دهید."
+                message = f"شما به حد مجاز توکن‌های مصرفی ({subscription_type.max_tokens} عدد) رسیده‌اید"
+                logger.info(f"Usage limit exceeded: {message}")
+                return False, message
         
-        # Get usage limits from subscription type for ALL time periods
-        limits = [
-            ('hourly', subscription_type.hourly_max_messages, subscription_type.hourly_max_tokens),
-            ('3_hours', subscription_type.three_hours_max_messages, subscription_type.three_hours_max_tokens),
-            ('12_hours', subscription_type.twelve_hours_max_messages, subscription_type.twelve_hours_max_tokens),
-            ('daily', subscription_type.daily_max_messages, subscription_type.daily_max_tokens),
-            ('weekly', subscription_type.weekly_max_messages, subscription_type.weekly_max_tokens),
-            ('monthly', subscription_type.monthly_max_messages, subscription_type.monthly_max_tokens),
-        ]
-        
-        # Check each time period
-        for time_period, max_messages, max_tokens in limits:
-            # Skip if no limit is set for this period
-            if max_messages == 0 and max_tokens == 0:
-                continue
-                
-            # Calculate period start and end times
-            if time_period == 'hourly':
-                period_start = now.replace(minute=0, second=0, microsecond=0)
-                period_end = period_start + timedelta(hours=1)
-            elif time_period == '3_hours':
-                # Round down to nearest 3-hour period
-                hour_group = (now.hour // 3) * 3
-                period_start = now.replace(hour=hour_group, minute=0, second=0, microsecond=0)
-                period_end = period_start + timedelta(hours=3)
-            elif time_period == '12_hours':
-                # Round down to nearest 12-hour period
-                hour_group = (now.hour // 12) * 12
-                period_start = now.replace(hour=hour_group, minute=0, second=0, microsecond=0)
-                period_end = period_start + timedelta(hours=12)
-            elif time_period == 'daily':
-                period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                period_end = period_start + timedelta(days=1)
-            elif time_period == 'weekly':
-                # Start of week (Monday)
-                period_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-                period_end = period_start + timedelta(weeks=1)
-            elif time_period == 'monthly':
-                # Start of month
-                period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                if now.month == 12:
-                    period_end = period_start.replace(year=period_start.year + 1, month=1)
-                else:
-                    period_end = period_start.replace(month=period_start.month + 1)
-            
-            # Get or create user usage record for this period
-            try:
-                user_usage = UserUsage.objects.get(
-                    user=user,
-                    subscription_type=subscription_type,
-                    period_start=period_start
-                )
-            except UserUsage.DoesNotExist:
-                # If no record exists, user hasn't used any resources in this period
-                continue
-            
-            # Check limits based on model type
-            if is_free_model:
-                # For free models, check against monthly free model limits
-                if time_period == 'monthly':
-                    # Check free model message limit
-                    if subscription_type.monthly_free_model_messages > 0 and user_usage.free_model_messages_count >= subscription_type.monthly_free_model_messages:
-                        return False, f"تعداد پیام‌های مجاز مدل رایگان در بازه زمانی یک ماه به پایان رسیده است"
-                    
-                    # Check free model token limit
-                    if subscription_type.monthly_free_model_tokens > 0 and user_usage.free_model_tokens_count + tokens_count > subscription_type.monthly_free_model_tokens:
-                        return False, f"تعداد توکن‌های مجاز مدل رایگان در بازه زمانی یک ماه به پایان رسیده است"
-            else:
-                # Check message limit
-                if max_messages > 0 and user_usage.messages_count >= max_messages:
-                    return False, f"تعداد پیام‌های مجاز در بازه زمانی {time_period} به پایان رسیده است"
-                
-                # Check token limit
-                if max_tokens > 0 and user_usage.tokens_count + tokens_count > max_tokens:
-                    return False, f"تعداد توکن‌های مجاز در بازه زمانی {time_period} به پایان رسیده است"
-        
-        return True, "Usage within limits"
-    
-    @staticmethod
-    def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
-        """
-        Increment user usage counters - FIXED: Only update one period to avoid duplication
-        """
-        # Handle case where subscription_type might be None
-        if not subscription_type:
-            return
-        
-        # Get current time
-        now = timezone.now()
-        
-        # Get usage limits from subscription type - Only update the most relevant period
-        # Order from most granular to least granular
-        limits = [
-            ('hourly', subscription_type.hourly_max_messages, subscription_type.hourly_max_tokens),
-            ('3_hours', subscription_type.three_hours_max_messages, subscription_type.three_hours_max_tokens),
-            ('12_hours', subscription_type.twelve_hours_max_messages, subscription_type.twelve_hours_max_tokens),
-            ('daily', subscription_type.daily_max_messages, subscription_type.daily_max_tokens),
-            ('weekly', subscription_type.weekly_max_messages, subscription_type.weekly_max_tokens),
-            ('monthly', subscription_type.monthly_max_messages, subscription_type.monthly_max_tokens),
-        ]
-        
-        # Find the first period that has any limits set (messages or tokens)
-        selected_period = None
-        for time_period, max_messages, max_tokens in limits:
-            if max_messages > 0 or max_tokens > 0:
-                selected_period = (time_period, max_messages, max_tokens)
-                break
-        
-        # If no limits are set for any period, use daily as default
-        if not selected_period:
-            selected_period = ('daily', subscription_type.daily_max_messages, subscription_type.daily_max_tokens)
-            
-        time_period, max_messages, max_tokens = selected_period
-        
-        # Calculate period start and end times
-        if time_period == 'hourly':
-            period_start = now.replace(minute=0, second=0, microsecond=0)
-            period_end = period_start + timedelta(hours=1)
-        elif time_period == '3_hours':
-            hour_group = (now.hour // 3) * 3
-            period_start = now.replace(hour=hour_group, minute=0, second=0, microsecond=0)
-            period_end = period_start + timedelta(hours=3)
-        elif time_period == '12_hours':
-            hour_group = (now.hour // 12) * 12
-            period_start = now.replace(hour=hour_group, minute=0, second=0, microsecond=0)
-            period_end = period_start + timedelta(hours=12)
-        elif time_period == 'daily':
-            period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            period_end = period_start + timedelta(days=1)
-        elif time_period == 'weekly':
-            period_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            period_end = period_start + timedelta(weeks=1)
-        elif time_period == 'monthly':
-            period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if now.month == 12:
-                period_end = period_start.replace(year=period_start.year + 1, month=1)
-            else:
-                period_end = period_start.replace(month=period_start.month + 1)
-        
-        # Use update_or_create to handle potential race conditions
-        user_usage, created = UserUsage.objects.update_or_create(
-            user=user,
-            subscription_type=subscription_type,
-            period_start=period_start,
-            defaults={
-                'period_end': period_end,
-                'messages_count': 0,
-                'tokens_count': 0,
-                'free_model_messages_count': 0,
-                'free_model_tokens_count': 0
-            }
-        )
-        
-        # Update counters based on model type
-        if is_free_model:
-            # For free models, update only the monthly free model counters
-            if time_period == 'monthly':
-                user_usage.free_model_messages_count += messages_count
-                user_usage.free_model_tokens_count += tokens_count
-                user_usage.save()
-            # If free model is used but the selected period is not monthly, 
-            # we still need to track it in the monthly period
-            elif subscription_type.monthly_free_model_tokens > 0 or subscription_type.monthly_free_model_messages > 0:
-                # Get or create the monthly period specifically for free model tracking
-                monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                if now.month == 12:
-                    monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-                else:
-                    monthly_end = monthly_start.replace(month=monthly_start.month + 1)
-                
-                monthly_usage, _ = UserUsage.objects.update_or_create(
-                    user=user,
-                    subscription_type=subscription_type,
-                    period_start=monthly_start,
-                    defaults={
-                        'period_end': monthly_end,
-                        'messages_count': 0,
-                        'tokens_count': 0,
-                        'free_model_messages_count': 0,
-                        'free_model_tokens_count': 0
-                    }
-                )
-                monthly_usage.free_model_messages_count += messages_count
-                monthly_usage.free_model_tokens_count += tokens_count
-                monthly_usage.save()
-        else:
-            user_usage.messages_count += messages_count
-            user_usage.tokens_count += tokens_count
-            user_usage.save()
-    
-    @staticmethod
-    def get_user_total_tokens_used(user, subscription_type):
-        """
-        Calculate the total tokens used by a user for their current subscription period
-        This implements the professional subscription logic with proper monthly reset
-        """
-        from .models import UserSubscription
-        
-        # Get the user's subscription record
-        try:
-            user_subscription = UserSubscription.objects.get(user=user, subscription_type=subscription_type, is_active=True)
-        except UserSubscription.DoesNotExist:
-            # If no active subscription, user might be on a free tier
-            # In this case, we'll calculate usage from the beginning of the current month
-            now = timezone.now()
-            period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            user_usages = UserUsage.objects.filter(
-                user=user, 
-                subscription_type=subscription_type,
-                period_start__gte=period_start
+        # Check hourly limits
+        if subscription_type.hourly_max_messages > 0 or subscription_type.hourly_max_tokens > 0:
+            hourly_start = now - timedelta(hours=1)
+            hourly_messages, hourly_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, hourly_start, now
             )
+            logger.debug(f"Hourly usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
+            logger.debug(f"Hourly limits - Messages: {subscription_type.hourly_max_messages}, Tokens: {subscription_type.hourly_max_tokens}")
             
-            total_tokens = 0
-            free_model_tokens = 0
+            if subscription_type.hourly_max_messages > 0 and hourly_messages >= subscription_type.hourly_max_messages:
+                message = f"شما به حد مجاز پیام‌های ساعتی ({subscription_type.hourly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Hourly message limit exceeded: {message}")
+                return False, message
             
-            for usage in user_usages:
-                total_tokens += usage.tokens_count
-                free_model_tokens += usage.free_model_tokens_count
-                
-            return total_tokens + free_model_tokens
+            if subscription_type.hourly_max_tokens > 0 and hourly_tokens >= subscription_type.hourly_max_tokens:
+                message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"Hourly token limit exceeded: {message}")
+                return False, message
         
-        # If user has an active subscription, calculate usage from subscription start date
-        subscription_start = user_subscription.start_date
-        now = timezone.now()
-        
-        # For monthly billing cycles, we reset at the beginning of each billing cycle
-        # Calculate the start of the current billing period
-        if user_subscription.end_date and user_subscription.end_date < now:
-            # Subscription has expired, use the end date as reference
-            billing_period_start = user_subscription.end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        else:
-            # Subscription is active, use start date to determine billing cycle
-            # Calculate how many full billing cycles have passed
-            days_since_start = (now - subscription_start).days
-            full_cycles = days_since_start // subscription_type.duration_days
-            billing_period_start = subscription_start + timedelta(days=full_cycles * subscription_type.duration_days)
-            # Reset to beginning of month for cleaner calculation
-            billing_period_start = billing_period_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        
-        # Get usage records for the current billing period
-        user_usages = UserUsage.objects.filter(
-            user=user,
-            subscription_type=subscription_type,
-            period_start__gte=billing_period_start
-        )
-        
-        total_tokens = 0
-        free_model_tokens = 0
-        
-        for usage in user_usages:
-            total_tokens += usage.tokens_count
-            free_model_tokens += usage.free_model_tokens_count
+        # Check 3-hour limits
+        if subscription_type.three_hours_max_messages > 0 or subscription_type.three_hours_max_tokens > 0:
+            three_hours_start = now - timedelta(hours=3)
+            three_hours_messages, three_hours_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, three_hours_start, now
+            )
+            logger.debug(f"3-hour usage - Messages: {three_hours_messages}, Tokens: {three_hours_tokens}")
+            logger.debug(f"3-hour limits - Messages: {subscription_type.three_hours_max_messages}, Tokens: {subscription_type.three_hours_max_tokens}")
             
-        return total_tokens + free_model_tokens
+            if subscription_type.three_hours_max_messages > 0 and three_hours_messages >= subscription_type.three_hours_max_messages:
+                message = f"شما به حد مجاز پیام‌های ۳ ساعتی ({subscription_type.three_hours_max_messages} عدد) رسیده‌اید"
+                logger.info(f"3-hour message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.three_hours_max_tokens > 0 and three_hours_tokens >= subscription_type.three_hours_max_tokens:
+                message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"3-hour token limit exceeded: {message}")
+                return False, message
+        
+        # Check 12-hour limits
+        if subscription_type.twelve_hours_max_messages > 0 or subscription_type.twelve_hours_max_tokens > 0:
+            twelve_hours_start = now - timedelta(hours=12)
+            twelve_hours_messages, twelve_hours_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, twelve_hours_start, now
+            )
+            logger.debug(f"12-hour usage - Messages: {twelve_hours_messages}, Tokens: {twelve_hours_tokens}")
+            logger.debug(f"12-hour limits - Messages: {subscription_type.twelve_hours_max_messages}, Tokens: {subscription_type.twelve_hours_max_tokens}")
+            
+            if subscription_type.twelve_hours_max_messages > 0 and twelve_hours_messages >= subscription_type.twelve_hours_max_messages:
+                message = f"شما به حد مجاز پیام‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_messages} عدد) رسیده‌اید"
+                logger.info(f"12-hour message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.twelve_hours_max_tokens > 0 and twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
+                message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"12-hour token limit exceeded: {message}")
+                return False, message
+        
+        # Check daily limits
+        if subscription_type.daily_max_messages > 0 or subscription_type.daily_max_tokens > 0:
+            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            daily_end = daily_start + timedelta(days=1)
+            
+            daily_messages, daily_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, daily_start, daily_end
+            )
+            logger.debug(f"Daily usage - Messages: {daily_messages}, Tokens: {daily_tokens}")
+            logger.debug(f"Daily limits - Messages: {subscription_type.daily_max_messages}, Tokens: {subscription_type.daily_max_tokens}")
+            
+            if subscription_type.daily_max_messages > 0 and daily_messages >= subscription_type.daily_max_messages:
+                message = f"شما به حد مجاز پیام‌های روزانه ({subscription_type.daily_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Daily message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.daily_max_tokens > 0 and daily_tokens >= subscription_type.daily_max_tokens:
+                message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"Daily token limit exceeded: {message}")
+                return False, message
+        
+        # Check weekly limits
+        if subscription_type.weekly_max_messages > 0 or subscription_type.weekly_max_tokens > 0:
+            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            weekly_end = weekly_start + timedelta(weeks=1)
+            
+            weekly_messages, weekly_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, weekly_start, weekly_end
+            )
+            logger.debug(f"Weekly usage - Messages: {weekly_messages}, Tokens: {weekly_tokens}")
+            logger.debug(f"Weekly limits - Messages: {subscription_type.weekly_max_messages}, Tokens: {subscription_type.weekly_max_tokens}")
+            
+            if subscription_type.weekly_max_messages > 0 and weekly_messages >= subscription_type.weekly_max_messages:
+                message = f"شما به حد مجاز پیام‌های هفتگی ({subscription_type.weekly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Weekly message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.weekly_max_tokens > 0 and weekly_tokens >= subscription_type.weekly_max_tokens:
+                message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"Weekly token limit exceeded: {message}")
+                return False, message
+        
+        # Check monthly limits
+        if subscription_type.monthly_max_messages > 0 or subscription_type.monthly_max_tokens > 0:
+            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if now.month == 12:
+                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+            else:
+                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+            
+            monthly_messages, monthly_tokens = UsageService.get_user_usage_for_period(
+                user, subscription_type, monthly_start, monthly_end
+            )
+            logger.debug(f"Monthly usage - Messages: {monthly_messages}, Tokens: {monthly_tokens}")
+            logger.debug(f"Monthly limits - Messages: {subscription_type.monthly_max_messages}, Tokens: {subscription_type.monthly_max_tokens}")
+            
+            if subscription_type.monthly_max_messages > 0 and monthly_messages >= subscription_type.monthly_max_messages:
+                message = f"شما به حد مجاز پیام‌های ماهانه ({subscription_type.monthly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Monthly message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.monthly_max_tokens > 0 and monthly_tokens >= subscription_type.monthly_max_tokens:
+                message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید"
+                logger.info(f"Monthly token limit exceeded: {message}")
+                return False, message
+        
+        # Check free model limits (monthly)
+        if is_free_model and (subscription_type.monthly_free_model_messages > 0 or subscription_type.monthly_free_model_tokens > 0):
+            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if now.month == 12:
+                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+            else:
+                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+            
+            monthly_messages, monthly_tokens = UsageService.get_user_free_model_usage_for_period(
+                user, subscription_type, monthly_start, monthly_end
+            )
+            logger.debug(f"Monthly free model usage - Messages: {monthly_messages}, Tokens: {monthly_tokens}")
+            logger.debug(f"Monthly free model limits - Messages: {subscription_type.monthly_free_model_messages}, Tokens: {subscription_type.monthly_free_model_tokens}")
+            
+            if subscription_type.monthly_free_model_messages > 0 and monthly_messages >= subscription_type.monthly_free_model_messages:
+                message = f"شما به حد مجاز پیام‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_messages} عدد) رسیده‌اید"
+                logger.info(f"Monthly free model message limit exceeded: {message}")
+                return False, message
+            
+            if subscription_type.monthly_free_model_tokens > 0 and monthly_tokens >= subscription_type.monthly_free_model_tokens:
+                message = f"شما به حد مجاز توکن‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_tokens} عدد) رسیده‌اید"
+                logger.info(f"Monthly free model token limit exceeded: {message}")
+                return False, message
+        
+        logger.info("All usage limits are within acceptable range")
+        return True, ""
     
     @staticmethod
-    def get_user_free_model_tokens_used(user, subscription_type):
+    def get_user_usage_for_period(user, subscription_type, start_time, end_time):
         """
-        Calculate the total free model tokens used by a user for the current month
-        Free model tokens are always tracked monthly regardless of subscription status
+        Get user's message and token usage for a specific period
+        Returns (messages_count, tokens_count)
         """
-        now = timezone.now()
-        # Always calculate from the beginning of the current month for free models
-        period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        logger.debug(f"Getting user usage for period: {start_time} to {end_time}")
         
-        user_usages = UserUsage.objects.filter(
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        
+        usage_data = UserUsage.objects.filter(
             user=user,
             subscription_type=subscription_type,
-            period_start__gte=period_start
+            created_at__gte=start_time,
+            created_at__lte=end_time
+        ).aggregate(
+            total_messages=Sum('messages_count'),
+            total_tokens=Sum('tokens_count'),
+            total_free_tokens=Sum('free_model_tokens_count')
         )
         
-        free_model_tokens = 0
-        for usage in user_usages:
-            free_model_tokens += usage.free_model_tokens_count
-            
-        return free_model_tokens
+        total_messages = usage_data['total_messages'] or 0
+        total_tokens = (usage_data['total_tokens'] or 0) + (usage_data['total_free_tokens'] or 0)
+        
+        logger.debug(f"Period usage data - Messages: {total_messages}, Tokens: {total_tokens}")
+        return total_messages, total_tokens
     
     @staticmethod
-    def reset_user_usage(user, subscription_type):
+    def get_user_free_model_usage_for_period(user, subscription_type, start_time, end_time):
         """
-        Reset user usage counters - typically called when subscription is upgraded, renewed, or expires
-        This method now only resets the usage counters but does not delete the data
+        Get user's free model usage for a specific period
+        Returns (messages_count, tokens_count)
         """
-        # Instead of deleting usage records, we just reset the counters
-        # This ensures that data is never deleted from the server as requested
-        UserUsage.objects.filter(user=user, subscription_type=subscription_type).update(
-            messages_count=0,
-            tokens_count=0,
-            free_model_messages_count=0,
-            free_model_tokens_count=0
+        logger.debug(f"Getting user free model usage for period: {start_time} to {end_time}")
+        
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        
+        usage_data = UserUsage.objects.filter(
+            user=user,
+            subscription_type=subscription_type,
+            created_at__gte=start_time,
+            created_at__lte=end_time
+        ).aggregate(
+            total_messages=Sum('free_model_messages_count'),
+            total_tokens=Sum('free_model_tokens_count')
         )
+        
+        total_messages = usage_data['total_messages'] or 0
+        total_tokens = usage_data['total_tokens'] or 0
+        
+        logger.debug(f"Free model period usage data - Messages: {total_messages}, Tokens: {total_tokens}")
+        return total_messages, total_tokens
     
     @staticmethod
     def get_user_total_tokens_from_chat_sessions(user, subscription_type):
         """
-        Calculate the total tokens used by a user based on ChatSessionUsage records
-        This implements the new requirement where tokens are tracked per chat session
+        Get total tokens used by user across all chat sessions for a subscription type
+        Returns (total_tokens, free_model_tokens)
         """
-        # Sum up all tokens from ChatSessionUsage records for this user and subscription type
+        logger.debug(f"Getting total tokens from chat sessions for user {user.id}")
+        
+        ChatSessionUsage = apps.get_model('chatbot', 'ChatSessionUsage')
         chat_session_usages = ChatSessionUsage.objects.filter(
             user=user,
             subscription_type=subscription_type
@@ -411,147 +284,387 @@ class UsageService:
         
         total_tokens = 0
         free_model_tokens = 0
-        
         for usage in chat_session_usages:
             total_tokens += usage.tokens_count
             free_model_tokens += usage.free_model_tokens_count
-            
+        
+        logger.debug(f"Total tokens from chat sessions - Total: {total_tokens}, Free model: {free_model_tokens}")
         return total_tokens, free_model_tokens
     
     @staticmethod
-    def reset_monthly_free_tokens():
+    def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
         """
-        Automatically reset free tokens monthly for all users
-        This should be called by a scheduled task (cron job)
+        Create a new usage record for each event.
         """
-        now = timezone.now()
-        # Reset at the beginning of each month
-        period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        logger.info(f"Incrementing usage for user {user.id}, is_free_model: {is_free_model}")
+        logger.debug(f"Messages count: {messages_count}, Tokens count: {tokens_count}")
         
-        # Reset only the free model counters
-        UserUsage.objects.filter(period_start__lt=period_start).update(
-            free_model_messages_count=0,
-            free_model_tokens_count=0
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        
+        defaults = {
+            'messages_count': 0,
+            'tokens_count': 0,
+            'free_model_messages_count': 0,
+            'free_model_tokens_count': 0
+        }
+        
+        if is_free_model:
+            defaults['free_model_messages_count'] = messages_count
+            defaults['free_model_tokens_count'] = tokens_count
+        else:
+            defaults['messages_count'] = messages_count
+            defaults['tokens_count'] = tokens_count
+            
+        usage_record = UserUsage.objects.create(
+            user=user,
+            subscription_type=subscription_type,
+            **defaults
         )
-    
+        
+        logger.debug(f"Created usage record with ID: {usage_record.id}")
+        return usage_record
+
     @staticmethod
-    def check_web_search_limit(user, subscription_type):
+    def reset_user_usage(user, subscription_type):
         """
-        Check if user has exceeded web search limits based on subscription type configuration
+        Reset user's usage counters for a subscription type without deleting data
+        This method sets all counters to zero while preserving the usage records
         """
-        # Get current time
+        logger.info(f"Resetting user usage for user {user.id}")
+        
+        # Get all usage records for this user and subscription type
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        usage_records = UserUsage.objects.filter(
+            user=user,
+            subscription_type=subscription_type
+        )
+        
+        # Reset all counters to zero
+        for record in usage_records:
+            record.messages_count = 0
+            record.tokens_count = 0
+            record.free_model_messages_count = 0
+            record.free_model_tokens_count = 0
+            record.save()
+            logger.debug(f"Reset usage record ID: {record.id}")
+
+    @staticmethod
+    def check_image_generation_limit(user, subscription_type):
+        """
+        Check if user has exceeded image generation limits
+        Returns (within_limit, message)
+        """
+        logger.info(f"Checking image generation limits for user {user.id}")
+        
         now = timezone.now()
         
+        # Get or create image generation usage record
+        daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        ImageGenerationUsage = apps.get_model('chatbot', 'ImageGenerationUsage')
+        image_usage, created = ImageGenerationUsage.objects.get_or_create(
+            user=user,
+            subscription_type=subscription_type,
+            defaults={
+                'daily_images_count': 0,
+                'weekly_images_count': 0,
+                'monthly_images_count': 0,
+                'daily_period_start': daily_start,
+                'weekly_period_start': weekly_start,
+                'monthly_period_start': monthly_start,
+            }
+        )
+        
         # Check daily limit
-        if subscription_type.daily_web_search_limit > 0:
-            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            daily_end = daily_start + timedelta(days=1)
+        if subscription_type.daily_image_generation_limit > 0:
+            # Reset counter if period has changed
+            if image_usage.daily_period_start.date() != daily_start.date():
+                image_usage.daily_images_count = 0
+                image_usage.daily_period_start = daily_start
             
-            daily_searches = UsageService._count_web_searches(user, subscription_type, daily_start, daily_end)
-            if daily_searches >= subscription_type.daily_web_search_limit:
-                return False, f"شما به حد مجاز استفاده از Web Search روزانه ({subscription_type.daily_web_search_limit} عدد) رسیده‌اید"
+            if image_usage.daily_images_count >= subscription_type.daily_image_generation_limit:
+                message = f"شما به حد مجاز تولید تصویر روزانه ({subscription_type.daily_image_generation_limit} عدد) رسیده‌اید"
+                logger.info(f"Daily image generation limit exceeded: {message}")
+                return False, message
         
         # Check weekly limit
-        if subscription_type.weekly_web_search_limit > 0:
-            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            weekly_end = weekly_start + timedelta(weeks=1)
+        if subscription_type.weekly_image_generation_limit > 0:
+            # Reset counter if period has changed
+            if image_usage.weekly_period_start.date() != weekly_start.date():
+                image_usage.weekly_images_count = 0
+                image_usage.weekly_period_start = weekly_start
             
-            weekly_searches = UsageService._count_web_searches(user, subscription_type, weekly_start, weekly_end)
-            if weekly_searches >= subscription_type.weekly_web_search_limit:
-                return False, f"شما به حد مجاز استفاده از Web Search هفتگی ({subscription_type.weekly_web_search_limit} عدد) رسیده‌اید"
+            if image_usage.weekly_images_count >= subscription_type.weekly_image_generation_limit:
+                message = f"شما به حد مجاز تولید تصویر هفتگی ({subscription_type.weekly_image_generation_limit} عدد) رسیده‌اید"
+                logger.info(f"Weekly image generation limit exceeded: {message}")
+                return False, message
         
         # Check monthly limit
-        if subscription_type.monthly_web_search_limit > 0:
-            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if now.month == 12:
-                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-            else:
-                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+        if subscription_type.monthly_image_generation_limit > 0:
+            # Reset counter if period has changed
+            if image_usage.monthly_period_start.month != monthly_start.month:
+                image_usage.monthly_images_count = 0
+                image_usage.monthly_period_start = monthly_start
             
-            monthly_searches = UsageService._count_web_searches(user, subscription_type, monthly_start, monthly_end)
-            if monthly_searches >= subscription_type.monthly_web_search_limit:
-                return False, f"شما به حد مجاز استفاده از Web Search ماهانه ({subscription_type.monthly_web_search_limit} عدد) رسیده‌اید"
+            if image_usage.monthly_images_count >= subscription_type.monthly_image_generation_limit:
+                message = f"شما به حد مجاز تولید تصویر ماهانه ({subscription_type.monthly_image_generation_limit} عدد) رسیده‌اید"
+                logger.info(f"Monthly image generation limit exceeded: {message}")
+                return False, message
         
-        return True, "Usage within limits"
-    
+        logger.info("Image generation limits are within acceptable range")
+        return True, ""
+
     @staticmethod
-    def _count_web_searches(user, subscription_type, start_time, end_time):
+    def increment_image_generation_usage(user, subscription_type):
         """
-        Count the number of web searches within a time period
-        This is a placeholder implementation - in a real system, you would track web searches separately
+        Increment user's image generation usage counters
         """
-        # For now, we'll return 0 as we don't have a specific model to track web searches
-        # In a real implementation, you would have a model to track web search usage
-        return 0
-    
-    @staticmethod
-    def check_pdf_processing_limit(user, subscription_type, pdf_file_size_mb=0):
-        """
-        Check if user has exceeded PDF processing limits based on subscription type configuration
-        """
-        # Check file size limit first
-        if subscription_type.max_pdf_file_size > 0 and pdf_file_size_mb > subscription_type.max_pdf_file_size:
-            return False, f"حجم فایل PDF ارسالی ({pdf_file_size_mb} MB) بیشتر از حداکثر مجاز ({subscription_type.max_pdf_file_size} MB) است"
+        logger.info(f"Incrementing image generation usage for user {user.id}")
         
-        # Get current time
         now = timezone.now()
         
-        # Check daily limit
-        if subscription_type.daily_pdf_processing_limit > 0:
-            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            daily_end = daily_start + timedelta(days=1)
-            
-            daily_pdfs = UsageService._count_pdf_processings(user, subscription_type, daily_start, daily_end)
-            if daily_pdfs >= subscription_type.daily_pdf_processing_limit:
-                return False, f"شما به حد مجاز پردازش PDF روزانه ({subscription_type.daily_pdf_processing_limit} عدد) رسیده‌اید"
+        # Get or create image generation usage record
+        daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
-        # Check weekly limit
-        if subscription_type.weekly_pdf_processing_limit > 0:
-            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            weekly_end = weekly_start + timedelta(weeks=1)
-            
-            weekly_pdfs = UsageService._count_pdf_processings(user, subscription_type, weekly_start, weekly_end)
-            if weekly_pdfs >= subscription_type.weekly_pdf_processing_limit:
-                return False, f"شما به حد مجاز پردازش PDF هفتگی ({subscription_type.weekly_pdf_processing_limit} عدد) رسیده‌اید"
+        ImageGenerationUsage = apps.get_model('chatbot', 'ImageGenerationUsage')
+        image_usage, created = ImageGenerationUsage.objects.get_or_create(
+            user=user,
+            subscription_type=subscription_type,
+            defaults={
+                'daily_images_count': 0,
+                'weekly_images_count': 0,
+                'monthly_images_count': 0,
+                'daily_period_start': daily_start,
+                'weekly_period_start': weekly_start,
+                'monthly_period_start': monthly_start,
+            }
+        )
         
-        # Check monthly limit
-        if subscription_type.monthly_pdf_processing_limit > 0:
-            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if now.month == 12:
-                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-            else:
-                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
-            
-            monthly_pdfs = UsageService._count_pdf_processings(user, subscription_type, monthly_start, monthly_end)
-            if monthly_pdfs >= subscription_type.monthly_pdf_processing_limit:
-                return False, f"شما به حد مجاز پردازش PDF ماهانه ({subscription_type.monthly_pdf_processing_limit} عدد) رسیده‌اید"
+        # Increment all counters
+        image_usage.daily_images_count += 1
+        image_usage.weekly_images_count += 1
+        image_usage.monthly_images_count += 1
         
-        return True, "Usage within limits"
-    
+        # Update period start times if needed
+        if image_usage.daily_period_start.date() != daily_start.date():
+            image_usage.daily_period_start = daily_start
+        
+        if image_usage.weekly_period_start.date() != weekly_start.date():
+            image_usage.weekly_period_start = weekly_start
+        
+        if image_usage.monthly_period_start.month != monthly_start.month:
+            image_usage.monthly_period_start = monthly_start
+        
+        image_usage.save()
+        logger.debug("Image generation usage incremented successfully")
+
     @staticmethod
-    def _count_pdf_processings(user, subscription_type, start_time, end_time):
+    def comprehensive_check(user, ai_model, subscription_type):
         """
-        Count the number of PDF processings within a time period
-        This is a placeholder implementation - in a real system, you would track PDF processings separately
+        Comprehensive check before sending any message to AI
+        This method checks all requirements before allowing AI interaction
         """
-        # For now, we'll return 0 as we don't have a specific model to track PDF processings
-        # In a real implementation, you would have a model to track PDF processing usage
-        return 0
-    
+        logger.info(f"Starting comprehensive check for user {user.id}, AI model: {ai_model.name}, Subscription: {subscription_type.name}")
+        
+        # 1. Check if user has access to the selected model
+        if not user.has_access_to_model(ai_model):
+            message = "دسترسی به این مدل دیگر برای اشتراک شما فعال نیست"
+            logger.info(f"Model access denied: {message}")
+            return False, message
+        
+        # 2. Check if it's a free model and if free model limits are exceeded
+        is_free_model = ai_model.is_free
+        logger.debug(f"Is free model: {is_free_model}")
+        
+        if is_free_model:
+            logger.info("Processing free model usage checks")
+            
+            # Check free model token limits using the new max_tokens_free field
+            if subscription_type.max_tokens_free > 0:
+                logger.debug(f"Checking max_tokens_free limit: {subscription_type.max_tokens_free}")
+                
+                # Get total free tokens used
+                total_free_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)[1]
+                logger.debug(f"Total free tokens used: {total_free_tokens_used}")
+                
+                # Check if adding new tokens would exceed the max_tokens_free limit
+                if total_free_tokens_used >= subscription_type.max_tokens_free:
+                    message = f"شما به حد مجاز توکن‌های رایگان ({subscription_type.max_tokens_free} عدد) رسیده‌اید"
+                    logger.info(f"Max free tokens limit exceeded: {message}")
+                    return False, message
+            
+            # Check all time-based usage limits for free models (independent of max_tokens_free)
+            # Get current time
+            now = timezone.now()
+            logger.debug(f"Current time for time-based checks: {now}")
+            
+            # Hourly limits for free models
+            if subscription_type.hourly_max_tokens > 0:
+                logger.debug(f"Checking hourly limit: {subscription_type.hourly_max_tokens}")
+                hourly_start = now - timedelta(hours=1)
+                hourly_messages, hourly_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, hourly_start, now
+                )
+                logger.debug(f"Hourly free model usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
+                
+                if hourly_tokens >= subscription_type.hourly_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"Hourly free model token limit exceeded: {message}")
+                    return False, message
+            
+            # 3-hour limits for free models
+            if subscription_type.three_hours_max_tokens > 0:
+                logger.debug(f"Checking 3-hour limit: {subscription_type.three_hours_max_tokens}")
+                three_hours_start = now - timedelta(hours=3)
+                three_hours_messages, three_hours_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, three_hours_start, now
+                )
+                logger.debug(f"3-hour free model usage - Messages: {three_hours_messages}, Tokens: {three_hours_tokens}")
+                
+                if three_hours_tokens >= subscription_type.three_hours_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"3-hour free model token limit exceeded: {message}")
+                    return False, message
+            
+            # 12-hour limits for free models
+            if subscription_type.twelve_hours_max_tokens > 0:
+                logger.debug(f"Checking 12-hour limit: {subscription_type.twelve_hours_max_tokens}")
+                twelve_hours_start = now - timedelta(hours=12)
+                twelve_hours_messages, twelve_hours_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, twelve_hours_start, now
+                )
+                logger.debug(f"12-hour free model usage - Messages: {twelve_hours_messages}, Tokens: {twelve_hours_tokens}")
+                
+                if twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"12-hour free model token limit exceeded: {message}")
+                    return False, message
+            
+            # Daily limits for free models
+            if subscription_type.daily_max_tokens > 0:
+                logger.debug(f"Checking daily limit: {subscription_type.daily_max_tokens}")
+                daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                daily_end = daily_start + timedelta(days=1)
+                
+                daily_messages, daily_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, daily_start, daily_end
+                )
+                logger.debug(f"Daily free model usage - Messages: {daily_messages}, Tokens: {daily_tokens}")
+                
+                if daily_tokens >= subscription_type.daily_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"Daily free model token limit exceeded: {message}")
+                    return False, message
+            
+            # Weekly limits for free models
+            if subscription_type.weekly_max_tokens > 0:
+                logger.debug(f"Checking weekly limit: {subscription_type.weekly_max_tokens}")
+                weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+                weekly_end = weekly_start + timedelta(weeks=1)
+                
+                weekly_messages, weekly_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, weekly_start, weekly_end
+                )
+                logger.debug(f"Weekly free model usage - Messages: {weekly_messages}, Tokens: {weekly_tokens}")
+                
+                if weekly_tokens >= subscription_type.weekly_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"Weekly free model token limit exceeded: {message}")
+                    return False, message
+            
+            # Monthly limits for free models
+            if subscription_type.monthly_max_tokens > 0:
+                logger.debug(f"Checking monthly limit: {subscription_type.monthly_max_tokens}")
+                monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                if now.month == 12:
+                    monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+                else:
+                    monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+                
+                monthly_messages, monthly_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, monthly_start, monthly_end
+                )
+                logger.debug(f"Monthly free model usage - Messages: {monthly_messages}, Tokens: {monthly_tokens}")
+                
+                if monthly_tokens >= subscription_type.monthly_max_tokens:
+                    message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید"
+                    logger.info(f"Monthly free model token limit exceeded: {message}")
+                    return False, message
+            
+            # Check free model message limits
+            if subscription_type.monthly_free_model_messages > 0 or subscription_type.monthly_free_model_tokens > 0:
+                logger.debug(f"Checking monthly free model message limits - Messages: {subscription_type.monthly_free_model_messages}, Tokens: {subscription_type.monthly_free_model_tokens}")
+                monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                if now.month == 12:
+                    monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+                else:
+                    monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+                
+                monthly_messages, monthly_tokens = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, monthly_start, monthly_end
+                )
+                logger.debug(f"Monthly free model usage for message limits - Messages: {monthly_messages}, Tokens: {monthly_tokens}")
+                
+                if subscription_type.monthly_free_model_messages > 0 and monthly_messages >= subscription_type.monthly_free_model_messages:
+                    message = f"شما به حد مجاز پیام‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_messages} عدد) رسیده‌اید"
+                    logger.info(f"Monthly free model message limit exceeded: {message}")
+                    return False, message
+                
+                if subscription_type.monthly_free_model_tokens > 0 and monthly_tokens >= subscription_type.monthly_free_model_tokens:
+                    message = f"شما به حد مجاز توکن‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_tokens} عدد) رسیده‌اید"
+                    logger.info(f"Monthly free model token limit exceeded: {message}")
+                    return False, message
+        
+        # 3. Check all time-based usage limits for non-free models
+        # We'll estimate a reasonable token count for the message
+        estimated_tokens = 100  # Default estimation
+        logger.debug(f"Estimated tokens for non-free model check: {estimated_tokens}")
+        
+        within_limit, message = UsageService.check_usage_limit(
+            user, subscription_type, estimated_tokens, is_free_model
+        )
+        if not within_limit:
+            logger.info(f"Non-free model usage limit exceeded: {message}")
+            return False, message
+        
+        # 4. If this is a premium model, check max_token limit for the subscription
+        if not is_free_model and subscription_type.max_tokens > 0:
+            logger.debug(f"Checking max_tokens limit for premium model: {subscription_type.max_tokens}")
+            total_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)[0]
+            remaining_tokens = subscription_type.max_tokens - total_tokens_used
+            logger.debug(f"Total tokens used: {total_tokens_used}, Remaining tokens: {remaining_tokens}")
+            
+            # If remaining tokens are less than a reasonable threshold, deny access
+            if remaining_tokens < estimated_tokens:
+                message = f"بودجه باقیمانده‌ی توکن شما برای این مدل کافی نیست ({remaining_tokens} عدد)"
+                logger.info(f"Insufficient token budget: {message}")
+                return False, message
+        
+        logger.info("Comprehensive check passed - all limits are within acceptable range")
+        return True, ""
+
     @staticmethod
-    def increment_web_search_usage(user, subscription_type):
+    def reset_chat_session_usage(user, subscription_type):
         """
-        Increment web search usage counter
-        This is a placeholder implementation - in a real system, you would track web searches separately
+        Reset user's chat session usage for a subscription type.
+        This method deletes all ChatSessionUsage records for the user and subscription type
+        to ensure tokens are properly reset after payment or subscription changes.
         """
-        # In a real implementation, you would increment the web search counter in the database
-        pass
-    
-    @staticmethod
-    def increment_pdf_processing_usage(user, subscription_type):
-        """
-        Increment PDF processing usage counter
-        This is a placeholder implementation - in a real system, you would track PDF processings separately
-        """
-        # In a real implementation, you would increment the PDF processing counter in the database
-        pass
+        logger.info(f"Resetting chat session usage for user {user.id}, subscription {subscription_type.name}")
+        
+        try:
+            ChatSessionUsage = apps.get_model('chatbot', 'ChatSessionUsage')
+            deleted_count, _ = ChatSessionUsage.objects.filter(
+                user=user,
+                subscription_type=subscription_type
+            ).delete()
+            
+            logger.debug(f"Deleted {deleted_count} chat session usage records for user {user.id}")
+            return deleted_count
+        except Exception as e:
+            logger.error(f"Error resetting chat session usage for user {user.id}: {str(e)}")
+            return 0
