@@ -284,16 +284,17 @@ def initiate_payment(request, subscription_id):
         # ALSO reset chat session usage to ensure tokens are properly reset after payment
         UsageService.reset_chat_session_usage(request.user, subscription)
         
-        # Record discount use
-        DiscountUse = apps.get_model('subscriptions', 'DiscountUse')
-        DiscountUse.objects.create(
-            discount_code=discount_code,
-            user=request.user,
-            subscription_type=subscription,
-            original_price=original_price,
-            discount_amount=original_price,  # Full discount
-            final_price=Decimal('0')
-        )
+        # Record discount use only if there's actually a discount code
+        if discount_code:
+            DiscountUse = apps.get_model('subscriptions', 'DiscountUse')
+            DiscountUse.objects.create(
+                discount_code=discount_code,
+                user=request.user,
+                subscription_type=subscription,
+                original_price=original_price,
+                discount_amount=original_price,  # Full discount
+                final_price=Decimal('0')
+            )
         
         # Record financial transaction for 100% discount
         FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
@@ -304,7 +305,7 @@ def initiate_payment(request, subscription_id):
             status='completed',
             amount=Decimal('0'),
             original_amount=original_price,
-            discount_amount=original_price,
+            discount_amount=discount_code.discount_value if discount_code else Decimal('0'),
             discount_code=discount_code,
             authority='DISCOUNT-' + discount_code.code if discount_code else 'FREE_ACTIVATION',  # Unique authority for discount transactions
             reference_id='DISCOUNT-' + discount_code.code if discount_code else 'FREE_ACTIVATION'
