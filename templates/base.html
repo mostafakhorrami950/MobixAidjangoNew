@@ -25,6 +25,9 @@
     <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
     <link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
     <link rel="stylesheet" href="{% static 'css/purchase.css' %}">
+    
+    <!-- Production-safe console utility (must load first) -->
+    <script src="{% static 'js/console-production.js' %}"></script>
     <style>
         body {
             background: var(--background);

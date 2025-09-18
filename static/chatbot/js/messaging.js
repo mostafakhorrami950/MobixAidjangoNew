@@ -882,18 +882,8 @@ async function createDefaultSessionAndSendMessage(message, files) {
 function sendMessageInternal(message, files) {
     const messageInput = document.getElementById('message-input');
     
-    // Add user message to chat immediately
-    let displayMessage = message;
-    if (files.length > 0) {
-        const fileNames = files.map(f => f.name).join(', ');
-        displayMessage += ` (فایل‌ها: ${fileNames})`;
-    }
-
-    addMessageToChat({
-        type: 'user',
-        content: displayMessage,
-        created_at: new Date().toISOString()
-    });
+    // Note: User message is already added in sendMessage() function
+    // Don't add it again here to avoid double counting
 
     // Clear inputs
     messageInput.value = '';
