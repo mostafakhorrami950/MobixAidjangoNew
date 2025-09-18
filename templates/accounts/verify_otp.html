@@ -1,39 +1,246 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تأیید کد - MobixAI{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="text-center">Verify OTP</h3>
+<link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-shield-alt"></i>
             </div>
-            <div class="card-body">
-                <p class="text-center">We've sent an OTP code to your phone number. Please enter it below to verify your account.</p>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
-                        {{ form.phone_number }}
-                        {% if form.phone_number.errors %}
-                            <div class="text-danger">{{ form.phone_number.errors }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        <label for="{{ form.otp_code.id_for_label }}" class="form-label">OTP Code</label>
-                        {{ form.otp_code }}
-                        {% if form.otp_code.errors %}
-                            <div class="text-danger">{{ form.otp_code.errors }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Verify</button>
-                    </div>
-                </form>
-                <div class="text-center mt-3">
-                    <p>Didn't receive the code? <a href="{% url 'register' %}">Resend</a></p>
+            <h2 class="auth-title">تأیید کد امنیتی</h2>
+            <p class="auth-subtitle">کد تأیید ارسال شده به شماره تلفن خود را وارد کنید</p>
+        </div>
+        
+        <div class="auth-body">
+            <!-- Error Messages -->
+            {% if messages %}
+                <div class="error-messages">
+                    <ul>
+                        {% for message in messages %}
+                            {% if message.tags == 'error' %}
+                                <li>{{ message }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
                 </div>
+            {% endif %}
+            
+            <!-- Success Messages -->
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="success-messages">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <form method="post" id="verifyOtpForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                        <i class="fas fa-phone"></i> شماره تلفن همراه
+                    </label>
+                    <div class="input-with-icon">
+                        {{ form.phone_number }}
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    {% if form.phone_number.errors %}
+                        {% for error in form.phone_number.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.otp_code.id_for_label }}" class="form-label">
+                        <i class="fas fa-key"></i> کد تأیید (6 رقمی)
+                    </label>
+                    <div class="input-with-icon">
+                        {{ form.otp_code }}
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    {% if form.otp_code.errors %}
+                        {% for error in form.otp_code.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="auth-submit-btn" id="verifyBtn">
+                    <i class="fas fa-check-circle"></i>
+                    تأیید کد
+                </button>
+            </form>
+            
+            <!-- Resend OTP Section -->
+            <div class="resend-section" style="margin-top: 1.5rem; text-align: center;">
+                <p class="text-muted" style="margin-bottom: 0.5rem;">کد را دریافت نکردید؟</p>
+                <button id="resendBtn" class="resend-btn" onclick="resendOTP()" disabled>
+                    <i class="fas fa-redo-alt"></i>
+                    <span id="resendText">ارسال مجدد (60)</span>
+                </button>
             </div>
+        </div>
+        
+        <div class="auth-footer">
+            <p>
+                بازگشت به صفحه 
+                <a href="{% url 'login' %}">ورود</a>
+            </p>
         </div>
     </div>
 </div>
+
+<script>
+let countdownTimer;
+let remainingSeconds = 60;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('verifyOtpForm');
+    const otpInput = document.getElementById('{{ form.otp_code.id_for_label }}');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const resendBtn = document.getElementById('resendBtn');
+    
+    // Start countdown timer
+    startCountdown();
+    
+    // OTP input validation
+    otpInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 6) {
+            value = value.substring(0, 6);
+        }
+        this.value = value;
+        
+        // Auto-submit when 6 digits are entered
+        if (value.length === 6) {
+            form.submit();
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const otpValue = otpInput.value;
+        
+        if (otpValue.length !== 6 || !/^[0-9]{6}$/.test(otpValue)) {
+            e.preventDefault();
+            alert('لطفاً کد تأیید 6 رقمی معتبر وارد کنید');
+            return;
+        }
+        
+        // Add loading state
+        verifyBtn.classList.add('loading');
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال تأیید...';
+        verifyBtn.disabled = true;
+    });
+});
+
+function startCountdown() {
+    const resendBtn = document.getElementById('resendBtn');
+    const resendText = document.getElementById('resendText');
+    
+    countdownTimer = setInterval(() => {
+        remainingSeconds--;
+        
+        if (remainingSeconds > 0) {
+            resendText.textContent = `ارسال مجدد (${remainingSeconds})`;
+        } else {
+            // Enable resend button
+            resendBtn.disabled = false;
+            resendBtn.classList.add('enabled');
+            resendText.textContent = 'ارسال مجدد';
+            clearInterval(countdownTimer);
+        }
+    }, 1000);
+}
+
+function resendOTP() {
+    const resendBtn = document.getElementById('resendBtn');
+    const resendText = document.getElementById('resendText');
+    const phoneNumber = document.getElementById('{{ form.phone_number.id_for_label }}').value;
+    
+    if (!phoneNumber) {
+        alert('شماره تلفن یافت نشد');
+        return;
+    }
+    
+    // Disable button and show loading
+    resendBtn.disabled = true;
+    resendBtn.classList.remove('enabled');
+    resendText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
+    
+    // Send AJAX request to resend OTP
+    fetch('{% url "login" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `phone_number=${encodeURIComponent(phoneNumber)}`
+    })
+    .then(response => {
+        if (response.ok) {
+            // Reset countdown
+            remainingSeconds = 60;
+            startCountdown();
+            alert('کد تأیید جدید ارسال شد');
+        } else {
+            alert('خطا در ارسال کد تأیید. لطفاً دوباره تلاش کنید.');
+            // Re-enable button
+            resendBtn.disabled = false;
+            resendBtn.classList.add('enabled');
+            resendText.textContent = 'ارسال مجدد';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('خطا در ارتباط با سرور');
+        // Re-enable button
+        resendBtn.disabled = false;
+        resendBtn.classList.add('enabled');
+        resendText.textContent = 'ارسال مجدد';
+    });
+}
+</script>
+
+<style>
+.resend-btn {
+    background: rgba(37, 99, 235, 0.1);
+    color: #9CA3AF;
+    border: 2px solid rgba(37, 99, 235, 0.2);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: not-allowed;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resend-btn.enabled {
+    background: linear-gradient(135deg, #2563EB, #3B82F6);
+    color: white;
+    cursor: pointer;
+    border-color: #2563EB;
+}
+
+.resend-btn.enabled:hover {
+    background: linear-gradient(135deg, #1D4ED8, #2563EB);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+}
+
+.resend-section {
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-light);
+}
+</style>
 {% endblock %}

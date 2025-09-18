@@ -96,32 +96,44 @@ class MultiFileUploadManager {
      * Setup drag and drop functionality
      */
     setupDragAndDrop() {
-        const dropZone = this.elements.messageInput;
-        if (!dropZone) return;
+        // Set up drag and drop for the entire page
+        const dropZones = [document.body, this.elements.messageInput].filter(Boolean);
         
-        // جلوگیری از رفتار پیش‌فرض مرورگر
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, this.preventDefaults, false);
-        });
-        
-        // اضافه کردن کلاس های بصری
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
+        dropZones.forEach(dropZone => {
+            // جلوگیری از رفتار پیش‌فرض مرورگر
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, this.preventDefaults, false);
+            });
+            
+            // اضافه کردن کلاس های بصری
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    this.highlight(dropZone);
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    // Only unhighlight if we're really leaving the drop zone
+                    if (eventName === 'dragleave' && this.isLeavingDropZone(e, dropZone)) {
+                        this.unhighlight(dropZone);
+                    } else if (eventName === 'drop') {
+                        this.unhighlight(dropZone);
+                    }
+                }, false);
+            });
+            
+            // مدیریت drop
+            dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
-                this.highlight(dropZone);
+                this.unhighlight(dropZone);
+                this.handleDrop(e);
             }, false);
         });
         
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => this.unhighlight(dropZone), false);
-        });
-        
-        // مدیریت drop
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.unhighlight(dropZone);
-            this.handleDrop(e);
-        }, false);
+        // Create drag overlay for better visual feedback
+        this.createDragOverlay();
     }
     
     /**
@@ -137,6 +149,11 @@ class MultiFileUploadManager {
      */
     highlight(element) {
         element.classList.add('drag-over');
+        
+        // Show drag overlay for body element
+        if (element === document.body) {
+            this.showDragOverlay();
+        }
     }
     
     /**
@@ -144,6 +161,104 @@ class MultiFileUploadManager {
      */
     unhighlight(element) {
         element.classList.remove('drag-over');
+        
+        // Hide drag overlay for body element
+        if (element === document.body) {
+            this.hideDragOverlay();
+        }
+    }
+    
+    /**
+     * Check if we're really leaving the drop zone (not just entering a child)
+     */
+    isLeavingDropZone(e, dropZone) {
+        if (!e.relatedTarget) return true;
+        return !dropZone.contains(e.relatedTarget);
+    }
+    
+    /**
+     * Create drag overlay for better visual feedback
+     */
+    createDragOverlay() {
+        if (document.getElementById('drag-overlay')) return;
+        
+        const overlay = document.createElement('div');
+        overlay.id = 'drag-overlay';
+        overlay.innerHTML = `
+            <div class="drag-overlay-content">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>فایل‌ها را اینجا رها کنید</h3>
+                <p>برای آپلود فایل‌ها</p>
+            </div>
+        `;
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(37, 99, 235, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+            color: white;
+            text-align: center;
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            #drag-overlay .drag-overlay-content {
+                pointer-events: none;
+                animation: dragPulse 1.5s ease-in-out infinite;
+            }
+            
+            #drag-overlay .drag-overlay-content i {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                display: block;
+            }
+            
+            #drag-overlay .drag-overlay-content h3 {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+                font-weight: bold;
+            }
+            
+            #drag-overlay .drag-overlay-content p {
+                font-size: 1.2rem;
+                opacity: 0.9;
+            }
+            
+            @keyframes dragPulse {
+                0%, 100% { transform: scale(1); opacity: 0.8; }
+                50% { transform: scale(1.05); opacity: 1; }
+            }
+        `;
+        
+        document.head.appendChild(style);
+        document.body.appendChild(overlay);
+    }
+    
+    /**
+     * Show drag overlay
+     */
+    showDragOverlay() {
+        const overlay = document.getElementById('drag-overlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+        }
+    }
+    
+    /**
+     * Hide drag overlay
+     */
+    hideDragOverlay() {
+        const overlay = document.getElementById('drag-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
     }
     
     /**

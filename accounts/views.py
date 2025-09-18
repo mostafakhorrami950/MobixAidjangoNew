@@ -8,6 +8,10 @@ from otp_service.services import OTPService
 from otp_service.models import OTP
 
 def register(request):
+    # Redirect if user is already authenticated
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
@@ -19,14 +23,17 @@ def register(request):
             )
             
             # Send OTP
-            success, message = OTPService.create_and_send_otp(user)
+            success, message, remaining = OTPService.create_and_send_otp(user)
             if success:
                 messages.success(request, 'Registration successful. Please check your phone for the OTP code.')
                 # Redirect to OTP verification page
                 request.session['phone_number'] = user.phone_number
                 return redirect('verify_otp')
             else:
-                messages.error(request, f'Error sending OTP: {message}')
+                if remaining > 0:
+                    messages.error(request, f'لطفاً {remaining} ثانیه صبر کنید تا بتوانید SMS دیگری دریافت کنید.')
+                else:
+                    messages.error(request, f'خطا در ارسال کد تأیید: {message}')
                 user.delete()  # Delete user if OTP sending failed
     else:
         form = RegistrationForm()
@@ -34,6 +41,10 @@ def register(request):
     return render(request, 'accounts/register.html', {'form': form})
 
 def verify_otp(request):
+    # Redirect if user is already authenticated
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
     phone_number = request.session.get('phone_number')
     if not phone_number:
         messages.error(request, 'Session expired. Please register again.')
@@ -66,6 +77,10 @@ def verify_otp(request):
     return render(request, 'accounts/verify_otp.html', {'form': form})
 
 def login_view(request):
+    # Redirect if user is already authenticated
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
     if request.method == 'POST':
         phone_number = request.POST.get('phone_number')
         
@@ -73,13 +88,17 @@ def login_view(request):
             user = User.objects.get(phone_number=phone_number)
             
             # Send OTP
-            success, message = OTPService.create_and_send_otp(user)
+            success, message, remaining = OTPService.create_and_send_otp(user)
             if success:
-                messages.success(request, 'OTP sent to your phone number.')
+                messages.success(request, 'کد تأیید به شماره تلفن شما ارسال شد.')
                 request.session['phone_number'] = phone_number
+                request.session['last_otp_sent'] = timezone.now().timestamp()
                 return redirect('verify_otp')
             else:
-                messages.error(request, f'Error sending OTP: {message}')
+                if remaining > 0:
+                    messages.error(request, f'لطفاً {remaining} ثانیه صبر کنید تا بتوانید کد تأیید جدیدی درخواست کنید.')
+                else:
+                    messages.error(request, f'خطا در ارسال کد تأیید: {message}')
         except User.DoesNotExist:
             messages.error(request, 'No account found with this phone number.')
     

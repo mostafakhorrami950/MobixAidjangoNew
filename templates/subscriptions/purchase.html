@@ -1,114 +1,187 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}خرید اشتراک{% endblock %}
+{% block title %}خرید اشتراک - MobixAI{% endblock %}
 
 {% block content %}
-<div class="chatgpt-container">
-    <div class="chatgpt-layout">
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="chat-header">
-                <h3 id="current-session-title">
-                    <i class="fas fa-shopping-cart"></i> خرید اشتراک
-                </h3>
-            </div>
-            
-            <div class="chat-messages-container">
-                <div class="chat-messages">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    <!-- Intelligent Payment Info -->
-                    <div class="alert alert-info mb-4">
-                        <h5 class="alert-heading">محاسبه هوشمند پرداخت</h5>
-                        <p>سیستم ما مقدار باقیمانده از اشتراک فعلی شما را محاسبه کرده و از آن برای کاهش مبلغ پرداختی استفاده می‌کند.</p>
-                        <div id="remaining-value-result" class="mt-2"></div>
-                    </div>
-                    
-                    {% if subscriptions %}
-                    <div class="row">
-                        {% for subscription in subscriptions %}
-                        <div class="col-md-6 mb-4">
-                            <div class="card h-100 border-primary chatbot-selection-card">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0 text-center">{{ subscription.name }}</h5>
-                                </div>
-                                <div class="card-body">
-                                    <p class="card-text">{{ subscription.description }}</p>
-                                    <ul class="list-unstyled small">
-                                        <li><strong>قیمت:</strong> <span class="original-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان</li>
-                                        <li><strong>مدت:</strong> {{ subscription.duration_days }} روز</li>
-                                        <li><strong>SKU:</strong> {{ subscription.sku }}</li>
-                                        <li><strong>حداکثر توکن:</strong> {{ subscription.max_tokens|default:"نامحدود" }}</li>
-                                    </ul>
-                                    
-                                    <!-- Discount Code Section -->
-                                    <div class="mt-3">
-                                        <div class="input-group">
-                                            <input type="text" class="form-control discount-code-input rounded-sm" 
-                                                   placeholder="کد تخفیف" 
-                                                   data-subscription-id="{{ subscription.id }}">
-                                            <button class="btn btn-outline-secondary apply-discount-btn rounded-sm" 
-                                                    type="button" 
-                                                    data-subscription-id="{{ subscription.id }}">
-                                                اعمال
-                                            </button>
-                                        </div>
-                                        <div class="discount-result mt-2 small" id="discount-result-{{ subscription.id }}"></div>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <form method="post" action="{% url 'initiate_payment' subscription.id %}" class="payment-form">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
-                                        <button type="submit" class="btn btn-primary w-100 send-button">
-                                            <i class="fas fa-shopping-cart"></i> خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle"></i> در حال حاضر اشتراکی برای خرید موجود نیست.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+<link rel="stylesheet" href="{% static 'css/purchase.css' %}">
+
+<div class="purchase-page">
+    <div class="purchase-container">
+        <!-- Page Header -->
+        <div class="purchase-header">
+            <span class="purchase-badge">
+                <i class="fas fa-crown"></i> برنامه‌های اشتراک
+            </span>
+            <h1 class="purchase-title">انتخاب بهترین برنامه برای شما</h1>
+            <p class="purchase-subtitle">
+                با اشتراک MobixAI از قدرت کامل هوش مصنوعی برای رشد و موفقیت خود استفاده کنید
+            </p>
         </div>
         
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h5>راهنمای خرید</h5>
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-bottom: 2rem;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Smart Calculator Section -->
+        <div class="smart-calculator">
+            <div class="calculator-header">
+                <div class="calculator-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div>
+                    <h3 class="calculator-title">محاسبه‌گر هوشمند پرداخت</h3>
+                    <p class="calculator-description">سیستم ما ارزش باقیمانده اشتراک فعلی شما را محاسبه کرده و از قیمت جدید کسر می‌کند</p>
+                </div>
             </div>
-            <div class="sessions-container">
-                <div class="session-item">
-                    <div>
-                        <strong>محاسبه هوشمند</strong>
-                        <div class="small">ارزش باقیمانده اشتراک فعلی شما محاسبه و از قیمت جدید کسر می‌شود.</div>
+            <div id="remaining-value-result"></div>
+        </div>
+        
+        <!-- Subscription Plans -->
+        {% if subscriptions %}
+        <div class="plans-grid">
+            {% for subscription in subscriptions %}
+            <div class="plan-card{% if forloop.counter == 2 %} featured{% endif %}">
+                <!-- Plan Header -->
+                <div class="plan-header">
+                    <h2 class="plan-name">{{ subscription.name }}</h2>
+                    <div class="plan-price">
+                        <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span>
+                        <span class="plan-currency">تومان</span>
+                        <span class="original-price-{{ subscription.id }}" style="display: none;">{{ subscription.price|floatformat:0 }}</span>
                     </div>
                 </div>
-                <div class="session-item">
-                    <div>
-                        <strong>کدهای تخفیف</strong>
-                        <div class="small">کدهای تخفیف خود را وارد کنید تا از تخفیف‌های ویژه بهره‌مند شوید.</div>
+                
+                <!-- Plan Body -->
+                <div class="plan-body">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--gap-lg); text-align: center; line-height: 1.6;">{{ subscription.description }}</p>
+                    
+                    <!-- Plan Features -->
+                    <ul class="plan-features">
+                        <li>
+                            <i class="fas fa-clock"></i>
+                            <span class="feature-label">مدت اشتراک</span>
+                            <span class="feature-value">{{ subscription.duration_days }} روز</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-coins"></i>
+                            <span class="feature-label">حداکثر توکن</span>
+                            <span class="feature-value">{{ subscription.max_tokens|default:"نامحدود" }}</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-tag"></i>
+                            <span class="feature-label">کد محصول</span>
+                            <span class="feature-value">{{ subscription.sku }}</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-headset"></i>
+                            <span class="feature-label">پشتیبانی</span>
+                            <span class="feature-value">24/7</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-shield-alt"></i>
+                            <span class="feature-label">ضمانت کیفیت</span>
+                            <span class="feature-value">کامل</span>
+                        </li>
+                    </ul>
+                    
+                    <!-- Discount Section -->
+                    <div class="discount-section">
+                        <div class="discount-header">
+                            <i class="fas fa-percent discount-icon"></i>
+                            <h4 class="discount-title">کد تخفیف دارید؟</h4>
+                        </div>
+                        <div class="discount-input-group">
+                            <input type="text" class="discount-input discount-code-input" 
+                                   placeholder="کد تخفیف خود را وارد کنید" 
+                                   data-subscription-id="{{ subscription.id }}">
+                            <button type="button" class="discount-btn apply-discount-btn" 
+                                    data-subscription-id="{{ subscription.id }}">
+                                <i class="fas fa-check"></i> اعمال
+                            </button>
+                        </div>
+                        <div class="discount-result" id="discount-result-{{ subscription.id }}"></div>
                     </div>
                 </div>
-                <div class="session-item">
-                    <div>
-                        <strong>پشتیبانی</strong>
-                        <div class="small">در صورت بروز هرگونه مشکل با پشتیبانی تماس بگیرید.</div>
-                    </div>
+                
+                <!-- Plan Footer -->
+                <div class="plan-footer">
+                    <form method="post" action="{% url 'initiate_payment' subscription.id %}" class="payment-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
+                        <button type="submit" class="purchase-btn">
+                            <i class="fas fa-shopping-cart"></i>
+                            خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
+                        </button>
+                    </form>
                 </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h2 class="empty-title">اشتراکی موجود نیست</h2>
+            <p class="empty-description">
+                در حال حاضر هیچ برنامه اشتراکی برای خرید فعال نیست. لطفاً بعداً مراجعه کنید.
+            </p>
+        </div>
+        {% endif %}
+        
+        <!-- Purchase Guide Sidebar -->
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; margin-top: 3rem;">
+            <div></div>
+            <div class="purchase-guide">
+                <h3 class="guide-title">
+                    <i class="fas fa-info-circle"></i>
+                    راهنمای خرید
+                </h3>
+                <ul class="guide-items">
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-calculator"></i>
+                            محاسبه هوشمند
+                        </div>
+                        <div class="guide-item-description">
+                            ارزش باقیمانده اشتراک فعلی شما به طور خودکار محاسبه و از قیمت جدید کسر می‌شود
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-percent"></i>
+                            کدهای تخفیف
+                        </div>
+                        <div class="guide-item-description">
+                            اگر کد تخفیف دارید، از تخفیف‌های ویژه بهره‌مند شوید
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-shield-alt"></i>
+                            پرداخت ایمن
+                        </div>
+                        <div class="guide-item-description">
+                            پرداخت شما با بالاترین استانداردهای امنیتی محافظت می‌شود
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-headset"></i>
+                            پشتیبانی 24/7
+                        </div>
+                        <div class="guide-item-description">
+                            تیم پشتیبانی ما آماده کمک به شما است
+                        </div>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -120,30 +193,37 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('{% url "calculate_remaining_value" %}')
     .then(response => response.json())
     .then(data => {
-        const resultDiv = document.getElementById('remaining-value-result');
-        if (data.error) {
-            resultDiv.innerHTML = `<div class="alert alert-danger"><small>${data.error}</small></div>`;
-        } else {
-            // Calculate remaining tokens with proper display
-            const remainingTokens = data.remaining_tokens;
-            const totalTokenLimit = data.total_token_limit;
-            const tokensUsed = data.total_tokens_used;
-            
-            resultDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <small>
-                        <strong>اطلاعات اشتراک فعلی:</strong><br>
-                        نوع اشتراک: ${data.subscription_name}<br>
-                        قیمت اشتراک: ${data.subscription_price_tomans.toFixed(0)} تومان<br>
-                        توکن‌های مصرف شده: ${tokensUsed}<br>
-                        توکن‌های مصرف شده (مدل‌های رایگان): ${data.free_model_tokens_used}<br>
-                        حداکثر توکن: ${totalTokenLimit}<br>
-                        توکن‌های باقیمانده: ${remainingTokens}<br>
-                        روزهای باقیمانده: ${data.remaining_days}<br>
-                        <strong>ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان</strong>
-                    </small>
-                </div>
-            `;
+                        const resultDiv = document.getElementById('remaining-value-result');
+                        if (data.error) {
+                            resultDiv.innerHTML = `<div class="calculator-result error"><small>${data.error}</small></div>`;
+                        } else {
+                            // Calculate remaining tokens with proper display
+                            const remainingTokens = data.remaining_tokens;
+                            const totalTokenLimit = data.total_token_limit;
+                            const tokensUsed = data.total_tokens_used;
+                            
+                            resultDiv.innerHTML = `
+                                <div class="calculator-result">
+                                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-info-circle"></i>
+                                        اطلاعات اشتراک فعلی
+                                    </h4>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 14px;">
+                                        <div><strong>نوع اشتراک:</strong> ${data.subscription_name}</div>
+                                        <div><strong>قیمت اشتراک:</strong> ${data.subscription_price_tomans.toFixed(0)} تومان</div>
+                                        <div><strong>توکن مصرفی:</strong> ${tokensUsed}</div>
+                                        <div><strong>حداکثر توکن:</strong> ${totalTokenLimit}</div>
+                                        <div><strong>توکن باقیمانده:</strong> ${remainingTokens}</div>
+                                        <div><strong>روز باقیمانده:</strong> ${data.remaining_days}</div>
+                                    </div>
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
+                                        <strong style="font-size: 18px;">
+                                            <i class="fas fa-coins"></i>
+                                            ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان
+                                        </strong>
+                                    </div>
+                                </div>
+                            `;
             
             // Update all subscription prices with the calculated remaining value ONLY if no discount has been applied
             document.querySelectorAll('[class^="final-price-"]').forEach(element => {
@@ -174,7 +254,17 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
         console.error('Error:', error);
         const resultDiv = document.getElementById('remaining-value-result');
-        resultDiv.innerHTML = `<div class="alert alert-danger"><small>خطا در محاسبه مقدار باقیمانده</small></div>`;
+        resultDiv.innerHTML = `
+            <div class="calculator-result error">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>خطا در محاسبه</strong>
+                </div>
+                <div style="margin-top: 0.5rem; font-size: 14px;">
+                    امکان محاسبه مقدار باقیمانده وجود ندارد. لطفاً بعداً دوباره تلاش کنید.
+                </div>
+            </div>
+        `;
     });
     
     // Apply discount code functionality
@@ -207,19 +297,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     // Update UI with discount information
                     resultDiv.innerHTML = `
-                        <div class="alert alert-success mb-0">
-                            <small>
-                                تخفیف اعمال شد: ${data.discount_amount.toFixed(0)} تومان
-                                <br>قیمت نهایی: ${data.final_price.toFixed(0)} تومان
-                            </small>
+                        <div class="discount-result success">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>کد تخفیف با موفقیت اعمال شد!</strong>
+                            </div>
+                            <div>میزان تخفیف: <strong>${data.discount_amount.toFixed(0)} تومان</strong></div>
+                            <div>قیمت نهایی: <strong>${data.final_price.toFixed(0)} تومان</strong></div>
                         </div>
                     `;
                     finalPriceSpan.textContent = data.final_price.toFixed(0);
                     discountCodeInput.value = data.discount_code;
                 } else {
                     resultDiv.innerHTML = `
-                        <div class="alert alert-danger mb-0">
-                            <small>${data.error}</small>
+                        <div class="discount-result error">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-exclamation-circle"></i>
+                                ${data.error}
+                            </div>
                         </div>
                     `;
                     // Reset to original price minus remaining value
@@ -236,10 +331,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             // If final price is 0, show a special message
                             if (finalPrice === 0) {
                                 resultDiv.innerHTML = `
-                                    <div class="alert alert-success mb-0">
-                                        <small>
-                                            ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.
-                                        </small>
+                                    <div class="discount-result success">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                            <i class="fas fa-gift"></i>
+                                            <strong>عالی! پرداخت رایگان!</strong>
+                                        </div>
+                                        <div>ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.</div>
                                     </div>
                                 `;
                             }
@@ -256,8 +353,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
                 resultDiv.innerHTML = `
-                    <div class="alert alert-danger mb-0">
-                        <small>خطا در اعمال کد تخفیف</small>
+                    <div class="discount-result error">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            خطا در اعمال کد تخفیف. لطفاً دوباره تلاش کنید.
+                        </div>
                     </div>
                 `;
             });

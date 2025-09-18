@@ -48,11 +48,36 @@ class OTPService:
             return False, str(e)
     
     @staticmethod
+    def can_send_otp(user):
+        """
+        Check if user can receive a new OTP (60 second cooldown)
+        Returns (can_send, remaining_seconds)
+        """
+        # Get the latest OTP sent to this user in the last 60 seconds
+        recent_otp = OTP.objects.filter(
+            user=user,
+            created_at__gt=timezone.now() - timedelta(seconds=60)
+        ).order_by('-created_at').first()
+        
+        if recent_otp:
+            # Calculate remaining cooldown time
+            elapsed = (timezone.now() - recent_otp.created_at).total_seconds()
+            remaining = max(0, 60 - elapsed)
+            return False, int(remaining)
+        
+        return True, 0
+    
+    @staticmethod
     def create_and_send_otp(user):
         """
         Create a new OTP for the user and send it via SMS
-        Returns (success, message)
+        Returns (success, message, remaining_cooldown)
         """
+        # Check cooldown first
+        can_send, remaining = OTPService.can_send_otp(user)
+        if not can_send:
+            return False, f"Please wait {remaining} seconds before requesting another SMS", remaining
+        
         # Generate a new OTP code
         otp_code = OTPService.generate_otp_code()
         
@@ -70,11 +95,11 @@ class OTPService:
         success, response = OTPService.send_otp_via_ipanel(user.phone_number, otp_code)
         
         if success:
-            return True, "OTP sent successfully"
+            return True, "OTP sent successfully", 0
         else:
             # Delete the OTP record if sending failed
             otp.delete()
-            return False, f"Failed to send OTP: {response}"
+            return False, f"Failed to send OTP: {response}", 0
     
     @staticmethod
     def verify_otp(user, otp_code):

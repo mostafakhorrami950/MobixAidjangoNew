@@ -2,27 +2,41 @@
 // نمایش پیام‌ها و رندر محتوا (Messages Display)
 // =================================
 
-// Utility function to scroll to bottom with better reliability
-// Modified to scroll the entire window instead of a container
+// Utility function to scroll to bottom with enhanced reliability
 function scrollToBottom() {
     // Multiple approaches to ensure scrolling works in all scenarios
     function doScroll() {
-        window.scrollTo(0, document.body.scrollHeight);
+        // Try both window and document.documentElement scrolling
+        const scrollHeight = Math.max(
+            document.body.scrollHeight,
+            document.documentElement.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement.offsetHeight
+        );
+        
+        // Scroll window to bottom
+        window.scrollTo({
+            top: scrollHeight,
+            behavior: 'smooth'
+        });
+        
+        // Also try document.documentElement for better compatibility
+        document.documentElement.scrollTop = scrollHeight;
+        document.body.scrollTop = scrollHeight; // For Safari
     }
     
     // Immediate scroll
     doScroll();
     
-    // Scroll after a short delay to handle DOM updates
-    setTimeout(doScroll, 10);
-    
-    // Scroll using requestAnimationFrame for better timing
-    requestAnimationFrame(doScroll);
-    
-    // Additional scroll attempts with increasing delays
-    setTimeout(doScroll, 50);
-    setTimeout(doScroll, 100);
-    setTimeout(doScroll, 200);
+    // Use requestAnimationFrame for smooth scrolling
+    requestAnimationFrame(() => {
+        doScroll();
+        
+        // Additional delayed scrolls to handle dynamic content
+        setTimeout(doScroll, 50);
+        setTimeout(doScroll, 150);
+        setTimeout(doScroll, 300);
+    });
 }
 
 // Helper function to check if the user is near the bottom of the page
