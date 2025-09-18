@@ -10,7 +10,14 @@ function sendMessage() {
     
     // دریافت فایل‌ها از مدیر آپلود چند فایل
     // Get files from multiple file upload manager
-    const files = getSelectedFiles();
+    let files = [];
+    try {
+        files = getSelectedFiles();
+        console.log('Files retrieved:', files);
+    } catch (error) {
+        console.error('Error getting selected files:', error);
+        files = [];
+    }
 
     if (!message && !files.length) {
         console.log('No message and no files, returning');
@@ -176,8 +183,14 @@ function sendMessage() {
                     const chunk = decoder.decode(value, { stream: true });
                     console.log('Received chunk from message sending:', chunk);
                     
+                    // Check if chunk contains any special data markers
+                    const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
+                    const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
+                    const hasImages = chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]');
+                    const hasUsageData = chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]');
+                    
                     // Handle user message data
-                    if (chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]')) {
+                    if (hasUserMessage) {
                         const startIdx = chunk.indexOf('[USER_MESSAGE]') + 14;
                         const endIdx = chunk.indexOf('[USER_MESSAGE_END]');
                         const userMessageJson = chunk.substring(startIdx, endIdx);
@@ -189,9 +202,30 @@ function sendMessage() {
                         } catch (parseError) {
                             console.error('Error parsing user message data:', parseError);
                         }
+                        
+                        // Process any remaining content after removing the user message data
+                        let remainingContent = chunk;
+                        const userMessageStart = remainingContent.indexOf('[USER_MESSAGE]');
+                        const userMessageEnd = remainingContent.indexOf('[USER_MESSAGE_END]') + 18; // 18 = length of '[USER_MESSAGE_END]'
+                        if (userMessageStart !== -1 && userMessageEnd !== -1) {
+                            // Remove the user message data from the chunk
+                            remainingContent = remainingContent.substring(0, userMessageStart) + remainingContent.substring(userMessageEnd);
+                            
+                            // Add remaining content as assistant content if it's not empty
+                            if (remainingContent.trim()) {
+                                console.log('Adding remaining content after user message filtering:', remainingContent);
+                                assistantContent += remainingContent;
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent, assistantMessageId);
+                                }
+                            }
+                        }
                     }
                     // Handle assistant message ID
-                    else if (chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]')) {
+                    else if (hasAssistantMessageId) {
                         const startIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID]') + 22;
                         const endIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID_END]');
                         const assistantMessageJson = chunk.substring(startIdx, endIdx);
@@ -204,7 +238,7 @@ function sendMessage() {
                         }
                     }
                     // Handle image data
-                    else if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
+                    else if (hasImages) {
                         const startIdx = chunk.indexOf('[IMAGES]') + 8;
                         const endIdx = chunk.indexOf('[IMAGES_END]');
                         const imagesJson = chunk.substring(startIdx, endIdx);
@@ -224,13 +258,13 @@ function sendMessage() {
                         }
                     }
                     // Handle usage data (ignore for now)
-                    else if (chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]')) {
+                    else if (hasUsageData) {
                         // We don't need to do anything with usage data here
                         // It's handled on the server side
                         console.log('Received usage data, ignoring');
                     }
-                    // Handle regular content
-                    else {
+                    // Handle regular content (only if it doesn't contain any special markers)
+                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
                         console.log('Received assistant content:', chunk);
                         assistantContent += chunk;
                         // Update the streaming message with current content
@@ -746,11 +780,11 @@ async function createDefaultSessionAndSendMessage(message, files) {
         showTypingIndicator();
         
         // Prepare data for creating session
-        const sessionData = {};
+        const sessionCreateData = {};
         
         // If a model is selected for new session, use it
         if (selectedModelForNewSession) {
-            sessionData.ai_model_id = selectedModelForNewSession;
+            sessionCreateData.ai_model_id = selectedModelForNewSession;
         }
         
         // ایجاد جلسه پیش‌فرض
@@ -760,7 +794,7 @@ async function createDefaultSessionAndSendMessage(message, files) {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify(sessionData)
+            body: JSON.stringify(sessionCreateData)
         });
         
         const data = await response.json();
@@ -787,6 +821,16 @@ async function createDefaultSessionAndSendMessage(message, files) {
         // فعال کردن input ها
         document.getElementById('message-input').disabled = false;
         document.getElementById('send-button').disabled = false;
+        
+        // Store session data in localStorage (important for auto-refresh functionality)
+        const sessionData = {
+            ai_model_name: data.ai_model_name || 'مدل پیش‌فرض',
+            session_name: data.title,
+            chatbot_type: data.chatbot_type,
+            chatbot_id: data.chatbot_id
+        };
+        localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
+        console.log('Stored session data for auto-refresh:', sessionData);
         
         // Load models for the message input area
         if (data.chatbot_id) {
@@ -872,9 +916,10 @@ function sendMessageInternal(message, files) {
     formData.append('message', message);
     formData.append('use_web_search', isWebSearchEnabled);
     formData.append('generate_image', isImageGenerationEnabled);
-    if (file) {
-        formData.append('file', file);
-    }
+    // اضافه کردن چندین فایل
+    files.forEach(file => {
+        formData.append('files', file); // تغییر از 'file' به 'files'
+    });
 
     let assistantContent = '';
     let imagesData = [];
@@ -946,8 +991,40 @@ function sendMessageInternal(message, files) {
                 try {
                     const chunk = decoder.decode(value, { stream: true });
                     
+                    // Check if chunk contains any special data markers
+                    const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
+                    const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
+                    const hasImages = chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]');
+                    const hasUsageData = chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]');
+                    
+                    // Handle user message data (skip it for display)
+                    if (hasUserMessage) {
+                        console.log('Received user message data in sendMessageInternal, skipping display');
+                        // Process any remaining content after removing the user message data
+                        let remainingContent = chunk;
+                        const userMessageStart = remainingContent.indexOf('[USER_MESSAGE]');
+                        const userMessageEnd = remainingContent.indexOf('[USER_MESSAGE_END]') + 18; // 18 = length of '[USER_MESSAGE_END]'
+                        if (userMessageStart !== -1 && userMessageEnd !== -1) {
+                            // Remove the user message data from the chunk
+                            remainingContent = remainingContent.substring(0, userMessageStart) + remainingContent.substring(userMessageEnd);
+                            
+                            // Add remaining content as assistant content if it's not empty
+                            if (remainingContent.trim()) {
+                                assistantContent += remainingContent;
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent);
+                                }
+                            }
+                        }
+                    }
+                    // Handle assistant message ID (skip it for display)
+                    else if (hasAssistantMessageId) {
+                        console.log('Received assistant message ID in sendMessageInternal, skipping display');
+                    }
                     // Handle image data
-                    if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
+                    else if (hasImages) {
                         const startIdx = chunk.indexOf('[IMAGES]') + 8;
                         const endIdx = chunk.indexOf('[IMAGES_END]');
                         const imagesJson = chunk.substring(startIdx, endIdx);
@@ -959,12 +1036,12 @@ function sendMessageInternal(message, files) {
                             console.error('Error parsing images data:', parseError);
                         }
                     }
-                    // Handle usage data
-                    else if (chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]')) {
+                    // Handle usage data (ignore for now)
+                    else if (hasUsageData) {
                         // Ignore usage data
                     }
-                    // Handle regular content
-                    else {
+                    // Handle regular content (only if it doesn't contain any special markers)
+                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
                         assistantContent += chunk;
                         if (imagesData.length > 0) {
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
@@ -1080,9 +1157,9 @@ function updateUserMessageWithServerData(userData) {
     if (userMessages.length > 0) {
         const lastUserMessage = userMessages[userMessages.length - 1];
         
-        // Check if this message already has an ID
-        if (lastUserMessage.dataset.messageId) {
-            console.log('Last user message already has an ID:', lastUserMessage.dataset.messageId);
+        // Check if this message already has an ID and uploaded files data
+        if (lastUserMessage.dataset.messageId && lastUserMessage.querySelector('.files-container')) {
+            console.log('Last user message already has an ID and files:', lastUserMessage.dataset.messageId);
             // If it already has an ID, make sure it matches the server ID
             if (userData.id && lastUserMessage.dataset.messageId !== userData.id) {
                 console.warn('Message ID mismatch. Expected:', userData.id, 'Actual:', lastUserMessage.dataset.messageId);
@@ -1098,8 +1175,75 @@ function updateUserMessageWithServerData(userData) {
             console.log('Updated user message with server ID:', userData.id);
         }
         
-        // Update other attributes if needed
-        // Note: Content and other attributes should already be correct
+        // Add uploaded files display if files are present in server data
+        if (userData.uploaded_files && userData.uploaded_files.length > 0) {
+            console.log('Adding uploaded files to user message:', userData.uploaded_files);
+            
+            // Check if files container already exists
+            let filesContainer = lastUserMessage.querySelector('.files-container');
+            if (!filesContainer) {
+                // Create files container
+                filesContainer = document.createElement('div');
+                filesContainer.className = 'files-container mt-2';
+                filesContainer.innerHTML = '<div class="uploaded-files-header"><small class="text-muted"><i class="fas fa-paperclip"></i> فایل‌های آپلود شده:</small></div>';
+                
+                // Insert before message actions (if they exist) or at the end
+                const messageActions = lastUserMessage.querySelector('.message-actions');
+                if (messageActions) {
+                    lastUserMessage.insertBefore(filesContainer, messageActions);
+                } else {
+                    lastUserMessage.appendChild(filesContainer);
+                }
+            }
+            
+            // Add each file
+            userData.uploaded_files.forEach((file, index) => {
+                // Determine file icon based on mimetype
+                let iconClass = 'fas fa-file text-muted';
+                if (file.mimetype.startsWith('image/')) {
+                    iconClass = 'fas fa-file-image text-primary';
+                } else if (file.mimetype === 'application/pdf') {
+                    iconClass = 'fas fa-file-pdf text-danger';
+                } else if (file.mimetype.startsWith('text/')) {
+                    iconClass = 'fas fa-file-alt text-info';
+                } else if (file.mimetype.includes('word')) {
+                    iconClass = 'fas fa-file-word text-primary';
+                } else if (file.mimetype.includes('excel') || file.mimetype.includes('sheet')) {
+                    iconClass = 'fas fa-file-excel text-success';
+                }
+                
+                // Format file size
+                let sizeText = formatFileSize(file.size);
+                
+                const fileItemHtml = `
+                    <div class="uploaded-file-item d-flex align-items-center p-2 mb-1 bg-light rounded">
+                        <i class="${iconClass} me-2"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">${file.filename}</div>
+                            <div class="small text-muted">${sizeText}</div>
+                        </div>
+                        <div class="file-actions">
+                            ${file.mimetype.startsWith('image/') ? 
+                                `<button class="btn btn-sm btn-outline-primary me-1 preview-image-btn" data-image-url="${file.download_url}" title="پیش‌نمایش"><i class="fas fa-eye"></i></button>` : ''
+                            }
+                            <a href="${file.download_url}" download="${file.filename}" class="btn btn-sm btn-outline-success" title="دانلود">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                
+                filesContainer.insertAdjacentHTML('beforeend', fileItemHtml);
+            });
+            
+            // Set up image preview functionality for uploaded files
+            setupImagePreviewButtons(lastUserMessage);
+            
+            // Scroll to show the updated message
+            setTimeout(() => {
+                scrollToBottom();
+            }, 100);
+        }
     } else {
         console.warn('No user messages found to update with server data');
     }
