@@ -4,13 +4,14 @@
 // =================================
 
 /**
- * کلاس مدیریت آپلود فایل
- * File Upload Manager Class
+ * کلاس مدیریت آپلود چند فایل
+ * Multiple Files Upload Manager Class
  */
-class FileUploadManager {
+class MultiFileUploadManager {
     constructor() {
-        this.currentFile = null;
+        this.selectedFiles = []; // آرای فایل‌های انتخابی
         this.maxFileSize = 10 * 1024 * 1024; // 10 مگابایت
+        this.maxFiles = 10; // حداکثر تعداد فایل
         this.allowedTypes = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'application/pdf',
@@ -24,10 +25,10 @@ class FileUploadManager {
         this.elements = {
             uploadBtn: null,
             fileInput: null,
-            removeBtn: null,
+            clearAllBtn: null,
             preview: null,
-            fileName: null,
-            fileIcon: null,
+            filesList: null,
+            filesCount: null,
             sendBtn: null,
             messageInput: null
         };
@@ -53,10 +54,10 @@ class FileUploadManager {
         this.elements = {
             uploadBtn: document.getElementById('upload-btn'),
             fileInput: document.getElementById('file-input'),
-            removeBtn: document.getElementById('remove-file'),
-            preview: document.getElementById('file-preview'),
-            fileName: document.getElementById('file-name'),
-            fileIcon: document.querySelector('#file-preview i'),
+            clearAllBtn: document.getElementById('clear-all-files'),
+            preview: document.getElementById('files-preview'),
+            filesList: document.getElementById('files-list'),
+            filesCount: document.getElementById('files-count'),
             sendBtn: document.getElementById('send-button'),
             messageInput: document.getElementById('message-input')
         };
@@ -72,14 +73,14 @@ class FileUploadManager {
             this.elements.uploadBtn.addEventListener('click', () => this.triggerFileSelect());
         }
         
-        // تغییر فایل انتخابی
+        // تغییر فایل‌های انتخابی
         if (this.elements.fileInput) {
             this.elements.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
         
-        // حذف فایل
-        if (this.elements.removeBtn) {
-            this.elements.removeBtn.addEventListener('click', () => this.removeFile());
+        // پاک کردن همه فایل‌ها
+        if (this.elements.clearAllBtn) {
+            this.elements.clearAllBtn.addEventListener('click', () => this.clearAllFiles());
         }
         
         // تغییر متن پیام
@@ -166,28 +167,50 @@ class FileUploadManager {
     }
     
     /**
-     * مدیریت انتخاب فایل از input
-     * Handle file selection from input
+     * مدیریت انتخاب چندین فایل از input
+     * Handle multiple files selection from input
      */
     handleFileSelect(event) {
-        const files = event.target.files;
+        const files = Array.from(event.target.files);
         if (files.length > 0) {
-            this.processFile(files[0]);
+            this.addFiles(files);
         }
+        // پاک کردن input برای امکان انتخاب مجدد همان فایل‌ها
+        event.target.value = '';
     }
     
     /**
-     * پردازش فایل انتخاب شده
-     * Process selected file
+     * اضافع کردن چندین فایل به لیست
+     * Add multiple files to the list
      */
-    processFile(file) {
-        // اعتبارسنجی فایل
-        if (!this.validateFile(file)) {
-            return;
+    addFiles(files) {
+        for (const file of files) {
+            // بررسی حداکثر تعداد فایل
+            if (this.selectedFiles.length >= this.maxFiles) {
+                this.showError(`حداکثر ${this.maxFiles} فایل قابل انتخاب است.`);
+                break;
+            }
+            
+            // اعتبارسنجی فایل
+            if (!this.validateFile(file)) {
+                continue;
+            }
+            
+            // بررسی تکراری بودن فایل
+            const isDuplicate = this.selectedFiles.some(
+                existingFile => existingFile.name === file.name && existingFile.size === file.size
+            );
+            
+            if (isDuplicate) {
+                this.showError(`فایل "${file.name}" قبلاً انتخاب شده است.`);
+                continue;
+            }
+            
+            // اضافع کردن فایل به لیست
+            this.selectedFiles.push(file);
         }
         
-        this.currentFile = file;
-        this.displayFilePreview(file);
+        this.updateFilePreview();
         this.updateSendButtonState();
     }
     

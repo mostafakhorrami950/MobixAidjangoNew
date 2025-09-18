@@ -293,6 +293,25 @@ class ImageGenerationUsage(models.Model):
         unique_together = ('user', 'subscription_type')
 
 
+class MessageFile(models.Model):
+    """
+    Model to store multiple files for a single message
+    رابطه چند-به-چند بین پیام‌ها و فایل‌ها
+    """
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name='uploaded_files')
+    uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='message_files')
+    file_order = models.PositiveIntegerField(default=0, help_text="Order of file in the message")
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    def __str__(self):
+        return f"File {self.uploaded_file.original_filename} for message {self.message.message_id}"
+    
+    class Meta:
+        db_table = 'message_files'
+        ordering = ['file_order', 'created_at']
+        unique_together = ('message', 'uploaded_file')
+
+
 class SidebarMenuItem(models.Model):
     """
     Model for configurable sidebar menu items

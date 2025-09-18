@@ -4,28 +4,31 @@
 
 // Send message with streaming support
 function sendMessage() {
+    console.log('sendMessage called');
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value.trim();
     
-    // دریافت فایل از مدیر آپلود فایل
-    // Get file from file upload manager
-    const file = getSelectedFile();
+    // دریافت فایل‌ها از مدیر آپلود چند فایل
+    // Get files from multiple file upload manager
+    const files = getSelectedFiles();
 
-    if (!message && !file) {
+    if (!message && !files.length) {
+        console.log('No message and no files, returning');
         return;
     }
     
     // بررسی وجود currentSessionId و ایجاد session پیش‌فرض در صورت نیاز
     if (!currentSessionId) {
         // ایجاد session پیش‌فرض
-        createDefaultSessionAndSendMessage(message, file);
+        createDefaultSessionAndSendMessage(message, files);
         return;
     }
 
     // Prepare display message
     let displayMessage = message;
-    if (file) {
-        displayMessage += ` (فایل: ${file.name})`;
+    if (files.length > 0) {
+        const fileNames = files.map(f => f.name).join(', ');
+        displayMessage += ` (فایل‌ها: ${fileNames})`;
     }
 
     // Add user message to chat immediately
@@ -40,7 +43,7 @@ function sendMessage() {
 
     // Clear inputs
     messageInput.value = '';
-    resetFileInputState(); // Use the robust reset function
+    resetFilesState(); // Clear all selected files
     // Don't disable the send button immediately - keep it enabled for stop functionality
     // document.getElementById('send-button').disabled = true;
 
@@ -61,9 +64,10 @@ function sendMessage() {
     formData.append('message', message);
     formData.append('use_web_search', isWebSearchEnabled);
     formData.append('generate_image', isImageGenerationEnabled);
-    if (file) {
-        formData.append('file', file);
-    }
+    // اضافه کردن چندین فایل
+    files.forEach(file => {
+        formData.append('files', file); // تغییر از 'file' به 'files'
+    });
 
     let assistantContent = '';
     let imagesData = [];
@@ -645,7 +649,7 @@ window.addEventListener('beforeunload', function() {
  * ایجاد جلسه پیش‌فرض و ارسال پیام
  * Create default session and send message
  */
-async function createDefaultSessionAndSendMessage(message, file) {
+async function createDefaultSessionAndSendMessage(message, files) {
     try {
         // نمایش پیام انتظار
         showTypingIndicator();
@@ -727,7 +731,7 @@ async function createDefaultSessionAndSendMessage(message, file) {
         hideTypingIndicator();
         
         // حالا پیام را ارسال کنیم
-        sendMessageInternal(message, file);
+        sendMessageInternal(message, files);
         
     } catch (error) {
         hideTypingIndicator();
@@ -740,14 +744,14 @@ async function createDefaultSessionAndSendMessage(message, file) {
  * ارسال پیام داخلی (بدون بررسی session)
  * Internal message sending (without session check)
  */
-function sendMessageInternal(message, file) {
+function sendMessageInternal(message, files) {
     const messageInput = document.getElementById('message-input');
     
     // Add user message to chat immediately
     let displayMessage = message;
-    if (file) {
-        displayMessage += ` (فایل: ${file.name})`;
-
+    if (files.length > 0) {
+        const fileNames = files.map(f => f.name).join(', ');
+        displayMessage += ` (فایل‌ها: ${fileNames})`;
     }
 
     addMessageToChat({
@@ -758,7 +762,7 @@ function sendMessageInternal(message, file) {
 
     // Clear inputs
     messageInput.value = '';
-    resetFileInputState(); // Use the robust reset function
+    resetFilesState(); // Clear all selected files
 
     // Disable input while processing
     messageInput.disabled = true;

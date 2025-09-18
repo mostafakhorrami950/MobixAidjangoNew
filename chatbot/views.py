@@ -10,7 +10,7 @@ from ai_models.services import OpenRouterService
 from subscriptions.models import UserSubscription
 from subscriptions.services import UsageService
 from .file_services import FileUploadService
-from .models import UploadedFile, UploadedImage, SidebarMenuItem  # Add UploadedFile import and SidebarMenuItem
+from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
 import json
 
 # Add these imports for image handling
@@ -342,6 +342,21 @@ def get_session_messages(request, session_id):
         # Include image_url if it exists
         if message.image_url:
             message_data['image_url'] = message.image_url
+        
+        # اضافه کردن فایل‌های آپلود شده - Add uploaded files
+        uploaded_files = message.uploaded_files.all().order_by('file_order')
+        if uploaded_files:
+            files_data = []
+            for message_file in uploaded_files:
+                file_record = message_file.uploaded_file
+                files_data.append({
+                    'filename': file_record.original_filename,
+                    'mimetype': file_record.mimetype,
+                    'size': file_record.size,
+                    'download_url': f'/media/uploaded_files/{file_record.filename}'
+                })
+            message_data['uploaded_files'] = files_data
+        
         message_list.append(message_data)
     
     # Determine session type and name
@@ -385,23 +400,31 @@ def send_message(request, session_id):
             session = get_object_or_404(ChatSession, id=session_id, user=request.user)
 
             # Handle both multipart/form-data (for file uploads) and JSON
+            logger.info(f"Request content type: {request.content_type}")
             if request.content_type.startswith('multipart/form-data'):
                 user_message_content = request.POST.get('message', '')
-                uploaded_file = request.FILES.get('file')
+                # پردازش چندین فایل
+                uploaded_files = request.FILES.getlist('files')  # تغییر از 'file' به 'files'
+                logger.info(f"Uploaded files count: {len(uploaded_files)}")
+                for i, f in enumerate(uploaded_files):
+                    logger.info(f"File {i}: {f.name}, size: {f.size}")
                 use_web_search = request.POST.get('use_web_search', 'false') == 'true'
                 generate_image = request.POST.get('generate_image', 'false') == 'true'
             else:  # Handle regular JSON request
                 data = json.loads(request.body.decode('utf-8'))
                 user_message_content = data.get('message', '')
-                uploaded_file = None
+                uploaded_files = []
                 use_web_search = data.get('use_web_search', False)
                 generate_image = data.get('generate_image', False)
+                
+            logger.info(f"Message: {user_message_content}")
+            logger.info(f"Files count: {len(uploaded_files)}")
 
             # For image editing chatbots, always generate images by default
             if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
                 generate_image = True
 
-            if not user_message_content and not uploaded_file:
+            if not user_message_content and not uploaded_files:
                 return JsonResponse({'error': 'محتوای پیام یا فایل الزامی است'}, status=400)
 
             # Check usage limits
@@ -463,7 +486,7 @@ def send_message(request, session_id):
 
             # Check if this is an image editing request without a new file upload
             if (session.chatbot and session.chatbot.chatbot_type == 'image_editing' and 
-                not uploaded_file and user_message_content):
+                not uploaded_files and user_message_content):
                 # Find the last assistant-generated image in this session
                 last_image_message = session.messages.filter(
                     message_type='assistant'
@@ -487,128 +510,127 @@ def send_message(request, session_id):
                                 image_data_url = f"data:{mime_type};base64,{encoded_image}"
                                 content_parts.append({"type": "image_url", "image_url": {"url": image_data_url}})
 
-            if uploaded_file:
-                # Check file upload limits
-                if subscription_type:
-                    within_limit, message = FileUploadService.check_file_upload_limit(
-                        request.user, subscription_type, session
-                    )
-                    if not within_limit:
-                        return JsonResponse({'error': message}, status=403)
-                    
-                    # Check file size limit
-                    within_limit, message = FileUploadService.check_file_size_limit(
-                        subscription_type, uploaded_file.size
-                    )
-                    if not within_limit:
-                        return JsonResponse({'error': message}, status=403)
-                    
-                    # Check file extension
-                    file_extension = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''
-                    if file_extension and not FileUploadService.check_file_extension_allowed(
-                        subscription_type, file_extension
-                    ):
-                        return JsonResponse({'error': f"فرمت فایل {file_extension} مجاز نیست"}, status=403)
-                
-                # Save file information to database
-                import uuid
-                filename = f"{uuid.uuid4()}_{uploaded_file.name}"
-                mime_type, _ = mimetypes.guess_type(uploaded_file.name)
-                
-                # Save uploaded file record
-                uploaded_file_record = UploadedFile(
-                    user=request.user,
-                    session=session,
-                    filename=filename,
-                    original_filename=uploaded_file.name,
-                    mimetype=mime_type or 'application/octet-stream',
-                    size=uploaded_file.size
-                )
-                uploaded_file_record.save()
-                
-                # Save the actual file
-                # Create the directory if it doesn't exist
-                import os
-                from django.conf import settings
-                upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploaded_files')
-                os.makedirs(upload_dir, exist_ok=True)
-                
-                # Save file to disk
-                file_path = os.path.join(upload_dir, filename)
-                with open(file_path, 'wb+') as destination:
-                    for chunk in uploaded_file.chunks():
-                        destination.write(chunk)
-                
-                # Update the download URL to point to the saved file
-                file_download_url = f"/media/uploaded_files/{filename}"
-                
-                # Handle different file types
-                if mime_type and mime_type.startswith('image/'):
-                    # Image processing (vision capability)
-                    # For images, we still save to UploadedImage for vision processing
-                    uploaded_image = UploadedImage(user=request.user, session=session, image_file=uploaded_file)
-                    uploaded_image.save()
-
-                    # Read and encode image properly using the file path from the model
-                    image_file_path = str(uploaded_image.image_file)
-                    full_image_path = os.path.join(str(settings.MEDIA_ROOT), image_file_path)
-                    with open(full_image_path, "rb") as image_file:
-                        image_data = image_file.read()
-                    encoded_image = base64.b64encode(image_data).decode('utf-8')
-                    image_url = f"data:{mime_type};base64,{encoded_image}"
-
-                    content_parts.append({"type": "image_url", "image_url": {"url": image_url}})
-                    user_message_to_save += f" (تصویر: {uploaded_file.name})"
-                elif mime_type and (mime_type.startswith('text/') or 
-                                   mime_type in ['application/json', 'application/xml', 'application/javascript', 
-                                                'text/html', 'text/css', 'text/csv']):
-                    # Text file processing
-                    file_content = uploaded_file.read().decode('utf-8', errors='ignore')
-                    # Limit file content to prevent token overflow
-                    if len(file_content) > 10000:  # Limit to 10KB
-                        file_content = file_content[:10000] + "... (محتوای اضافی حذف شد)"
-                    
-                    file_info = f"محتوای فایل '{uploaded_file.name}':\n{file_content}"
-                    content_parts.append({"type": "text", "text": file_info})
-                    user_message_to_save += f" (فایل متنی: {uploaded_file.name})"
-                elif mime_type and mime_type == 'application/pdf':
-                    # PDF file processing
-                    try:
-                        pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
-                        text_content = ""
-                        for page in pdf_reader.pages:
-                            text_content += page.extract_text() + "\n"
+            # پردازش چندین فایل آپلود شده - Multiple files processing
+            uploaded_file_records = []
+            if uploaded_files:
+                for file_index, uploaded_file in enumerate(uploaded_files):
+                    # Check file upload limits for each file
+                    if subscription_type:
+                        within_limit, message = FileUploadService.check_file_upload_limit(
+                            request.user, subscription_type, session
+                        )
+                        if not within_limit:
+                            return JsonResponse({'error': f"محدودیت آپلود فایل: {message}"}, status=403)
                         
-                        # Limit PDF content to prevent token overflow
-                        if len(text_content) > 10000:  # Limit to 10KB
-                            text_content = text_content[:10000] + "... (محتوای اضافی حذف شد)"
+                        # Check file size limit
+                        within_limit, message = FileUploadService.check_file_size_limit(
+                            subscription_type, uploaded_file.size
+                        )
+                        if not within_limit:
+                            return JsonResponse({'error': f"فایل '{uploaded_file.name}': {message}"}, status=403)
                         
-                        file_info = f"محتوای فایل PDF '{uploaded_file.name}':\n{text_content}"
+                        # Check file extension
+                        file_extension = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''
+                        if file_extension and not FileUploadService.check_file_extension_allowed(
+                            subscription_type, file_extension
+                        ):
+                            return JsonResponse({'error': f"فرمت فایل {file_extension} در '{uploaded_file.name}' مجاز نیست"}, status=403)
+                    
+                    # Save file information to database
+                    import uuid
+                    filename = f"{uuid.uuid4()}_{uploaded_file.name}"
+                    mime_type, _ = mimetypes.guess_type(uploaded_file.name)
+                    
+                    # Save uploaded file record
+                    uploaded_file_record = UploadedFile(
+                        user=request.user,
+                        session=session,
+                        filename=filename,
+                        original_filename=uploaded_file.name,
+                        mimetype=mime_type or 'application/octet-stream',
+                        size=uploaded_file.size
+                    )
+                    uploaded_file_record.save()
+                    uploaded_file_records.append(uploaded_file_record)
+                    
+                    # Save the actual file
+                    import os
+                    from django.conf import settings
+                    upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploaded_files')
+                    os.makedirs(upload_dir, exist_ok=True)
+                    
+                    # Save file to disk
+                    file_path = os.path.join(upload_dir, filename)
+                    with open(file_path, 'wb+') as destination:
+                        for chunk in uploaded_file.chunks():
+                            destination.write(chunk)
+                    
+                    # Handle different file types
+                    if mime_type and mime_type.startswith('image/'):
+                        # Image processing (vision capability)
+                        uploaded_image = UploadedImage(user=request.user, session=session, image_file=uploaded_file)
+                        uploaded_image.save()
+
+                        # Read and encode image properly
+                        image_file_path = str(uploaded_image.image_file)
+                        full_image_path = os.path.join(str(settings.MEDIA_ROOT), image_file_path)
+                        with open(full_image_path, "rb") as image_file:
+                            image_data = image_file.read()
+                        encoded_image = base64.b64encode(image_data).decode('utf-8')
+                        image_url = f"data:{mime_type};base64,{encoded_image}"
+
+                        content_parts.append({"type": "image_url", "image_url": {"url": image_url}})
+                        user_message_to_save += f" (تصویر {file_index + 1}: {uploaded_file.name})"
+                    elif mime_type and (mime_type.startswith('text/') or 
+                                       mime_type in ['application/json', 'application/xml', 'application/javascript', 
+                                                    'text/html', 'text/css', 'text/csv']):
+                        # Text file processing
+                        file_content = uploaded_file.read().decode('utf-8', errors='ignore')
+                        # Limit file content to prevent token overflow
+                        if len(file_content) > 10000:  # Limit to 10KB
+                            file_content = file_content[:10000] + "... (محتوای اضافی حذف شد)"
+                        
+                        file_info = f"محتوای فایل '{uploaded_file.name}':\n{file_content}"
                         content_parts.append({"type": "text", "text": file_info})
-                    except Exception as e:
-                        content_parts.append({"type": "text", "text": f"کاربر فایل PDF با نام '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
-                    user_message_to_save += f" (فایل PDF: {uploaded_file.name})"
-                elif mime_type and mime_type in ['application/msword', 
-                                               'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                                               'application/vnd.ms-excel',
-                                               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
-                    # Office document processing (Word, Excel)
-                    user_message_to_save += f" (فایل اداری: {uploaded_file.name})"
-                    content_parts.append({"type": "text", "text": f"کاربر فایل اداری '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
-                elif mime_type and mime_type in ['application/zip', 'application/x-rar-compressed']:
-                    # Compressed file processing (ZIP, RAR)
-                    user_message_to_save += f" (فایل فشرده: {uploaded_file.name})"
-                    content_parts.append({"type": "text", "text": f"کاربر فایل فشرده '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
-                else:
-                    # Other file types
-                    user_message_to_save += f" (فایل: {uploaded_file.name})"
-                    content_parts.append({"type": "text", "text": f"کاربر فایل '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
-                
-                # Increment file upload usage if subscription type is available
-                if subscription_type:
-                    FileUploadService.increment_file_upload_usage(
-                        request.user, subscription_type, session
-                    )
+                        user_message_to_save += f" (فایل متنی {file_index + 1}: {uploaded_file.name})"
+                    elif mime_type and mime_type == 'application/pdf':
+                        # PDF file processing
+                        try:
+                            pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.read()))
+                            text_content = ""
+                            for page in pdf_reader.pages:
+                                text_content += page.extract_text() + "\n"
+                            
+                            # Limit PDF content to prevent token overflow
+                            if len(text_content) > 10000:
+                                text_content = text_content[:10000] + "... (محتوای اضافی حذف شد)"
+                            
+                            file_info = f"محتوای فایل PDF '{uploaded_file.name}':\n{text_content}"
+                            content_parts.append({"type": "text", "text": file_info})
+                        except Exception as e:
+                            content_parts.append({"type": "text", "text": f"کاربر فایل PDF با نام '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                        user_message_to_save += f" (فایل PDF {file_index + 1}: {uploaded_file.name})"
+                    elif mime_type and mime_type in ['application/msword', 
+                                                   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                                   'application/vnd.ms-excel',
+                                                   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
+                        # Office document processing
+                        user_message_to_save += f" (فایل اداری {file_index + 1}: {uploaded_file.name})"
+                        content_parts.append({"type": "text", "text": f"کاربر فایل اداری '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                    elif mime_type and mime_type in ['application/zip', 'application/x-rar-compressed']:
+                        # Compressed file processing
+                        user_message_to_save += f" (فایل فشرده {file_index + 1}: {uploaded_file.name})"
+                        content_parts.append({"type": "text", "text": f"کاربر فایل فشرده '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                    else:
+                        # Other file types
+                        user_message_to_save += f" (فایل {file_index + 1}: {uploaded_file.name})"
+                        content_parts.append({"type": "text", "text": f"کاربر فایل '{uploaded_file.name}' را آپلود کرده است. لطفاً از کاربر بخواهید محتوای فایل را توضیح دهد."})
+                    
+                    # Increment file upload usage if subscription type is available
+                    if subscription_type:
+                        FileUploadService.increment_file_upload_usage(
+                            request.user, subscription_type, session
+                        )
 
             user_message = ChatMessage.objects.create(
                 session=session,
@@ -616,6 +638,14 @@ def send_message(request, session_id):
                 content=user_message_to_save,
                 tokens_count=user_message_tokens
             )
+            
+            # رابطه چند-به-چند بین پیام و فایل‌ها - Many-to-many relationship between message and files
+            for file_order, uploaded_file_record in enumerate(uploaded_file_records):
+                MessageFile.objects.create(
+                    message=user_message,
+                    uploaded_file=uploaded_file_record,
+                    file_order=file_order
+                )
 
             session.updated_at = timezone.now()
             session.save()

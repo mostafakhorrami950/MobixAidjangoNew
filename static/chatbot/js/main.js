@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSessions();
     checkInitialSession(); // Check if we should load a specific session
     
-    // Initialize file upload functionality
-    initializeFileUpload();
+    // Initialize multiple file upload functionality
+    initializeMultiFileUpload();
     
     // Load available models for user
     loadAvailableModelsForUser();
@@ -29,18 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add input event listener to enable/disable send button based on content
-    document.getElementById('message-input').addEventListener('input', function() {
-        const sendBtn = document.getElementById('send-button');
-        const fileInput = document.getElementById('file-input');
-        
-        // Enable send button if there's a message or file
-        if (this.value.trim() || (fileInput && fileInput.files && fileInput.files.length > 0)) {
-            sendBtn.disabled = false;
-        } else {
-            sendBtn.disabled = true;
-        }
-    });
+    // Input event listener is now handled by MultiFileUploadManager
+    // This prevents conflicts between multiple event listeners
     
     // Add event listener for model selection in message input area
     document.getElementById('model-select').addEventListener('change', function() {
