@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}نتیجه پرداخت{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0 text-center">نتیجه پرداخت</h3>
+                </div>
+                <div class="card-body">
+                    {% if payment_success %}
+                    <div class="alert alert-success text-center">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <h4>پرداخت با موفقیت انجام شد</h4>
+                        <p>اشتراک شما با موفقیت فعال شد.</p>
+                        <p><strong>کد پیگیری:</strong> {{ authority }}</p>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'chat' %}" class="btn btn-primary">
+                            <i class="fas fa-comments"></i> شروع چت
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-times-circle fa-3x mb-3"></i>
+                        <h4>پرداخت ناموفق</h4>
+                        <p>پرداخت شما ناموفق بود. لطفاً مجدداً تلاش کنید.</p>
+                        {% if error_message %}
+                        <p class="mb-0"><strong>خطا:</strong> {{ error_message }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'purchase_subscription' %}" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> تلاش مجدد
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

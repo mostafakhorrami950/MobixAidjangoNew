@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">Verify OTP</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-center">We've sent an OTP code to your phone number. Please enter it below to verify your account.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                        {{ form.phone_number }}
+                        {% if form.phone_number.errors %}
+                            <div class="text-danger">{{ form.phone_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.otp_code.id_for_label }}" class="form-label">OTP Code</label>
+                        {{ form.otp_code }}
+                        {% if form.otp_code.errors %}
+                            <div class="text-danger">{{ form.otp_code.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Verify</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Didn't receive the code? <a href="{% url 'register' %}">Resend</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

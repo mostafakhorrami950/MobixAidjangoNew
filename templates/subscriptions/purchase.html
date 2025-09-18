@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block title %}خرید اشتراک{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0 text-center">خرید اشتراک</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Intelligent Payment Info -->
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">محاسبه هوشمند پرداخت</h5>
+                        <p>سیستم ما مقدار باقیمانده از اشتراک فعلی شما را محاسبه کرده و از آن برای کاهش مبلغ پرداختی استفاده می‌کند.</p>
+                        <div id="remaining-value-result" class="mt-2"></div>
+                    </div>
+                    
+                    <div class="row">
+                        {% for subscription in subscriptions %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0 text-center">{{ subscription.name }}</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">{{ subscription.description }}</p>
+                                    <ul class="list-unstyled">
+                                        <li><strong>قیمت:</strong> <span class="original-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان</li>
+                                        <li><strong>مدت:</strong> {{ subscription.duration_days }} روز</li>
+                                        <li><strong>SKU:</strong> {{ subscription.sku }}</li>
+                                        <li><strong>Max tokens:</strong> {{ subscription.max_tokens|default:"نامحدود" }}</li>
+                                    </ul>
+                                    
+                                    <!-- Discount Code Section -->
+                                    <div class="mt-3">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control discount-code-input" 
+                                                   placeholder="کد تخفیف" 
+                                                   data-subscription-id="{{ subscription.id }}">
+                                            <button class="btn btn-outline-secondary apply-discount-btn" 
+                                                    type="button" 
+                                                    data-subscription-id="{{ subscription.id }}">
+                                                اعمال
+                                            </button>
+                                        </div>
+                                        <div class="discount-result mt-2" id="discount-result-{{ subscription.id }}"></div>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <form method="post" action="{% url 'initiate_payment' subscription.id %}" class="payment-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-shopping-cart"></i> خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if not subscriptions %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i> در حال حاضر اشتراکی برای خرید موجود نیست.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate remaining value automatically on page load
+    fetch('{% url "calculate_remaining_value" %}')
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('remaining-value-result');
+        if (data.error) {
+            resultDiv.innerHTML = `<div class="alert alert-danger"><small>${data.error}</small></div>`;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <small>
+                        <strong>اطلاعات اشتراک فعلی:</strong><br>
+                        نوع اشتراک: ${data.subscription_name}<br>
+                        قیمت اشتراک: ${data.subscription_price_tomans.toFixed(0)} تومان<br>
+                        توکن‌های مصرف شده: ${data.total_tokens_used}<br>
+                        توکن‌های مصرف شده (مدل‌های رایگان): ${data.free_model_tokens_used}<br>
+                        Max tokens: ${data.total_token_limit}<br>
+                        توکن‌های باقیمانده: ${data.remaining_tokens}<br>
+                        روزهای باقیمانده: ${data.remaining_days}<br>
+                        <strong>ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان</strong>
+                    </small>
+                </div>
+            `;
+            
+            // Update all subscription prices with the calculated remaining value ONLY if no discount has been applied
+            document.querySelectorAll('[class^="final-price-"]').forEach(element => {
+                // Extract subscription ID from class name
+                const classList = element.className.split(' ');
+                const finalPriceClass = classList.find(cls => cls.startsWith('final-price-'));
+                if (finalPriceClass) {
+                    const subscriptionId = finalPriceClass.split('-')[2];
+                    const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
+                    const discountResultElement = document.getElementById(`discount-result-${subscriptionId}`);
+                    
+                    // Only update if no discount has been applied (discount result is empty)
+                    if (originalPriceElement && (!discountResultElement || !discountResultElement.innerHTML.trim())) {
+                        const originalPrice = parseFloat(originalPriceElement.textContent);
+                        const finalPrice = Math.max(0, originalPrice - data.total_remaining_value_tomans);
+                        element.textContent = finalPrice.toFixed(0);
+                        
+                        // Also update the hidden discount code input with the final price
+                        const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                        if (discountCodeInput) {
+                            discountCodeInput.setAttribute('data-final-price', finalPrice.toFixed(0));
+                        }
+                    }
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const resultDiv = document.getElementById('remaining-value-result');
+        resultDiv.innerHTML = `<div class="alert alert-danger"><small>خطا در محاسبه مقدار باقیمانده</small></div>`;
+    });
+    
+    // Apply discount code functionality
+    document.querySelectorAll('.apply-discount-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const subscriptionId = this.getAttribute('data-subscription-id');
+            const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
+            const code = codeInput.value.trim();
+            
+            if (!code) {
+                alert('لطفاً کد تخفیف را وارد کنید');
+                return;
+            }
+            
+            // Send AJAX request to apply discount
+            fetch('{% url "apply_discount_code" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `code=${encodeURIComponent(code)}&subscription_id=${subscriptionId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
+                const finalPriceSpan = document.querySelector(`.final-price-${subscriptionId}`);
+                const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                
+                if (data.success) {
+                    // Update UI with discount information
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success mb-0">
+                            <small>
+                                تخفیف اعمال شد: ${data.discount_amount.toFixed(0)} تومان
+                                <br>قیمت نهایی: ${data.final_price.toFixed(0)} تومان
+                            </small>
+                        </div>
+                    `;
+                    finalPriceSpan.textContent = data.final_price.toFixed(0);
+                    discountCodeInput.value = data.discount_code;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <small>${data.error}</small>
+                        </div>
+                    `;
+                    // Reset to original price minus remaining value
+                    const originalPrice = document.querySelector(`.original-price-${subscriptionId}`).textContent;
+                    const remainingValueResult = document.getElementById('remaining-value-result');
+                    if (remainingValueResult && remainingValueResult.textContent) {
+                        // Try to extract remaining value from the result
+                        const remainingValueMatch = remainingValueResult.textContent.match(/ارزش کل باقیمانده: ([\d,]+)/);
+                        if (remainingValueMatch) {
+                            const remainingValue = parseFloat(remainingValueMatch[1].replace(/,/g, ''));
+                            const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
+                            finalPriceSpan.textContent = finalPrice.toFixed(0);
+                        } else {
+                            finalPriceSpan.textContent = originalPrice;
+                        }
+                    } else {
+                        finalPriceSpan.textContent = originalPrice;
+                    }
+                    discountCodeInput.value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <small>خطا در اعمال کد تخفیف</small>
+                    </div>
+                `;
+            });
+        });
+    });
+    
+    // Clear discount when form is submitted without a code
+    document.querySelectorAll('.payment-form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const subscriptionId = this.querySelector('.apply-discount-btn').getAttribute('data-subscription-id');
+            const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+            const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
+            
+            if (!codeInput.value.trim() && discountCodeInput.value) {
+                discountCodeInput.value = '';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

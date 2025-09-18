@@ -1,0 +1,33 @@
+from django.db import models
+from django.utils import timezone
+
+class AIModel(models.Model):
+    MODEL_TYPES = [
+        ('text', 'Text Generation'),
+        ('image', 'Image Generation'),
+    ]
+    
+    name = models.CharField(max_length=100)
+    model_id = models.CharField(max_length=100, unique=True)  # OpenRouter model ID
+    description = models.TextField(blank=True)
+    model_type = models.CharField(max_length=10, choices=MODEL_TYPES, default='text')
+    is_active = models.BooleanField(default=True)
+    is_free = models.BooleanField(default=False)  # Available for all registered users
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.model_id})"
+    
+    class Meta:
+        db_table = 'ai_models'
+
+class ModelSubscription(models.Model):
+    ai_model = models.ForeignKey(AIModel, on_delete=models.CASCADE, related_name='subscriptions')
+    subscription_types = models.ManyToManyField('subscriptions.SubscriptionType', related_name='ai_models')
+    
+    def __str__(self):
+        return f"{self.ai_model.name} - Subscriptions"
+    
+    class Meta:
+        db_table = 'model_subscriptions'
