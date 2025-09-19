@@ -2,6 +2,15 @@
 // ارسال پیام‌ها و streaming (Message Sending & Streaming)
 // =================================
 
+// Function to display error messages with HTML support
+function displayErrorMessage(errorMessage) {
+    addMessageToChat({
+        type: 'assistant',
+        content: errorMessage,
+        created_at: new Date().toISOString()
+    });
+}
+
 // Send message with streaming support
 function sendMessage() {
     console.log('sendMessage called');
@@ -265,14 +274,16 @@ function sendMessage() {
                     }
                     // Handle regular content (only if it doesn't contain any special markers)
                     else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
-                        console.log('Received assistant content:', chunk);
+                        console.log('Received assistant content chunk:', chunk);
                         assistantContent += chunk;
+                        console.log('Updated assistant content length:', assistantContent.length);
                         // Update the streaming message with current content
                         if (imagesData.length > 0) {
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
                         } else {
                             updateOrAddAssistantMessage(assistantContent, assistantMessageId);
                         }
+                        console.log('Assistant message updated in DOM');
                     }
                 } catch (decodeError) {
                     console.error('Decoding error:', decodeError);
@@ -347,11 +358,7 @@ function sendMessage() {
                         streamingElement.remove();
                     }
                     hideTypingIndicator();
-                    addMessageToChat({
-                        type: 'assistant',
-                        content: `خطا: ${error.message || 'خطای نامشخص'}`,
-                        created_at: new Date().toISOString()
-                    });
+                    displayErrorMessage(`خطا: ${error.message || 'خطای نامشخص'}`);
                     // Re-enable input and reset button state after streaming is complete
                     messageInput.disabled = false;
                     messageInput.focus();
@@ -426,11 +433,7 @@ function sendMessage() {
         } else {
             console.error('Error:', error);
             hideTypingIndicator();
-            addMessageToChat({
-                type: 'assistant',
-                content: `خطا: ${error.message || 'خطای نامشخص'}`,
-                created_at: new Date().toISOString()
-            });
+            displayErrorMessage(`خطا: ${error.message || 'خطای نامشخص'}`);
             
             // Re-enable input and reset button state after streaming is complete
             messageInput.disabled = false;

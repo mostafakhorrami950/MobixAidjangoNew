@@ -13,52 +13,90 @@ from .file_services import FileUploadService, GlobalFileService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
 import json
 
+# Add import for PDF processing
+import PyPDF2
+import io
+
+def create_initial_chatbot_message(session, chatbot):
+    """
+    Create an initial system message with chatbot description
+    """
+    ChatMessage = apps.get_model('chatbot', 'ChatMessage')
+    
+    if chatbot.description:
+        # Create an assistant message with the chatbot description
+        initial_message = ChatMessage.objects.create(
+            session=session,
+            message_type='assistant',
+            content=f"سلام! من {chatbot.name} هستم. 🤖\n\n{chatbot.description}\n\nچطور می‌توانم به شما کمک کنم؟",
+            tokens_count=0  # This is an intro message, no token cost
+        )
+        return initial_message
+    return None
+
 # Add these imports for image handling
 import base64
 import requests
 import mimetypes
 
-# Add import for PDF processing
-import PyPDF2
-import io
-
 @login_required
 def chat(request):
-    # Get all available chatbots for the user
+    # Get all active chatbots and models to display them with access indicators
     Chatbot = apps.get_model('chatbot', 'Chatbot')
     ChatSession = apps.get_model('chatbot', 'ChatSession')
     AIModel = apps.get_model('ai_models', 'AIModel')
     user_subscription = request.user.get_subscription_type()
     
-    if user_subscription:
-        # Get chatbots available for user's subscription
-        available_chatbots = Chatbot.objects.filter(
-            Q(is_active=True) & 
-            (Q(subscription_types=user_subscription) | Q(subscription_types=None))
-        ).distinct()
-    else:
-        # If no subscription, only show chatbots with no subscription requirement
-        available_chatbots = Chatbot.objects.filter(
-            is_active=True,
-            subscription_types=None
-        )
+    # Get ALL active chatbots (not just available ones)
+    all_chatbots = Chatbot.objects.filter(is_active=True)
     
-    # Also get available AI models for backward compatibility
+    # Mark which chatbots the user has access to
+    available_chatbots = []
+    for chatbot in all_chatbots:
+        chatbot_data = {
+            'id': chatbot.id,
+            'name': chatbot.name,
+            'description': chatbot.description,
+            'chatbot_type': chatbot.chatbot_type,
+            'ai_model': chatbot.ai_model if hasattr(chatbot, 'ai_model') else None,
+        }
+        
+        # Check if user has access to this chatbot
+        if chatbot.subscription_types.exists():
+            if user_subscription and chatbot.subscription_types.filter(id=user_subscription.id).exists():
+                chatbot_data['has_access'] = True
+            else:
+                chatbot_data['has_access'] = False
+        else:
+            # No subscription requirement = available to all
+            chatbot_data['has_access'] = True
+            
+        available_chatbots.append(chatbot_data)
+    
+    # Get ALL active AI models
+    all_models = AIModel.objects.filter(is_active=True)
     available_models = []
-    if user_subscription:
-        # Get models available for user's subscription
-        models = AIModel.objects.filter(
-            is_active=True,
-            subscriptions__subscription_types=user_subscription
-        ).distinct()
-        available_models.extend(models)
     
-    # Add free models (available to all users)
-    free_models = AIModel.objects.filter(is_active=True, is_free=True)
-    available_models.extend(free_models)
-    
-    # Remove duplicates
-    available_models = list(set(available_models))
+    for model in all_models:
+        model_data = {
+            'model_id': model.model_id,
+            'name': model.name,
+            'is_free': model.is_free,
+            'model_type': model.model_type,
+        }
+        
+        # Check if user has access to this model
+        if model.is_free:
+            model_data['has_access'] = True
+        elif user_subscription:
+            if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                model_data['has_access'] = True
+            else:
+                model_data['has_access'] = False
+        else:
+            model_data['has_access'] = False
+            
+        available_models.append(model_data)
     
     # Get user's chat sessions
     chat_sessions = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
@@ -88,25 +126,31 @@ def get_available_models_for_user(request):
             model_type='text'
         )
         
-        # Apply subscription filtering
-        if user_subscription:
-            # Get models available for user's subscription
-            models = models_query.filter(
-                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
-            ).distinct()
-        else:
-            # If no subscription, only show free models
-            models = models_query.filter(is_free=True).distinct()
+        # Get ALL text generation models, not just available ones
+        models = models_query.distinct()
         
-        # Format models for JSON response
+        # Format models for JSON response with access indicators
         model_list = []
         for model in models:
-            model_list.append({
+            model_data = {
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type
-            })
+                'model_type': model.model_type,
+            }
+            
+            # Check if user has access to this model
+            if model.is_free:
+                model_data['has_access'] = True
+            elif user_subscription:
+                if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                    model_data['has_access'] = True
+                else:
+                    model_data['has_access'] = False
+            else:
+                model_data['has_access'] = False
+                
+            model_list.append(model_data)
         
         return JsonResponse({
             'models': model_list
@@ -143,25 +187,31 @@ def get_available_models_for_chatbot(request, chatbot_id):
                 model_type='text'
             )
         
-        # Apply subscription filtering
-        if user_subscription:
-            # Get models available for user's subscription
-            models = models_query.filter(
-                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
-            ).distinct()
-        else:
-            # If no subscription, only show free models
-            models = models_query.filter(is_free=True).distinct()
+        # Get ALL models of the appropriate type, not just available ones
+        models = models_query.distinct()
         
-        # Format models for JSON response
+        # Format models for JSON response with access indicators
         model_list = []
         for model in models:
-            model_list.append({
+            model_data = {
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type
-            })
+                'model_type': model.model_type,
+            }
+            
+            # Check if user has access to this model
+            if model.is_free:
+                model_data['has_access'] = True
+            elif user_subscription:
+                if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                    model_data['has_access'] = True
+                else:
+                    model_data['has_access'] = False
+            else:
+                model_data['has_access'] = False
+                
+            model_list.append(model_data)
         
         return JsonResponse({
             'models': model_list,
@@ -253,6 +303,9 @@ def create_default_session(request):
                 title='چت جدید'
             )
             
+            # Create initial chatbot description message
+            create_initial_chatbot_message(session, chatbot)
+            
             return JsonResponse({
                 'session_id': session.id,
                 'title': session.title,
@@ -310,6 +363,9 @@ def create_session(request):
                 ai_model=selected_model,  # This is kept for backward compatibility
                 title=title
             )
+            
+            # Create initial chatbot description message
+            create_initial_chatbot_message(session, chatbot)
             
             return JsonResponse({
                 'session_id': session.id,

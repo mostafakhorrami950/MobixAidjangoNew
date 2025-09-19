@@ -390,6 +390,36 @@
 }
 
 /* Responsive Design */
+@media (min-width: 1025px) {
+  /* Desktop: Fixed navigation without floating menu items */
+  .modern-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(25px);
+    z-index: 1000;
+  }
+  
+  /* Hide main navigation items in desktop - they'll be in sidebar */
+  .navbar-nav .nav-item:not(.user-item):not(.brand-item) {
+    display: none;
+  }
+  
+  /* Show only brand and user avatar in desktop navbar */
+  .navbar-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  /* Body padding to account for fixed navbar */
+  body {
+    padding-top: 80px;
+  }
+}
+
 @media (max-width: 1024px) {
   .modern-navbar .container {
     padding: var(--gap-xs) var(--gap);
@@ -416,6 +446,10 @@
   /* Hide user avatar on mobile in navigation */
   .user-avatar {
     display: none;
+  }
+  
+  body {
+    padding-top: 0;
   }
 }
 

@@ -4,9 +4,18 @@ from datetime import timedelta
 from django.apps import apps
 from django.db.models import Sum
 import tiktoken
+from django.urls import reverse
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+def add_upgrade_link_to_message(message):
+    """
+    Add upgrade link to error messages
+    """
+    upgrade_url = reverse('subscriptions:pricing')  # Adjust to your pricing page URL
+    upgrade_link = f" <a href='{upgrade_url}' target='_blank' class='upgrade-link btn btn-sm btn-primary ms-2'><i class='fas fa-arrow-up'></i> ارتقا اشتراک</a>"
+    return message + upgrade_link
 
 class UsageService:
     @staticmethod
@@ -62,6 +71,7 @@ class UsageService:
             # Check if adding new tokens would exceed the limit
             if total_tokens_used + tokens_count > subscription_type.max_tokens:
                 message = f"شما به حد مجاز توکن‌های مصرفی ({subscription_type.max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Usage limit exceeded: {message}")
                 return False, message
         
@@ -76,11 +86,13 @@ class UsageService:
             
             if subscription_type.hourly_max_messages > 0 and hourly_messages >= subscription_type.hourly_max_messages:
                 message = f"شما به حد مجاز پیام‌های ساعتی ({subscription_type.hourly_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Hourly message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.hourly_max_tokens > 0 and hourly_tokens >= subscription_type.hourly_max_tokens:
                 message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Hourly token limit exceeded: {message}")
                 return False, message
         
@@ -95,11 +107,13 @@ class UsageService:
             
             if subscription_type.three_hours_max_messages > 0 and three_hours_messages >= subscription_type.three_hours_max_messages:
                 message = f"شما به حد مجاز پیام‌های ۳ ساعتی ({subscription_type.three_hours_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"3-hour message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.three_hours_max_tokens > 0 and three_hours_tokens >= subscription_type.three_hours_max_tokens:
                 message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"3-hour token limit exceeded: {message}")
                 return False, message
         
@@ -114,11 +128,13 @@ class UsageService:
             
             if subscription_type.twelve_hours_max_messages > 0 and twelve_hours_messages >= subscription_type.twelve_hours_max_messages:
                 message = f"شما به حد مجاز پیام‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"12-hour message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.twelve_hours_max_tokens > 0 and twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
                 message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"12-hour token limit exceeded: {message}")
                 return False, message
         
@@ -135,11 +151,13 @@ class UsageService:
             
             if subscription_type.daily_max_messages > 0 and daily_messages >= subscription_type.daily_max_messages:
                 message = f"شما به حد مجاز پیام‌های روزانه ({subscription_type.daily_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Daily message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.daily_max_tokens > 0 and daily_tokens >= subscription_type.daily_max_tokens:
                 message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Daily token limit exceeded: {message}")
                 return False, message
         
@@ -156,11 +174,13 @@ class UsageService:
             
             if subscription_type.weekly_max_messages > 0 and weekly_messages >= subscription_type.weekly_max_messages:
                 message = f"شما به حد مجاز پیام‌های هفتگی ({subscription_type.weekly_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Weekly message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.weekly_max_tokens > 0 and weekly_tokens >= subscription_type.weekly_max_tokens:
                 message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Weekly token limit exceeded: {message}")
                 return False, message
         
@@ -180,11 +200,13 @@ class UsageService:
             
             if subscription_type.monthly_max_messages > 0 and monthly_messages >= subscription_type.monthly_max_messages:
                 message = f"شما به حد مجاز پیام‌های ماهانه ({subscription_type.monthly_max_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Monthly message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.monthly_max_tokens > 0 and monthly_tokens >= subscription_type.monthly_max_tokens:
                 message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Monthly token limit exceeded: {message}")
                 return False, message
         
@@ -204,11 +226,13 @@ class UsageService:
             
             if subscription_type.monthly_free_model_messages > 0 and monthly_messages >= subscription_type.monthly_free_model_messages:
                 message = f"شما به حد مجاز پیام‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_messages} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Monthly free model message limit exceeded: {message}")
                 return False, message
             
             if subscription_type.monthly_free_model_tokens > 0 and monthly_tokens >= subscription_type.monthly_free_model_tokens:
                 message = f"شما به حد مجاز توکن‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_tokens} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Monthly free model token limit exceeded: {message}")
                 return False, message
         
@@ -386,6 +410,7 @@ class UsageService:
             
             if image_usage.daily_images_count >= subscription_type.daily_image_generation_limit:
                 message = f"شما به حد مجاز تولید تصویر روزانه ({subscription_type.daily_image_generation_limit} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Daily image generation limit exceeded: {message}")
                 return False, message
         
@@ -398,6 +423,7 @@ class UsageService:
             
             if image_usage.weekly_images_count >= subscription_type.weekly_image_generation_limit:
                 message = f"شما به حد مجاز تولید تصویر هفتگی ({subscription_type.weekly_image_generation_limit} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Weekly image generation limit exceeded: {message}")
                 return False, message
         
@@ -410,6 +436,7 @@ class UsageService:
             
             if image_usage.monthly_images_count >= subscription_type.monthly_image_generation_limit:
                 message = f"شما به حد مجاز تولید تصویر ماهانه ({subscription_type.monthly_image_generation_limit} عدد) رسیده‌اید"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Monthly image generation limit exceeded: {message}")
                 return False, message
         
@@ -473,6 +500,7 @@ class UsageService:
         # 1. Check if user has access to the selected model
         if not user.has_access_to_model(ai_model):
             message = "دسترسی به این مدل دیگر برای اشتراک شما فعال نیست"
+            message = add_upgrade_link_to_message(message)
             logger.info(f"Model access denied: {message}")
             return False, message
         
@@ -494,6 +522,7 @@ class UsageService:
                 # Check if adding new tokens would exceed the max_tokens_free limit
                 if total_free_tokens_used >= subscription_type.max_tokens_free:
                     message = f"شما به حد مجاز توکن‌های رایگان ({subscription_type.max_tokens_free} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Max free tokens limit exceeded: {message}")
                     return False, message
             
@@ -513,6 +542,7 @@ class UsageService:
                 
                 if hourly_tokens >= subscription_type.hourly_max_tokens:
                     message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Hourly free model token limit exceeded: {message}")
                     return False, message
             
@@ -527,6 +557,7 @@ class UsageService:
                 
                 if three_hours_tokens >= subscription_type.three_hours_max_tokens:
                     message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"3-hour free model token limit exceeded: {message}")
                     return False, message
             
@@ -541,6 +572,7 @@ class UsageService:
                 
                 if twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
                     message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"12-hour free model token limit exceeded: {message}")
                     return False, message
             
@@ -557,6 +589,7 @@ class UsageService:
                 
                 if daily_tokens >= subscription_type.daily_max_tokens:
                     message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Daily free model token limit exceeded: {message}")
                     return False, message
             
@@ -573,6 +606,7 @@ class UsageService:
                 
                 if weekly_tokens >= subscription_type.weekly_max_tokens:
                     message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Weekly free model token limit exceeded: {message}")
                     return False, message
             
@@ -592,6 +626,7 @@ class UsageService:
                 
                 if monthly_tokens >= subscription_type.monthly_max_tokens:
                     message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Monthly free model token limit exceeded: {message}")
                     return False, message
             
@@ -611,11 +646,13 @@ class UsageService:
                 
                 if subscription_type.monthly_free_model_messages > 0 and monthly_messages >= subscription_type.monthly_free_model_messages:
                     message = f"شما به حد مجاز پیام‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_messages} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Monthly free model message limit exceeded: {message}")
                     return False, message
                 
                 if subscription_type.monthly_free_model_tokens > 0 and monthly_tokens >= subscription_type.monthly_free_model_tokens:
                     message = f"شما به حد مجاز توکن‌های مدل رایگان ماهانه ({subscription_type.monthly_free_model_tokens} عدد) رسیده‌اید"
+                    message = add_upgrade_link_to_message(message)
                     logger.info(f"Monthly free model token limit exceeded: {message}")
                     return False, message
         
@@ -641,6 +678,7 @@ class UsageService:
             # If remaining tokens are less than a reasonable threshold, deny access
             if remaining_tokens < estimated_tokens:
                 message = f"بودجه باقیمانده‌ی توکن شما برای این مدل کافی نیست ({remaining_tokens} عدد)"
+                message = add_upgrade_link_to_message(message)
                 logger.info(f"Insufficient token budget: {message}")
                 return False, message
         

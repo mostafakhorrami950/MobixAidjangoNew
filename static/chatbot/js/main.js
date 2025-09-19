@@ -252,11 +252,28 @@ function loadAvailableModelsForUser() {
                 option.value = model.model_id;
                 option.textContent = model.name;
                 
-                // Add class based on model type
+                // Disable option if user doesn't have access
+                if (!model.has_access) {
+                    option.disabled = true;
+                    option.style.color = '#999';
+                }
+                
+                // Add class based on model type and access
                 if (model.is_free) {
                     option.className = 'model-option-free';
-                } else {
+                } else if (model.has_access) {
                     option.className = 'model-option-premium';
+                } else {
+                    option.className = 'model-option-restricted';
+                }
+                
+                // Add visual indicators
+                if (model.is_free) {
+                    option.innerHTML += ' (رایگان)';
+                } else if (model.has_access) {
+                    option.innerHTML += ' (ویژه)';
+                } else {
+                    option.innerHTML += ' (نیاز به اشتراک)';
                 }
                 
                 modelSelect.appendChild(option);
