@@ -1488,15 +1488,8 @@ def get_sidebar_menu_items(request):
             if not item.required_permission or request.user.has_perm(item.required_permission):
                 # Resolve the URL
                 try:
-                    # Handle namespaced URLs (e.g., 'chat:chat')
-                    if ':' in item.url_name:
-                        url = reverse(item.url_name)
-                    else:
-                        # Try to resolve as a chat app URL first, then fall back to global
-                        try:
-                            url = reverse(f'chat:{item.url_name}')
-                        except:
-                            url = reverse(item.url_name)
+                    # Direct URL resolution - no namespaces
+                    url = reverse(item.url_name)
                     user_menu_items.append({
                         'name': item.name,
                         'url': url,

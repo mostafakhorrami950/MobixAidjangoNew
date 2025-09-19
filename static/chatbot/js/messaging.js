@@ -90,6 +90,7 @@ function sendMessage() {
     let userMessageData = null; // To store user message data from server
     let userMessageElement = null; // To store reference to user message element
     let assistantMessageId = null; // To store assistant message ID from server
+    let hasImages = false; // Declare hasImages at function scope
     
     // ساخت یک کنترلر جدید برای هر درخواست
     abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
@@ -143,7 +144,7 @@ function sendMessage() {
                         }
                     
                         // Add image URLs if any images were generated
-                        let hasImages = false;
+                        hasImages = false; // Reset hasImages
                         if (imagesData.length > 0) {
                             const formattedImageUrls = imagesData.map(img => {
                                 if (img.image_url && img.image_url.url) {
@@ -170,8 +171,8 @@ function sendMessage() {
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    // Declare hasImages variable only once and reuse it
-                    if (imagesData.length > 0) {
+                    // Check for images if not already determined
+                    if (!hasImages && imagesData.length > 0) {
                         const formattedImageUrls = imagesData.map(img => {
                             if (img.image_url && img.image_url.url) {
                                 let imageUrl = img.image_url.url;
@@ -215,7 +216,7 @@ function sendMessage() {
 
                 try {
                     const chunk = decoder.decode(value, { stream: true });
-                    console.log('Received chunk from message sending:', chunk);
+                    console.log('Received chunk from message sending (length:', chunk.length, '):', chunk.substring(0, 100), '...');
                     
                     // Check if chunk contains any special data markers
                     const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
@@ -299,10 +300,10 @@ function sendMessage() {
                     }
                     // Handle regular content (only if it doesn't contain any special markers)
                     else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
-                        console.log('Received assistant content chunk:', chunk);
+                        console.log('Processing regular content chunk (length:', chunk.length, '):', chunk.substring(0, 50));
                         assistantContent += chunk;
-                        console.log('Updated assistant content length:', assistantContent.length);
-                        console.log('Current assistant content preview:', assistantContent.substring(0, 100) + '...');
+                        console.log('Total assistant content length now:', assistantContent.length);
+                        console.log('Assistant content preview:', assistantContent.substring(0, 100) + '...');
                         
                         // Hide typing indicator on first content chunk
                         if (assistantContent.trim().length > 0) {
@@ -336,7 +337,7 @@ function sendMessage() {
                     hideTypingIndicator();
                     
                     // Check if we have images and this is an image editing chatbot
-                    let hasImages = false;
+                    // Use the existing hasImages from function scope
                     let shouldRefresh = false;
                     
                     // Add final message with whatever content we have so far
@@ -432,7 +433,7 @@ function sendMessage() {
             // پیام ناقص قبلاً در سمت سرور ذخیره شده است
             hideTypingIndicator();
             
-            let hasImages = false;
+            // Use the existing hasImages from function scope
             let shouldRefresh = false;
             
             // Add final message with whatever content we have so far

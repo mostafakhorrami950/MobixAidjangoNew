@@ -243,6 +243,12 @@ function loadAvailableModelsForUser() {
             const modelSelectionContainer = document.getElementById('welcome-model-selection');
             const webSearchContainer = document.getElementById('welcome-web-search-container');
             
+            // Check if elements exist before manipulating them
+            if (!modelSelect || !modelSelectionContainer) {
+                console.log('Model selection elements not found, skipping model loading');
+                return;
+            }
+            
             // Clear current options
             modelSelect.innerHTML = '<option value="">-- مدلی را انتخاب کنید --</option>';
             

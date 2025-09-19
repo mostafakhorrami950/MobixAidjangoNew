@@ -163,6 +163,7 @@
                 .then(data => {
                     if (data.error || !data.menu_items || data.menu_items.length === 0) {
                         console.log('No custom menu items found, keeping defaults');
+                        // Keep default items that are already shown
                         return;
                     }
                     
@@ -230,7 +231,12 @@
                 })
                 .catch(error => {
                     console.log('Error loading custom menu items, keeping defaults:', error);
-                    // Default items are already loaded, so we don't need to do anything
+                    // Ensure default items are shown if they're not already
+                    const desktopNavLeft = document.getElementById('desktop-nav-left');
+                    const desktopNavRight = document.getElementById('desktop-nav-right');
+                    if (desktopNavLeft && desktopNavLeft.children.length === 0) {
+                        showDefaultDesktopMenuItems();
+                    }
                 });
         }
         
