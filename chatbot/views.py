@@ -59,6 +59,8 @@ def chat(request):
             'description': chatbot.description,
             'chatbot_type': chatbot.chatbot_type,
             'ai_model': chatbot.ai_model if hasattr(chatbot, 'ai_model') else None,
+            'subscription_types': chatbot.subscription_types,  # Pass the actual queryset
+            'requires_subscription': chatbot.subscription_types.exists(),
         }
         
         # Check if user has access to this chatbot
@@ -1459,7 +1461,6 @@ def check_web_search_access_no_session(request):
     
     return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
-@login_required
 def get_sidebar_menu_items(request):
     """
     Get all active sidebar menu items that the user has permission to view
@@ -1484,8 +1485,8 @@ def get_sidebar_menu_items(request):
             if item.show_only_for_non_authenticated and request.user.is_authenticated:
                 continue
             
-            # If no permission is required, or user has the required permission
-            if not item.required_permission or request.user.has_perm(item.required_permission):
+            # If no permission is required, or user has the required permission (or user is anonymous)
+            if not item.required_permission or (request.user.is_authenticated and request.user.has_perm(item.required_permission)):
                 # Resolve the URL
                 try:
                     # Direct URL resolution - no namespaces

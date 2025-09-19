@@ -185,8 +185,8 @@ class OpenRouterService:
     
     def stream_text_response(self, ai_model, messages, web_search=False, modalities=None, plugins=None):
         """
-        Stream text response from OpenRouter API with usage tracking
-        Enhanced to support images, files, and modalities
+        Stream text response from OpenRouter API based on official documentation
+        https://openrouter.ai/docs/streaming
         """
         try:
             response = self.send_text_message(
@@ -203,66 +203,105 @@ class OpenRouterService:
             def generate():
                 buffer = ""
                 usage_data = None
+                
                 try:
-                    # Type check: ensure response has iter_content method
-                    if not isinstance(response, requests.Response):
-                        yield "Error: Invalid response object for streaming"
-                        return
+                    # Check initial HTTP status for pre-stream errors
+                    if response.status_code != 200:
+                        try:
+                            error_data = response.json()
+                            error_msg = error_data.get('error', {}).get('message', 'Unknown error')
+                            yield f"Error: {error_msg}"
+                            return
+                        except:
+                            yield f"HTTP Error {response.status_code}"
+                            return
                     
-                    for chunk in response.iter_content(chunk_size=1024):
+                    # Process stream using iter_content with decode_unicode=True as per docs
+                    for chunk in response.iter_content(chunk_size=1024, decode_unicode=True):
                         if chunk:
-                            # Decode chunk with UTF-8
-                            try:
-                                chunk_str = chunk.decode('utf-8')
-                                buffer += chunk_str
-                            except UnicodeDecodeError:
-                                # Try different encodings if UTF-8 fails
-                                try:
-                                    chunk_str = chunk.decode('latin-1')
-                                    buffer += chunk_str
-                                except UnicodeDecodeError:
-                                    continue
+                            buffer += chunk
                             
-                            # Process SSE events correctly
-                            while '\n\n' in buffer:
-                                message_end = buffer.find('\n\n')
-                                message = buffer[:message_end]
-                                buffer = buffer[message_end + 2:]
-                                
-                                for line in message.split('\n'):
+                            # Process complete SSE lines
+                            while True:
+                                try:
+                                    # Find the next complete SSE line
+                                    line_end = buffer.find('\n')
+                                    if line_end == -1:
+                                        break
+                                    line = buffer[:line_end].strip()
+                                    buffer = buffer[line_end + 1:]
+                                    
+                                    # Handle SSE comments (ignore as per spec)
+                                    if line.startswith(':'):
+                                        continue
+                                    
+                                    # Process data lines
                                     if line.startswith('data: '):
                                         data = line[6:]  # Remove 'data: ' prefix
                                         if data == '[DONE]':
-                                            # Send usage data at the end
+                                            # Send usage data at the end if available
                                             if usage_data:
                                                 yield f"\n\n[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
-                                            return  # Exit the generator completely
+                                            return
+                                        
                                         try:
                                             data_obj = json.loads(data)
+                                            
+                                            # Check for mid-stream error
+                                            if 'error' in data_obj:
+                                                error_msg = data_obj['error'].get('message', 'Unknown streaming error')
+                                                yield f"\n\nStreaming Error: {error_msg}"
+                                                # Check if stream should be terminated
+                                                if data_obj.get('choices', [{}])[0].get('finish_reason') == 'error':
+                                                    return
+                                            
                                             # Capture usage data if present
                                             if 'usage' in data_obj:
                                                 usage_data = data_obj['usage']
+                                            
+                                            # Process normal content
                                             if 'choices' in data_obj and len(data_obj['choices']) > 0:
-                                                delta = data_obj['choices'][0].get('delta', {})
+                                                choice = data_obj['choices'][0]
+                                                delta = choice.get('delta', {})
                                                 content = delta.get('content', '')
                                                 
                                                 # Handle image responses
                                                 images = delta.get('images', [])
                                                 if images:
-                                                    # Send image data separately
                                                     yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
                                                 
+                                                # Yield content immediately for streaming effect
                                                 if content:
                                                     yield content
-                                        except json.JSONDecodeError:
-                                            # Skip invalid JSON
+                                                    
+                                                # Check for finish_reason
+                                                finish_reason = choice.get('finish_reason')
+                                                if finish_reason:
+                                                    if finish_reason == 'length':
+                                                        yield "\n\n[Stream ended: Maximum length reached]"
+                                                    elif finish_reason == 'stop':
+                                                        # Normal completion, continue to get usage data
+                                                        pass
+                                                    elif finish_reason == 'error':
+                                                        yield "\n\n[Stream ended: Error occurred]"
+                                                        return
+                                        
+                                        except json.JSONDecodeError as e:
+                                            # Skip invalid JSON but log for debugging
+                                            print(f"JSON decode error in streaming: {e}, data: {data[:100]}")
                                             continue
+                                            
+                                except Exception as e:
+                                    print(f"Error processing SSE line: {e}")
+                                    break
+                                    
                 except Exception as e:
-                    yield f"Error in streaming: {str(e)}"
-            
+                    yield f"\n\nStreaming error: {str(e)}"
+                    
             return generate()
+            
         except Exception as e:
-            return {"error": f"Streaming error: {str(e)}"}
+            return {"error": f"Streaming initialization error: {str(e)}"}
     
     def process_image_response(self, images_data, session):
         """

@@ -181,7 +181,7 @@
                                             data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}"
                                             {% if not chatbot.has_access %}disabled style="color: #999;"{% endif %}>
                                         {{ chatbot.name }}
-                                        {% if not chatbot.subscription_types.exists %}
+                                        {% if not chatbot.requires_subscription %}
                                             <span class="badge bg-success">رایگان</span>
                                         {% elif chatbot.has_access %}
                                             <span class="badge bg-warning">ویژه</span>
