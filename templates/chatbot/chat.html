@@ -177,13 +177,17 @@
                                 <select class="form-select" id="modal-chatbot-select">
                                     <option value="">-- چت‌باتی را انتخاب کنید --</option>
                                     {% for chatbot in available_chatbots %}
-                                        <option value="{{ chatbot.id }}" 
-                                                data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}"
-                                                {% if not chatbot.has_access %}disabled style="color: #999;"{% endif %}>
-                                            {{ chatbot.name }}
-                                            {% if not chatbot.has_access %}
-                                                (نیاز به اشتراک ویژه)
-                                            {% endif %}
+                                    <option value="{{ chatbot.id }}" 
+                                            data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}"
+                                            {% if not chatbot.has_access %}disabled style="color: #999;"{% endif %}>
+                                        {{ chatbot.name }}
+                                        {% if not chatbot.subscription_types.exists %}
+                                            <span class="badge bg-success">رایگان</span>
+                                        {% elif chatbot.has_access %}
+                                            <span class="badge bg-warning">ویژه</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">نیاز به اشتراک</span>
+                                        {% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>

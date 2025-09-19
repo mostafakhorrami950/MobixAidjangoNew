@@ -223,39 +223,40 @@ class OpenRouterService:
                                 except UnicodeDecodeError:
                                     continue
                             
-                            # Process SSE events
-                            while '\n' in buffer:
-                                line_end = buffer.find('\n')
-                                line = buffer[:line_end].strip()
-                                buffer = buffer[line_end + 1:]
+                            # Process SSE events correctly
+                            while '\n\n' in buffer:
+                                message_end = buffer.find('\n\n')
+                                message = buffer[:message_end]
+                                buffer = buffer[message_end + 2:]
                                 
-                                if line.startswith('data: '):
-                                    data = line[6:]  # Remove 'data: ' prefix
-                                    if data == '[DONE]':
-                                        # Send usage data at the end
-                                        if usage_data:
-                                            yield f"\n\n[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
-                                        break
-                                    try:
-                                        data_obj = json.loads(data)
-                                        # Capture usage data if present
-                                        if 'usage' in data_obj:
-                                            usage_data = data_obj['usage']
-                                        if 'choices' in data_obj and len(data_obj['choices']) > 0:
-                                            delta = data_obj['choices'][0].get('delta', {})
-                                            content = delta.get('content', '')
-                                            
-                                            # Handle image responses
-                                            images = delta.get('images', [])
-                                            if images:
-                                                # Send image data separately
-                                                yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
-                                            
-                                            if content:
-                                                yield content
-                                    except json.JSONDecodeError:
-                                        # Skip invalid JSON
-                                        continue
+                                for line in message.split('\n'):
+                                    if line.startswith('data: '):
+                                        data = line[6:]  # Remove 'data: ' prefix
+                                        if data == '[DONE]':
+                                            # Send usage data at the end
+                                            if usage_data:
+                                                yield f"\n\n[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
+                                            return  # Exit the generator completely
+                                        try:
+                                            data_obj = json.loads(data)
+                                            # Capture usage data if present
+                                            if 'usage' in data_obj:
+                                                usage_data = data_obj['usage']
+                                            if 'choices' in data_obj and len(data_obj['choices']) > 0:
+                                                delta = data_obj['choices'][0].get('delta', {})
+                                                content = delta.get('content', '')
+                                                
+                                                # Handle image responses
+                                                images = delta.get('images', [])
+                                                if images:
+                                                    # Send image data separately
+                                                    yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
+                                                
+                                                if content:
+                                                    yield content
+                                        except json.JSONDecodeError:
+                                            # Skip invalid JSON
+                                            continue
                 except Exception as e:
                     yield f"Error in streaming: {str(e)}"
             
