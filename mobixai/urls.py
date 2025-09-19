@@ -20,6 +20,7 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,6 +28,7 @@ urlpatterns = [
     path('chat/', include('chatbot.urls')),
     path('subscriptions/', include('subscriptions.urls')),
     path('', include('core.urls')),  # Include core app URLs
+    path('favicon.ico', RedirectView.as_view(url='/static/favicon.ico', permanent=True)),
 ]
 
 # Serve static and media files during development

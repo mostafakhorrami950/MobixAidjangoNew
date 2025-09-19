@@ -851,6 +851,7 @@ def send_message(request, session_id):
                 usage_data = None
                 images_data = None
                 assistant_message_obj = None  # Object to hold assistant message for updating
+                generator_consumed = False  # Flag to track generator state
 
                 # Ensure we have a fresh generator instance
                 if not hasattr(response, '__iter__'):
@@ -867,29 +868,18 @@ def send_message(request, session_id):
                         tokens_count=0
                     )
 
-                    # Ensure we're working with a fresh generator
-                    # Check if response is a generator function or a generator object
-                    if inspect.isgeneratorfunction(response):
-                        # If it's a generator function, call it to get the generator
-                        response_generator = response()
-                    elif inspect.isgenerator(response):
-                        # If it's already a generator object, use it directly
-                        # But log a warning as this could cause issues
-                        logger.warning("Response is already a generator object, this may cause 'generator already executing' errors")
+                    # Check if response is iterable and not already consumed
+                    if hasattr(response, '__iter__'):
                         response_generator = response
                     elif callable(response):
-                        # If it's callable but not a generator function, call it
+                        # If it's callable, call it to get the generator
                         response_generator = response()
                     else:
-                        # If it's not callable, assume it's already iterable
-                        response_generator = response
-                    
-                    # Ensure response_generator is actually iterable
-                    if not hasattr(response_generator, '__iter__'):
-                        logger.error("Response generator is not iterable")
-                        yield "Error: Response generator is not iterable".encode('utf-8')
+                        logger.error("Response is not iterable or callable")
+                        yield "Error: Response is not iterable or callable".encode('utf-8')
                         return
 
+                    # Iterate through the response chunks
                     for chunk in response_generator:
                         # Ensure chunk is a string for string operations
                         if isinstance(chunk, bytes):
@@ -933,16 +923,24 @@ def send_message(request, session_id):
                 except ValueError as e:
                     if "generator already executing" in str(e):
                         logger.error(f"Generator already executing error: {str(e)}")
-                        yield "Error: Generator is already executing. Please wait for the current response to complete.".encode('utf-8')
+                        yield "خطا: درخواست قبلی هنوز در حال پردازش است. لطفاً صبر کنید تا پاسخ کامل شود.".encode('utf-8')
+                        generator_consumed = True
+                        return
                     else:
                         logger.error(f"ValueError in streaming: {str(e)}", exc_info=True)
-                        yield f"Error: {str(e)}".encode('utf-8')
+                        yield f"خطا: {str(e)}".encode('utf-8')
+                        generator_consumed = True
+                        return
+                except StopIteration:
+                    # Generator completed normally
+                    generator_consumed = True
                 except Exception as e:
                     # In case of an error, log it and inform the user
                     logger.error(f"Error in streaming: {str(e)}", exc_info=True)
                     # Ensure error message is properly encoded
-                    error_msg = f"Error: {str(e)}"
+                    error_msg = f"خطا: {str(e)}"
                     yield error_msg.encode('utf-8')
+                    generator_consumed = True
 
                 finally:
                     # Initialize images_saved variable
