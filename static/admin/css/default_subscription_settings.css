@@ -1,0 +1,71 @@
+/* استایل‌های مخصوص صفحه ادمین تنظیمات پیش‌فرض اشتراک */
+
+.field-setting_type_display {
+    font-weight: bold;
+}
+
+.field-is_active_display {
+    text-align: center;
+}
+
+/* استایل‌های بهتر برای فرم */
+.form-row .field-setting_type {
+    width: 100%;
+}
+
+.form-row .field-subscription_type {
+    width: 100%;
+}
+
+/* رنگ‌بندی برای وضعیت‌های مختلف */
+.change-list .field-is_active_display .active {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.change-list .field-is_active_display .inactive {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* بهبود نمایش آیکون‌ها */
+.field-setting_type_display span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* استایل برای متن راهنما */
+.help {
+    font-size: 11px;
+    color: #666;
+    margin-top: 5px;
+}
+
+/* بهبود نمایش fieldset ها */
+.module h2 {
+    background: #417690;
+    color: white;
+    margin: 0;
+    padding: 8px 15px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* استایل برای دکمه‌های اکشن */
+.actions select {
+    margin-right: 10px;
+}
+
+/* بهبود نمایش در حالت موبایل */
+@media (max-width: 768px) {
+    .form-row .field-setting_type,
+    .form-row .field-subscription_type {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .field-setting_type_display span {
+        font-size: 14px;
+    }
+}

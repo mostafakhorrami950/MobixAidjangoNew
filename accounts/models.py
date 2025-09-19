@@ -46,22 +46,82 @@ class User(AbstractUser):
         is_new = self._state.adding
         super().save(*args, **kwargs)
         
-        # If this is a new user, assign them a free subscription
+        # If this is a new user, assign them the default subscription
         if is_new:
-            from subscriptions.models import SubscriptionType, UserSubscription
+            self.assign_default_subscription()
+    
+    def assign_default_subscription(self, subscription_type=None):
+        """
+        تخصیص پلن اشتراک پیش‌فرض به کاربر
+        اگر subscription_type مشخص نشد، از تنظیمات پیش‌فرض استفاده می‌شود
+        """
+        from subscriptions.models import DefaultSubscriptionSettings, UserSubscription
+        
+        # بررسی اینکه کاربر قبلاً اشتراک نداشته باشد
+        if hasattr(self, 'subscription') and self.subscription:
+            return self.subscription
+        
+        # تعیین پلن اشتراک
+        if subscription_type is None:
+            subscription_type = DefaultSubscriptionSettings.get_new_user_default()
+        
+        if subscription_type:
             try:
-                # Get the free subscription type (Basic)
-                free_subscription = SubscriptionType.objects.get(name='Basic')
-                # Create user subscription
-                UserSubscription.objects.create(
+                # ایجاد اشتراک برای کاربر
+                user_subscription = UserSubscription.objects.create(
                     user=self,
-                    subscription_type=free_subscription,
+                    subscription_type=subscription_type,
                     is_active=True,
-                    start_date=timezone.now()
+                    start_date=timezone.now(),
+                    # برای پلن‌های رایگان، end_date تنظیم نمی‌شود
+                    end_date=None if subscription_type.price == 0 else None
                 )
-            except SubscriptionType.DoesNotExist:
-                # If Basic subscription doesn't exist, we'll handle this when the subscription is accessed
-                pass
+                return user_subscription
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"خطا در تخصیص اشتراک پیش‌فرض به کاربر {self.phone_number}: {str(e)}")
+        
+        return None
+    
+    def handle_subscription_expiry(self):
+        """
+        مدیریت انقضای اشتراک و تخصیص پلن پیش‌فرض جدید
+        """
+        from subscriptions.models import DefaultSubscriptionSettings, UserSubscription
+        
+        try:
+            user_subscription = self.subscription
+            if (user_subscription.end_date and 
+                user_subscription.end_date < timezone.now() and 
+                user_subscription.is_active):
+                
+                # غیرفعال کردن اشتراک منقضی‌شده
+                user_subscription.is_active = False
+                user_subscription.save()
+                
+                # تخصیص پلن fallback
+                fallback_subscription = DefaultSubscriptionSettings.get_expired_fallback()
+                if fallback_subscription:
+                    UserSubscription.objects.create(
+                        user=self,
+                        subscription_type=fallback_subscription,
+                        is_active=True,
+                        start_date=timezone.now(),
+                        end_date=None if fallback_subscription.price == 0 else None
+                    )
+                    
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"پلن fallback {fallback_subscription.name} به کاربر {self.phone_number} تخصیص داده شد")
+                
+                return True
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"خطا در مدیریت انقضای اشتراک برای کاربر {self.phone_number}: {str(e)}")
+        
+        return False
     
     def get_subscription_type(self):
         """
@@ -72,13 +132,21 @@ class User(AbstractUser):
             if user_subscription.is_active:
                 # Check if subscription has expired
                 if user_subscription.end_date and user_subscription.end_date < timezone.now():
-                    # Subscription has expired, deactivate it
-                    user_subscription.is_active = False
-                    user_subscription.save()
-                    return None
+                    # Handle expiry and assign fallback
+                    self.handle_subscription_expiry()
+                    # Get the new subscription after expiry handling
+                    try:
+                        return self.subscription.subscription_type
+                    except:
+                        return None
                 return user_subscription.subscription_type
         except:
-            pass
+            # If no subscription exists, assign default
+            self.assign_default_subscription()
+            try:
+                return self.subscription.subscription_type
+            except:
+                pass
         return None
     
     def get_subscription_info(self):
@@ -90,13 +158,21 @@ class User(AbstractUser):
             if user_subscription.is_active:
                 # Check if subscription has expired
                 if user_subscription.end_date and user_subscription.end_date < timezone.now():
-                    # Subscription has expired, deactivate it
-                    user_subscription.is_active = False
-                    user_subscription.save()
-                    return None
+                    # Handle expiry and assign fallback
+                    self.handle_subscription_expiry()
+                    # Get the new subscription after expiry handling
+                    try:
+                        return self.subscription
+                    except:
+                        return None
                 return user_subscription
         except:
-            pass
+            # If no subscription exists, assign default
+            self.assign_default_subscription()
+            try:
+                return self.subscription
+            except:
+                pass
         return None
     
     def has_access_to_model(self, ai_model):
