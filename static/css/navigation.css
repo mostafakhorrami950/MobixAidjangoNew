@@ -3,18 +3,18 @@
    Completely Redesigned Professional Navigation
    =========================================================== */
 
-/* Modern Navigation Bar - Completely fixed, non-movable */
+/* Modern Navigation Bar - Completely static, non-movable */
 .modern-navbar {
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-  padding: 0;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
+  background: rgb(255, 255, 255) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  padding: 0 !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
   z-index: 1000 !important;
-  backdrop-filter: blur(20px);
+  backdrop-filter: none !important;
   /* Remove all transitions for smoother performance */
   transition: none !important;
   animation: none !important;
@@ -44,7 +44,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  transition: all 0.3s ease;
+  transition: none !important;
   padding: 8px 0;
   position: relative;
   z-index: 2;
@@ -63,12 +63,12 @@
 }
 
 .navbar-brand:hover {
-  transform: translateY(-2px);
+  transform: none !important;
   background-position: 100% 100%;
 }
 
 .navbar-brand:hover::after {
-  width: 100%;
+  width: 0;
 }
 
 .navbar-brand i {
@@ -398,17 +398,16 @@
 @media (min-width: 1025px) {
   /* Desktop: Completely static fixed navigation without any animations */
   .modern-navbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    position: static !important;
     background: rgb(255, 255, 255) !important;
     backdrop-filter: none !important;
-    z-index: 1000 !important;
+    z-index: auto !important;
     transition: none !important;
     animation: none !important;
     transform: none !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    width: 100% !important;
+    display: block !important;
   }
   
   /* Disable all transitions and animations for desktop navbar */
@@ -439,9 +438,9 @@
     transform: none !important;
   }
   
-  /* Body padding to account for fixed navbar */
+  /* Remove body padding since navbar is now static */
   body {
-    padding-top: 80px;
+    padding-top: 0;
   }
 }
 
@@ -478,14 +477,14 @@
   }
 }
 
-/* Animation for navbar entrance */
+/* Animation for navbar entrance - DISABLED */
 @keyframes slideDown {
   from {
-    transform: translateY(-100%);
-    opacity: 0;
+    transform: none;
+    opacity: 1;
   }
   to {
-    transform: translateY(0);
+    transform: none;
     opacity: 1;
   }
 }
@@ -513,7 +512,7 @@
 }
 
 .nav-link.active i {
-  transform: scale(1.1);
+  transform: none !important;
   color: #2563EB;
 }
 
