@@ -45,16 +45,8 @@ function checkModalSelections() {
     const chatbotSelected = chatbotSelect.value;
     const modelSelected = modelSelect.value;
     
-    // Check if selected chatbot is disabled (no access)
-    const selectedChatbotOption = chatbotSelect.options[chatbotSelect.selectedIndex];
-    const chatbotDisabled = selectedChatbotOption && selectedChatbotOption.disabled;
-    
-    // Check if selected model is disabled (no access) 
-    const selectedModelOption = modelSelect.options[modelSelect.selectedIndex];
-    const modelDisabled = selectedModelOption && selectedModelOption.disabled;
-    
-    // Both chatbot and model must be selected and not disabled
-    if (chatbotSelected && modelSelected && !chatbotDisabled && !modelDisabled) {
+    // Both chatbot and model must be selected
+    if (chatbotSelected && modelSelected) {
         createBtn.disabled = false;
     } else {
         createBtn.disabled = true;

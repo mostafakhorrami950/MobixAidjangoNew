@@ -1,115 +1,64 @@
-import logging
-import json
-import uuid
-import mimetypes
-import os
-from datetime import timedelta
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse, StreamingHttpResponse
 from django.utils import timezone
-from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.apps import apps
-from django.views.decorators.csrf import csrf_exempt
-from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.urls import reverse
-import inspect
-
 from ai_models.services import OpenRouterService
 from subscriptions.models import UserSubscription
 from subscriptions.services import UsageService
 from .file_services import FileUploadService, GlobalFileService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
-
-# Add import for PDF processing
-import PyPDF2
-import io
-
-def create_initial_chatbot_message(session, chatbot):
-    """
-    Create an initial system message with chatbot description
-    """
-    ChatMessage = apps.get_model('chatbot', 'ChatMessage')
-    
-    if chatbot.description:
-        # Create an assistant message with the chatbot description
-        initial_message = ChatMessage.objects.create(
-            session=session,
-            message_type='assistant',
-            content=f"سلام! من {chatbot.name} هستم. 🤖\n\n{chatbot.description}\n\nچطور می‌توانم به شما کمک کنم؟",
-            tokens_count=0  # This is an intro message, no token cost
-        )
-        return initial_message
-    return None
+import json
 
 # Add these imports for image handling
 import base64
 import requests
 import mimetypes
 
+# Add import for PDF processing
+import PyPDF2
+import io
+
 @login_required
 def chat(request):
-    # Get all active chatbots and models to display them with access indicators
+    # Get all available chatbots for the user
     Chatbot = apps.get_model('chatbot', 'Chatbot')
     ChatSession = apps.get_model('chatbot', 'ChatSession')
     AIModel = apps.get_model('ai_models', 'AIModel')
     user_subscription = request.user.get_subscription_type()
     
-    # Get ALL active chatbots (not just available ones)
-    all_chatbots = Chatbot.objects.filter(is_active=True)
+    if user_subscription:
+        # Get chatbots available for user's subscription
+        available_chatbots = Chatbot.objects.filter(
+            Q(is_active=True) & 
+            (Q(subscription_types=user_subscription) | Q(subscription_types=None))
+        ).distinct()
+    else:
+        # If no subscription, only show chatbots with no subscription requirement
+        available_chatbots = Chatbot.objects.filter(
+            is_active=True,
+            subscription_types=None
+        )
     
-    # Mark which chatbots the user has access to
-    available_chatbots = []
-    for chatbot in all_chatbots:
-        chatbot_data = {
-            'id': chatbot.id,
-            'name': chatbot.name,
-            'description': chatbot.description,
-            'chatbot_type': chatbot.chatbot_type,
-            'ai_model': chatbot.ai_model if hasattr(chatbot, 'ai_model') else None,
-            'subscription_types': chatbot.subscription_types,  # Pass the actual queryset
-            'requires_subscription': chatbot.subscription_types.exists(),
-        }
-        
-        # Check if user has access to this chatbot
-        if chatbot.subscription_types.exists():
-            if user_subscription and chatbot.subscription_types.filter(id=user_subscription.id).exists():
-                chatbot_data['has_access'] = True
-            else:
-                chatbot_data['has_access'] = False
-        else:
-            # No subscription requirement = available to all
-            chatbot_data['has_access'] = True
-            
-        available_chatbots.append(chatbot_data)
-    
-    # Get ALL active AI models
-    all_models = AIModel.objects.filter(is_active=True)
+    # Also get available AI models for backward compatibility
     available_models = []
+    if user_subscription:
+        # Get models available for user's subscription
+        models = AIModel.objects.filter(
+            is_active=True,
+            subscriptions__subscription_types=user_subscription
+        ).distinct()
+        available_models.extend(models)
     
-    for model in all_models:
-        model_data = {
-            'model_id': model.model_id,
-            'name': model.name,
-            'is_free': model.is_free,
-            'model_type': model.model_type,
-        }
-        
-        # Check if user has access to this model
-        if model.is_free:
-            model_data['has_access'] = True
-        elif user_subscription:
-            if model.subscriptions.filter(subscription_types=user_subscription).exists():
-                model_data['has_access'] = True
-            else:
-                model_data['has_access'] = False
-        else:
-            model_data['has_access'] = False
-            
-        available_models.append(model_data)
+    # Add free models (available to all users)
+    free_models = AIModel.objects.filter(is_active=True, is_free=True)
+    available_models.extend(free_models)
+    
+    # Remove duplicates
+    available_models = list(set(available_models))
     
     # Get user's chat sessions
     chat_sessions = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
@@ -139,31 +88,25 @@ def get_available_models_for_user(request):
             model_type='text'
         )
         
-        # Get ALL text generation models, not just available ones
-        models = models_query.distinct()
+        # Apply subscription filtering
+        if user_subscription:
+            # Get models available for user's subscription
+            models = models_query.filter(
+                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
+            ).distinct()
+        else:
+            # If no subscription, only show free models
+            models = models_query.filter(is_free=True).distinct()
         
-        # Format models for JSON response with access indicators
+        # Format models for JSON response
         model_list = []
         for model in models:
-            model_data = {
+            model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type,
-            }
-            
-            # Check if user has access to this model
-            if model.is_free:
-                model_data['has_access'] = True
-            elif user_subscription:
-                if model.subscriptions.filter(subscription_types=user_subscription).exists():
-                    model_data['has_access'] = True
-                else:
-                    model_data['has_access'] = False
-            else:
-                model_data['has_access'] = False
-                
-            model_list.append(model_data)
+                'model_type': model.model_type
+            })
         
         return JsonResponse({
             'models': model_list
@@ -200,31 +143,25 @@ def get_available_models_for_chatbot(request, chatbot_id):
                 model_type='text'
             )
         
-        # Get ALL models of the appropriate type, not just available ones
-        models = models_query.distinct()
+        # Apply subscription filtering
+        if user_subscription:
+            # Get models available for user's subscription
+            models = models_query.filter(
+                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
+            ).distinct()
+        else:
+            # If no subscription, only show free models
+            models = models_query.filter(is_free=True).distinct()
         
-        # Format models for JSON response with access indicators
+        # Format models for JSON response
         model_list = []
         for model in models:
-            model_data = {
+            model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type,
-            }
-            
-            # Check if user has access to this model
-            if model.is_free:
-                model_data['has_access'] = True
-            elif user_subscription:
-                if model.subscriptions.filter(subscription_types=user_subscription).exists():
-                    model_data['has_access'] = True
-                else:
-                    model_data['has_access'] = False
-            else:
-                model_data['has_access'] = False
-                
-            model_list.append(model_data)
+                'model_type': model.model_type
+            })
         
         return JsonResponse({
             'models': model_list,
@@ -316,9 +253,6 @@ def create_default_session(request):
                 title='چت جدید'
             )
             
-            # Create initial chatbot description message
-            create_initial_chatbot_message(session, chatbot)
-            
             return JsonResponse({
                 'session_id': session.id,
                 'title': session.title,
@@ -376,9 +310,6 @@ def create_session(request):
                 ai_model=selected_model,  # This is kept for backward compatibility
                 title=title
             )
-            
-            # Create initial chatbot description message
-            create_initial_chatbot_message(session, chatbot)
             
             return JsonResponse({
                 'session_id': session.id,
@@ -786,9 +717,7 @@ def send_message(request, session_id):
             
             # رابطه چند-به-چند بین پیام و فایل‌ها - Many-to-many relationship between message and files
             for file_order, uploaded_file_record in enumerate(uploaded_file_records):
-                # Use apps.get_model to get the MessageFile model
-                MessageFileModel = apps.get_model('chatbot', 'MessageFile')
-                MessageFileModel.objects.create(
+                MessageFile.objects.create(
                     message=user_message,
                     uploaded_file=uploaded_file_record,
                     file_order=file_order
@@ -843,21 +772,12 @@ def send_message(request, session_id):
                     'created_at': user_message.created_at.isoformat(),
                 }
                 
-                # Encode user message data as UTF-8
-                user_message_json = json.dumps(user_message_data, ensure_ascii=False)
-                yield f"[USER_MESSAGE]{user_message_json}[USER_MESSAGE_END]".encode('utf-8')
+                yield f"[USER_MESSAGE]{json.dumps(user_message_data)}[USER_MESSAGE_END]".encode('utf-8')
                 
                 full_response = ""
                 usage_data = None
                 images_data = None
                 assistant_message_obj = None  # Object to hold assistant message for updating
-                generator_consumed = False  # Flag to track generator state
-
-                # Ensure we have a fresh generator instance
-                if not hasattr(response, '__iter__'):
-                    logger.error("Response is not a valid iterable")
-                    yield "Error: Invalid response object".encode('utf-8')
-                    return
 
                 try:
                     # Create an empty assistant message object to update later
@@ -868,23 +788,7 @@ def send_message(request, session_id):
                         tokens_count=0
                     )
 
-                    # Check if response is iterable and not already consumed
-                    if hasattr(response, '__iter__'):
-                        response_generator = response
-                    elif callable(response):
-                        # If it's callable, call it to get the generator
-                        response_generator = response()
-                    else:
-                        logger.error("Response is not iterable or callable")
-                        yield "Error: Response is not iterable or callable".encode('utf-8')
-                        return
-
-                    # Iterate through the response chunks
-                    for chunk in response_generator:
-                        # Ensure chunk is a string for string operations
-                        if isinstance(chunk, bytes):
-                            chunk = chunk.decode('utf-8')
-                        
+                    for chunk in response:
                         # Handle image data
                         if '[IMAGES]' in chunk and '[IMAGES_END]' in chunk:
                             start_idx = chunk.find('[IMAGES]') + 8
@@ -917,35 +821,14 @@ def send_message(request, session_id):
                         assistant_message_obj.content = full_response
                         assistant_message_obj.save(update_fields=['content']) # Only update content field
 
-                        # Yield chunk encoded as UTF-8
                         yield chunk.encode('utf-8')
 
-                except ValueError as e:
-                    if "generator already executing" in str(e):
-                        logger.error(f"Generator already executing error: {str(e)}")
-                        yield "خطا: درخواست قبلی هنوز در حال پردازش است. لطفاً صبر کنید تا پاسخ کامل شود.".encode('utf-8')
-                        generator_consumed = True
-                        return
-                    else:
-                        logger.error(f"ValueError in streaming: {str(e)}", exc_info=True)
-                        yield f"خطا: {str(e)}".encode('utf-8')
-                        generator_consumed = True
-                        return
-                except StopIteration:
-                    # Generator completed normally
-                    generator_consumed = True
                 except Exception as e:
                     # In case of an error, log it and inform the user
                     logger.error(f"Error in streaming: {str(e)}", exc_info=True)
-                    # Ensure error message is properly encoded
-                    error_msg = f"خطا: {str(e)}"
-                    yield error_msg.encode('utf-8')
-                    generator_consumed = True
+                    yield f"Error: {str(e)}".encode('utf-8')
 
                 finally:
-                    # Initialize images_saved variable
-                    images_saved = False
-                    
                     # This block always runs, whether the response is fully received or the connection is lost
                     if assistant_message_obj:
                         prompt_tokens = 0
@@ -966,8 +849,9 @@ def send_message(request, session_id):
                             completion_tokens = UsageService.calculate_tokens_for_message(full_response)
                             total_tokens_used = prompt_tokens + completion_tokens
                             assistant_message_obj.tokens_count = completion_tokens # فقط توکن‌های پاسخ را ذخیره کن
-                    
+                        
                         # If image data is available, save the URLs
+                        images_saved = False
                         if images_data:
                             saved_image_urls, _ = openrouter_service.process_image_response(images_data, session)
                             if saved_image_urls:
@@ -975,82 +859,77 @@ def send_message(request, session_id):
                                 images_saved = True
                         
                         assistant_message_obj.save()
-                    
-                    # Update session timestamp
-                    session.updated_at = timezone.now()
-                    session.save()
-                    
-                    # Update usage counters - only for image editing chatbots if images were successfully generated
-                    if subscription_type and assistant_message_obj:
-                        # For image editing chatbots, only increment usage if images were successfully generated
-                        if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
-                            if images_saved:
-                                # Only increment usage if images were successfully saved
-                                UsageService.increment_image_generation_usage(
-                                    request.user, subscription_type
-                                )
                         
-                        # For other chatbots or if images were generated successfully, increment regular usage
-                        if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
-                            if usage_data:
-                                # Use actual token counts from API
-                                prompt_tokens = usage_data.get('prompt_tokens', 0)
-                                completion_tokens = usage_data.get('completion_tokens', 0)
-                                total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-                                
-                                # Log token usage for debugging
-                                logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                                
-                                UsageService.increment_usage(
-                                    request.user, subscription_type,
-                                    messages_count=2,  # User message + assistant message
-                                    tokens_count=total_tokens_used,
-                                    is_free_model=is_free_model
-                                )
-                            else:
-                                # Fallback to our calculation if API doesn't provide usage data
-                                # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
-                                # توکن‌های خروجی پاسخ دستیار است
-                                prompt_tokens = user_message_tokens
-                                completion_tokens = UsageService.calculate_tokens_for_message(full_response)
-                                total_tokens_used = prompt_tokens + completion_tokens
-                                
-                                # Log token usage for debugging
-                                logger.info(f"Token usage calculated - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                                
-                                UsageService.increment_usage(
-                                    request.user, subscription_type,
-                                    messages_count=2,  # User message + assistant message
-                                    tokens_count=total_tokens_used,
-                                    is_free_model=is_free_model
-                                )
-                                
-                                # Also update ChatSessionUsage
-                                try:
-                                    ChatSessionUsageModel = apps.get_model('chatbot', 'ChatSessionUsage')
-                                    chat_session_usage, created = ChatSessionUsageModel.objects.get_or_create(
-                                        session=session,
-                                        user=request.user,
-                                        subscription_type=subscription_type,
-                                        defaults={'is_free_model': is_free_model}
+                        # Update session timestamp
+                        session.updated_at = timezone.now()
+                        session.save()
+                        
+                        # Update usage counters - only for image editing chatbots if images were successfully generated
+                        if subscription_type:
+                            # For image editing chatbots, only increment usage if images were successfully generated
+                            if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
+                                if images_saved:
+                                    # Only increment usage if images were successfully saved
+                                    UsageService.increment_image_generation_usage(
+                                        request.user, subscription_type
                                     )
-                                    if is_free_model:
-                                        chat_session_usage.free_model_tokens_count = chat_session_usage.free_model_tokens_count + total_tokens_used
-                                    else:
-                                        chat_session_usage.tokens_count = chat_session_usage.tokens_count + total_tokens_used
-                                    chat_session_usage.save()
-                                    logger.info(f"ChatSessionUsage updated - Session: {session.id}, Tokens: {total_tokens_used}")
-                                except Exception as e:
-                                    logger.error(f"Error updating ChatSessionUsage: {str(e)}")
+                            
+                            # For other chatbots or if images were generated successfully, increment regular usage
+                            if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
+                                if usage_data:
+                                    # Use actual token counts from API
+                                    prompt_tokens = usage_data.get('prompt_tokens', 0)
+                                    completion_tokens = usage_data.get('completion_tokens', 0)
+                                    total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                                    
+                                    # Log token usage for debugging
+                                    logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
+                                    
+                                    UsageService.increment_usage(
+                                        request.user, subscription_type,
+                                        messages_count=2,  # User message + assistant message
+                                        tokens_count=total_tokens_used,
+                                        is_free_model=is_free_model
+                                    )
+                                else:
+                                    # Fallback to our calculation if API doesn't provide usage data
+                                    # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
+                                    # توکن‌های خروجی پاسخ دستیار است
+                                    prompt_tokens = user_message_tokens
+                                    completion_tokens = UsageService.calculate_tokens_for_message(full_response)
+                                    total_tokens_used = prompt_tokens + completion_tokens
+                                    
+                                    # Log token usage for debugging
+                                    logger.info(f"Token usage calculated - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
+                                    
+                                    UsageService.increment_usage(
+                                        request.user, subscription_type,
+                                        messages_count=2,  # User message + assistant message
+                                        tokens_count=total_tokens_used,
+                                        is_free_model=is_free_model
+                                    )
+                                    
+                                    # Also update ChatSessionUsage
+                                    try:
+                                        chat_session_usage, created = ChatSessionUsage.objects.get_or_create(
+                                            session=session,
+                                            user=request.user,
+                                            subscription_type=subscription_type,
+                                            defaults={'is_free_model': is_free_model}
+                                        )
+                                        if is_free_model:
+                                            chat_session_usage.free_model_tokens_count = chat_session_usage.free_model_tokens_count + total_tokens_used
+                                        else:
+                                            chat_session_usage.tokens_count = chat_session_usage.tokens_count + total_tokens_used
+                                        chat_session_usage.save()
+                                        logger.info(f"ChatSessionUsage updated - Session: {session.id}, Tokens: {total_tokens_used}")
+                                    except Exception as e:
+                                        logger.error(f"Error updating ChatSessionUsage: {str(e)}")
 
-            # Ensure proper UTF-8 encoding for streaming response
-            response = StreamingHttpResponse(
+            return StreamingHttpResponse(
                 generate(),
                 content_type='text/plain; charset=utf-8'
             )
-            response['Cache-Control'] = 'no-cache'
-            response['Connection'] = 'keep-alive'
-            return response
 
         except Exception as e:
             logger.error(f"Error in send_message: {str(e)}", exc_info=True)
@@ -1524,6 +1403,7 @@ def check_web_search_access_no_session(request):
     
     return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
+@login_required
 def get_sidebar_menu_items(request):
     """
     Get all active sidebar menu items that the user has permission to view
@@ -1548,12 +1428,19 @@ def get_sidebar_menu_items(request):
             if item.show_only_for_non_authenticated and request.user.is_authenticated:
                 continue
             
-            # If no permission is required, or user has the required permission (or user is anonymous)
-            if not item.required_permission or (request.user.is_authenticated and request.user.has_perm(item.required_permission)):
+            # If no permission is required, or user has the required permission
+            if not item.required_permission or request.user.has_perm(item.required_permission):
                 # Resolve the URL
                 try:
-                    # Direct URL resolution - no namespaces
-                    url = reverse(item.url_name)
+                    # Handle namespaced URLs (e.g., 'chat:chat')
+                    if ':' in item.url_name:
+                        url = reverse(item.url_name)
+                    else:
+                        # Try to resolve as a chat app URL first, then fall back to global
+                        try:
+                            url = reverse(f'chat:{item.url_name}')
+                        except:
+                            url = reverse(item.url_name)
                     user_menu_items.append({
                         'name': item.name,
                         'url': url,

@@ -674,22 +674,12 @@ function hideTypingIndicator() {
 let currentAssistantMessageId = null;
 
 function updateOrAddAssistantMessage(content, messageId = null) {
-    console.log('updateOrAddAssistantMessage called with content length:', content.length);
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
     // Store the message ID if provided
     if (messageId) {
         currentAssistantMessageId = messageId;
-    }
-    
-    // Hide typing indicator immediately when we start showing content
-    if (content.trim().length > 0) {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            console.log('Hiding typing indicator as content is available');
-            typingIndicator.remove();
-        }
     }
     
     // Render Markdown for the content
@@ -737,7 +727,6 @@ function updateOrAddAssistantMessage(content, messageId = null) {
         const contentDiv = assistantElement.querySelector('.message-content');
         if (contentDiv) {
             contentDiv.innerHTML = renderedContent;
-            console.log('Updated existing assistant message content');
             
             // Apply syntax highlighting to new code blocks
             if (hljs) {
@@ -766,22 +755,10 @@ function updateOrAddAssistantMessage(content, messageId = null) {
     // Add copy buttons to code blocks and quotes
     addCopyButtonsToContent(assistantElement);
     
-    // Force immediate DOM update and scroll to show new content
-    console.log('Forcing DOM update and scroll for streaming content');
-    
-    // Force a reflow to ensure the content is rendered immediately
-    assistantElement.offsetHeight;
-    
-    // Always scroll to bottom during streaming for better UX
-    requestAnimationFrame(() => {
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
         scrollToBottom();
-        console.log('Scrolled to bottom for streaming content');
-    });
-    
-    // Additional scroll after a short delay to ensure content is fully rendered
-    setTimeout(() => {
-        scrollToBottom();
-    }, 50);
+    }
 }
 
 // Function to format file sizes
@@ -858,22 +835,12 @@ function showImagePreview(imageUrl) {
 
 // Update the streaming handler to handle images
 function updateOrAddAssistantMessageWithImages(content, imagesData = null, messageId = null) {
-    console.log('updateOrAddAssistantMessageWithImages called with content length:', content.length, 'images:', imagesData ? imagesData.length : 0);
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
     // Store the message ID if provided
     if (messageId) {
         currentAssistantMessageId = messageId;
-    }
-    
-    // Hide typing indicator immediately when we start showing content
-    if (content.trim().length > 0) {
-        const typingIndicator = document.getElementById('typing-indicator');
-        if (typingIndicator) {
-            console.log('Hiding typing indicator as content with images is available');
-            typingIndicator.remove();
-        }
     }
     
     // Render Markdown for the content
@@ -983,20 +950,8 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null, messa
     // Add copy buttons to code blocks and quotes
     addCopyButtonsToContent(assistantElement);
     
-    // Force immediate DOM update and scroll to show new content with images
-    console.log('Forcing DOM update and scroll for streaming content with images');
-    
-    // Force a reflow to ensure the content is rendered immediately
-    assistantElement.offsetHeight;
-    
-    // Always scroll to bottom during streaming for better UX
-    requestAnimationFrame(() => {
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
         scrollToBottom();
-        console.log('Scrolled to bottom for streaming content with images');
-    });
-    
-    // Additional scroll after a short delay to ensure content is fully rendered
-    setTimeout(() => {
-        scrollToBottom();
-    }, 50);
+    }
 }

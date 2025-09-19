@@ -184,20 +184,9 @@ FILE_CHARSET = 'utf-8'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "/static/"
-
-# Static files directories
+STATIC_URL = "static/"
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
-]
-
-# Static root - where collectstatic collects all static files
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Static files finders (for Django to locate static files)
-STATICFILES_FINDERS = [
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
 
 # Default primary key field type
@@ -224,31 +213,28 @@ ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Production/Development specific settings
+# Production Security Settings
 if not DEBUG:
     # Security settings for production
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
     SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
-    
-    # Only enable secure cookies if using HTTPS
-    SESSION_COOKIE_SECURE = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
-    CSRF_COOKIE_SECURE = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
-    
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
     
-    # Whitenoise for serving static files in production
+    # Static files configuration for production
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    
+    # Add whitenoise for static files serving
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-    
-    # Static files storage for production
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-    
-    # Whitenoise settings for better performance
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_AUTOREFRESH = True
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+else:
+    # Development settings
+    STATIC_ROOT = None
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB

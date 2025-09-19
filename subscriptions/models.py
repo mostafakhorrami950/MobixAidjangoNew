@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
-from django.core.exceptions import ValidationError
 from accounts.models import User
 
 class SubscriptionType(models.Model):
@@ -158,94 +157,6 @@ class DiscountUse(models.Model):
         db_table = 'discount_uses'
         verbose_name = "Discount Use"
         verbose_name_plural = "Discount Uses"
-
-
-class DefaultSubscriptionSettings(models.Model):
-    """
-    تنظیمات پلن‌های پیش‌فرض اشتراک
-    این مدل برای مدیریت پلن‌هایی است که به صورت خودکار تخصیص داده می‌شوند
-    """
-    SETTING_TYPES = [
-        ('new_user_default', 'پلن پیش‌فرض کاربران جدید'),
-        ('expired_fallback', 'پلن پیش‌فرض پس از انقضا'),
-    ]
-    
-    setting_type = models.CharField(
-        max_length=20, 
-        choices=SETTING_TYPES, 
-        unique=True,
-        verbose_name='نوع تنظیم',
-        help_text='نوع تنظیم پیش‌فرض'
-    )
-    
-    subscription_type = models.ForeignKey(
-        SubscriptionType, 
-        on_delete=models.CASCADE,
-        verbose_name='پلن اشتراک',
-        help_text='پلن اشتراکی که به عنوان پیش‌فرض تخصیص داده می‌شود'
-    )
-    
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name='فعال',
-        help_text='آیا این تنظیم فعال است؟'
-    )
-    
-    description = models.TextField(
-        blank=True,
-        verbose_name='توضیح',
-        help_text='توضیح اختیاری در مورد این تنظیم'
-    )
-    
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        db_table = 'default_subscription_settings'
-        verbose_name = 'تنظیمات پیش‌فرض اشتراک'
-        verbose_name_plural = 'تنظیمات پیش‌فرض اشتراک'
-        ordering = ['setting_type']
-    
-    def __str__(self):
-        return f"{self.get_setting_type_display()}: {self.subscription_type.name}"
-    
-    def clean(self):
-        """اعتبارسنجی داده‌ها"""
-        # بررسی اینکه پلن انتخابی فعال باشد
-        if self.subscription_type and not self.subscription_type.is_active:
-            raise ValidationError({
-                'subscription_type': 'پلن انتخابی باید فعال باشد.'
-            })
-    
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-    
-    @classmethod
-    def get_new_user_default(cls):
-        """دریافت پلن پیش‌فرض کاربران جدید"""
-        try:
-            setting = cls.objects.get(setting_type='new_user_default', is_active=True)
-            return setting.subscription_type
-        except (cls.DoesNotExist, cls.MultipleObjectsReturned):
-            # بازگشت به پلن Basic اگر تنظیم پیدا نشد
-            try:
-                return SubscriptionType.objects.get(name='Basic', is_active=True)
-            except SubscriptionType.DoesNotExist:
-                return None
-    
-    @classmethod
-    def get_expired_fallback(cls):
-        """دریافت پلن پیش‌فرض پس از انقضا"""
-        try:
-            setting = cls.objects.get(setting_type='expired_fallback', is_active=True)
-            return setting.subscription_type
-        except (cls.DoesNotExist, cls.MultipleObjectsReturned):
-            # بازگشت به پلن Basic اگر تنظیم پیدا نشد
-            try:
-                return SubscriptionType.objects.get(name='Basic', is_active=True)
-            except SubscriptionType.DoesNotExist:
-                return None
 
 
 class FinancialTransaction(models.Model):

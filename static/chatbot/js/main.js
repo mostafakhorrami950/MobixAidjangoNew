@@ -243,12 +243,6 @@ function loadAvailableModelsForUser() {
             const modelSelectionContainer = document.getElementById('welcome-model-selection');
             const webSearchContainer = document.getElementById('welcome-web-search-container');
             
-            // Check if elements exist before manipulating them
-            if (!modelSelect || !modelSelectionContainer) {
-                console.log('Model selection elements not found, skipping model loading');
-                return;
-            }
-            
             // Clear current options
             modelSelect.innerHTML = '<option value="">-- مدلی را انتخاب کنید --</option>';
             
@@ -258,28 +252,11 @@ function loadAvailableModelsForUser() {
                 option.value = model.model_id;
                 option.textContent = model.name;
                 
-                // Disable option if user doesn't have access
-                if (!model.has_access) {
-                    option.disabled = true;
-                    option.style.color = '#999';
-                }
-                
-                // Add class based on model type and access
+                // Add class based on model type
                 if (model.is_free) {
                     option.className = 'model-option-free';
-                } else if (model.has_access) {
+                } else {
                     option.className = 'model-option-premium';
-                } else {
-                    option.className = 'model-option-restricted';
-                }
-                
-                // Add visual indicators
-                if (model.is_free) {
-                    option.innerHTML += ' (رایگان)';
-                } else if (model.has_access) {
-                    option.innerHTML += ' (ویژه)';
-                } else {
-                    option.innerHTML += ' (نیاز به اشتراک)';
                 }
                 
                 modelSelect.appendChild(option);

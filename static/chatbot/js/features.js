@@ -233,19 +233,11 @@ function loadModelsForChatbot(chatbotId) {
                 option.textContent = model.name;
                 option.dataset.isFree = model.is_free;
                 
-                // Disable option if user doesn't have access
-                if (!model.has_access) {
-                    option.disabled = true;
-                    option.style.color = '#999';
-                }
-                
                 // Add badge for free/premium models
                 if (model.is_free) {
                     option.innerHTML += ' <span class="badge bg-success">رایگان</span>';
-                } else if (model.has_access) {
-                    option.innerHTML += ' <span class="badge bg-warning">ویژه</span>';
                 } else {
-                    option.innerHTML += ' <span class="badge bg-secondary">نیاز به اشتراک</span>';
+                    option.innerHTML += ' <span class="badge bg-warning">ویژه</span>';
                 }
                 
                 modelSelect.appendChild(option);
@@ -320,19 +312,11 @@ function loadMessageInputModels(chatbotId) {
                     option.selected = true;
                 }
                 
-                // Disable option if user doesn't have access
-                if (!model.has_access) {
-                    option.disabled = true;
-                    option.style.color = '#999';
-                }
-                
                 // Add badge for free/premium models
                 if (model.is_free) {
                     option.innerHTML += ' <span class="badge badge-free">رایگان</span>';
-                } else if (model.has_access) {
-                    option.innerHTML += ' <span class="badge badge-premium">ویژه</span>';
                 } else {
-                    option.innerHTML += ' <span class="badge badge-restricted">نیاز به اشتراک</span>';
+                    option.innerHTML += ' <span class="badge badge-premium">ویژه</span>';
                 }
                 
                 modelSelect.appendChild(option);

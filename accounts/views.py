@@ -3,7 +3,6 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.backends import ModelBackend
-from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm, OTPVerificationForm
 from .models import User
 from otp_service.services import OTPService
@@ -148,8 +147,3 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'با موفقیت از سیستم خارج شدید.')
     return redirect('login')
-
-@login_required
-def profile_view(request):
-    """User profile view"""
-    return render(request, 'accounts/profile.html', {'user': request.user})

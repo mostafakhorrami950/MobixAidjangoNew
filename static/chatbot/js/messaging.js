@@ -2,41 +2,8 @@
 // ارسال پیام‌ها و streaming (Message Sending & Streaming)
 // =================================
 
-// Function to display error messages with HTML support
-function displayErrorMessage(errorMessage) {
-    addMessageToChat({
-        type: 'assistant',
-        content: errorMessage,
-        created_at: new Date().toISOString()
-    });
-}
-
-// Helper function to clean up streaming state
-function cleanupStreamingState() {
-    // Remove any existing streaming elements
-    const streamingElement = document.getElementById('streaming-assistant');
-    if (streamingElement) {
-        streamingElement.remove();
-    }
-    
-    // Hide typing indicator
-    hideTypingIndicator();
-    
-    // Re-enable input
-    const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.disabled = false;
-        messageInput.focus();
-    }
-    
-    // Reset button state
-    setButtonState(false);
-    
-    console.log('Streaming state cleaned up');
-}
-
 // Send message with streaming support
-async function sendMessage() {
+function sendMessage() {
     console.log('sendMessage called');
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value.trim();
@@ -114,15 +81,6 @@ async function sendMessage() {
     let userMessageData = null; // To store user message data from server
     let userMessageElement = null; // To store reference to user message element
     let assistantMessageId = null; // To store assistant message ID from server
-    let hasImages = false; // Declare hasImages at function scope
-    
-    // بررسی اینکه آیا streaming قبلی هنوز در حال اجرا است یا نه
-    if (abortController && !abortController.signal.aborted) {
-        console.log('Previous streaming still active, aborting it...');
-        abortController.abort();
-        // کمی صبر می‌کنیم تا streaming قبلی تمام شود
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
     
     // ساخت یک کنترلر جدید برای هر درخواست
     abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
@@ -146,84 +104,33 @@ async function sendMessage() {
         }
 
         // Handle streaming response
-        // Make sure to clean up any existing streaming elements
-        const existingStreaming = document.getElementById('streaming-assistant');
-        if (existingStreaming) {
-            existingStreaming.remove();
-        }
-        
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        
-        // Track reader state to prevent multiple reads
-        let readerClosed = false;
 
         function read() {
-            // Check if reader is already closed or aborted
-            if (readerClosed || abortController.signal.aborted) {
-                return;
-            }
-            
             reader.read().then(({ done, value }) => {
-                // Check again after the async read
-                if (readerClosed || abortController.signal.aborted) {
-                    return;
-                }
                 if (done) {
-                    readerClosed = true; // Mark reader as closed
                     console.log('Message sending stream finished');
-                    
-                    // Hide typing indicator first
-                    hideTypingIndicator();
-                    
                     const streamingElement = document.getElementById('streaming-assistant');
                     if (streamingElement) {
                         streamingElement.remove();
                     }
                 
-                    // Add final message with images if any (only if we have content)
-                    if (assistantContent.trim()) {
-                        const messageData = {
-                            type: 'assistant',
-                            content: assistantContent,
-                            created_at: new Date().toISOString()
-                        };
-                        
-                        // Add the assistant message ID if we have it
-                        if (assistantMessageId) {
-                            messageData.id = assistantMessageId;
-                        }
+                    // Add final message with images if any
+                    const messageData = {
+                        type: 'assistant',
+                        content: assistantContent,
+                        created_at: new Date().toISOString()
+                    };
                     
-                        // Add image URLs if any images were generated
-                        hasImages = false; // Reset hasImages
-                        if (imagesData.length > 0) {
-                            const formattedImageUrls = imagesData.map(img => {
-                                if (img.image_url && img.image_url.url) {
-                                    let imageUrl = img.image_url.url;
-                                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                                        imageUrl = '/media/' + imageUrl;
-                                    }
-                                    return imageUrl;
-                                }
-                                return '';
-                            }).filter(url => url.trim() !== '');
-                            
-                            if (formattedImageUrls.length > 0) {
-                                messageData.image_url = formattedImageUrls.join(',');
-                                hasImages = true;
-                            }
-                        }
-                    
-                        addMessageToChat(messageData);
-                        console.log('Final message added to chat');
-                    } else {
-                        console.log('No final content to add to chat');
+                    // Add the assistant message ID if we have it
+                    if (assistantMessageId) {
+                        messageData.id = assistantMessageId;
                     }
-                    
-                    // Check if this is an image editing chatbot and we have images
-                    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    // Check for images if not already determined
-                    if (!hasImages && imagesData.length > 0) {
+                
+                    // Add image URLs if any images were generated
+                    let hasImages = false;
+                    if (imagesData.length > 0) {
                         const formattedImageUrls = imagesData.map(img => {
                             if (img.image_url && img.image_url.url) {
                                 let imageUrl = img.image_url.url;
@@ -236,9 +143,16 @@ async function sendMessage() {
                         }).filter(url => url.trim() !== '');
                         
                         if (formattedImageUrls.length > 0) {
+                            messageData.image_url = formattedImageUrls.join(',');
                             hasImages = true;
                         }
                     }
+                
+                    addMessageToChat(messageData);
+                    hideTypingIndicator();
+                    
+                    // Check if this is an image editing chatbot and we have images
+                    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                         // For image editing chatbots, refresh the page after image generation is complete
                         console.log('Image generated successfully, refreshing page...');
@@ -267,13 +181,7 @@ async function sendMessage() {
 
                 try {
                     const chunk = decoder.decode(value, { stream: true });
-                    console.log('Received chunk from message sending (length:', chunk.length, '):', chunk.substring(0, 100), '...');
-                    
-                    // Skip empty chunks
-                    if (!chunk.trim()) {
-                        read();
-                        return;
-                    }
+                    console.log('Received chunk from message sending:', chunk);
                     
                     // Check if chunk contains any special data markers
                     const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
@@ -357,29 +265,14 @@ async function sendMessage() {
                     }
                     // Handle regular content (only if it doesn't contain any special markers)
                     else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
-                        console.log('Processing regular content chunk (length:', chunk.length, '):', chunk.substring(0, 50));
+                        console.log('Received assistant content:', chunk);
                         assistantContent += chunk;
-                        console.log('Total assistant content length now:', assistantContent.length);
-                        console.log('Assistant content preview:', assistantContent.substring(0, 100) + '...');
-                        
-                        // Hide typing indicator on first content chunk
-                        if (assistantContent.trim().length > 0 && document.getElementById('typing-indicator')) {
-                            console.log('Hiding typing indicator for streaming content');
-                            hideTypingIndicator();
+                        // Update the streaming message with current content
+                        if (imagesData.length > 0) {
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                        } else {
+                            updateOrAddAssistantMessage(assistantContent, assistantMessageId);
                         }
-                        
-                        // Update the streaming message with current content immediately
-                        // Use requestAnimationFrame for better performance
-                        requestAnimationFrame(() => {
-                            if (imagesData.length > 0) {
-                                console.log('Updating streaming message with images');
-                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
-                            } else {
-                                console.log('Updating streaming message without images');
-                                updateOrAddAssistantMessage(assistantContent, assistantMessageId);
-                            }
-                            console.log('Assistant message updated in DOM');
-                        });
                     }
                 } catch (decodeError) {
                     console.error('Decoding error:', decodeError);
@@ -387,8 +280,6 @@ async function sendMessage() {
                 
                 read();
             }).catch(error => {
-                readerClosed = true; // Mark reader as closed on any error
-                
                 if (error.name === 'AbortError') {
                     console.log('درخواست توسط کاربر متوقف شد.');
                     // پیام ناقص قبلاً در سمت سرور ذخیره شده است
@@ -399,7 +290,7 @@ async function sendMessage() {
                     hideTypingIndicator();
                     
                     // Check if we have images and this is an image editing chatbot
-                    // Use the existing hasImages from function scope
+                    let hasImages = false;
                     let shouldRefresh = false;
                     
                     // Add final message with whatever content we have so far
@@ -432,23 +323,6 @@ async function sendMessage() {
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    // Use the existing hasImages variable instead of redeclaring it
-                    if (imagesData.length > 0) {
-                        const formattedImageUrls = imagesData.map(img => {
-                            if (img.image_url && img.image_url.url) {
-                                let imageUrl = img.image_url.url;
-                                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                                    imageUrl = '/media/' + imageUrl;
-                                }
-                                return imageUrl;
-                            }
-                            return '';
-                        }).filter(url => url.trim() !== '');
-                        
-                        if (formattedImageUrls.length > 0) {
-                            hasImages = true;
-                        }
-                    }
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                         shouldRefresh = true;
                         console.log('Image generated via abort, refreshing page...');
@@ -468,18 +342,26 @@ async function sendMessage() {
                     }
                 } else {
                     console.error('Streaming error:', error);
-                    cleanupStreamingState();
-                    displayErrorMessage(`خطا: ${error.message || 'خطای نامشخص'}`);
-                    // Additional cleanup handled by cleanupStreamingState()
+                    const streamingElement = document.getElementById('streaming-assistant');
+                    if (streamingElement) {
+                        streamingElement.remove();
+                    }
+                    hideTypingIndicator();
+                    addMessageToChat({
+                        type: 'assistant',
+                        content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                        created_at: new Date().toISOString()
+                    });
+                    // Re-enable input and reset button state after streaming is complete
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                    setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
                 }
             });
         }
         read();
     })
     .catch(error => {
-        // Mark any ongoing operations as complete
-        readerClosed = true;
-        
         // Remove the streaming assistant message if it exists
         const streamingElement = document.getElementById('streaming-assistant');
         if (streamingElement) {
@@ -491,7 +373,7 @@ async function sendMessage() {
             // پیام ناقص قبلاً در سمت سرور ذخیره شده است
             hideTypingIndicator();
             
-            // Use the existing hasImages from function scope
+            let hasImages = false;
             let shouldRefresh = false;
             
             // Add final message with whatever content we have so far
@@ -524,23 +406,6 @@ async function sendMessage() {
             
             // Check if this is an image editing chatbot and we have images
             const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-            // Use the existing hasImages variable instead of redeclaring it
-            if (imagesData.length > 0) {
-                const formattedImageUrls = imagesData.map(img => {
-                    if (img.image_url && img.image_url.url) {
-                        let imageUrl = img.image_url.url;
-                        if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                            imageUrl = '/media/' + imageUrl;
-                        }
-                        return imageUrl;
-                    }
-                    return '';
-                }).filter(url => url.trim() !== '');
-                
-                if (formattedImageUrls.length > 0) {
-                    hasImages = true;
-                }
-            }
             if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                 shouldRefresh = true;
                 console.log('Image generated via catch abort, refreshing page...');
@@ -561,7 +426,11 @@ async function sendMessage() {
         } else {
             console.error('Error:', error);
             hideTypingIndicator();
-            displayErrorMessage(`خطا: ${error.message || 'خطای نامشخص'}`);
+            addMessageToChat({
+                type: 'assistant',
+                content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                created_at: new Date().toISOString()
+            });
             
             // Re-enable input and reset button state after streaming is complete
             messageInput.disabled = false;
@@ -575,23 +444,16 @@ async function sendMessage() {
 async function checkAndGenerateTitle(message) {
     // Only generate title for the first message
     const chatContainer = document.getElementById('chat-container');
+    const messageElements = chatContainer.querySelectorAll('.message-user, .message-assistant');
     
+    // If this is the first user message (should be the only user message in container)
     // Count only user messages to determine if this is the first one
     const userMessageElements = chatContainer.querySelectorAll('.message-user');
-    console.log('User messages count for title generation:', userMessageElements.length);
-    
     if (userMessageElements.length === 1 && currentSessionId) {
         try {
-            console.log('Generating title for first message:', message);
             // Get session info to get chatbot and model IDs
             const response = await fetch(`/chat/session/${currentSessionId}/messages/`);
-            
-            if (!response.ok) {
-                throw new Error('Failed to get session data');
-            }
-            
             const sessionData = await response.json();
-            console.log('Session data for title generation:', sessionData);
             
             // Generate title using the first message
             const titleResponse = await fetch(CHAT_URLS.generateChatTitle, {
@@ -602,21 +464,16 @@ async function checkAndGenerateTitle(message) {
                 },
                 body: JSON.stringify({
                     first_message: message,
-                    chatbot_id: sessionData.chatbot_id,
-                    model_id: sessionData.ai_model_name ? null : 'fallback' // Fallback if no chatbot
+                    chatbot_id: sessionData.chatbot_id, // This will be the chatbot ID
+                    model_id: null // We'll use chatbot_id instead
                 })
             });
             
-            if (!titleResponse.ok) {
-                throw new Error('Title generation failed');
-            }
-            
             const titleData = await titleResponse.json();
             const newTitle = titleData.title || 'چت جدید';
-            console.log('Generated title:', newTitle);
             
             // Update the session title
-            const updateResponse = await fetch(`/chat/session/${currentSessionId}/update-title/`, {
+            await fetch(`/chat/session/${currentSessionId}/update-title/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -627,25 +484,13 @@ async function checkAndGenerateTitle(message) {
                 })
             });
             
-            if (!updateResponse.ok) {
-                throw new Error('Failed to update title');
-            }
-            
             // Update UI with new title
-            const titleElement = document.getElementById('current-session-title');
-            if (titleElement) {
-                titleElement.innerHTML = `<i class="fas fa-comments"></i> ${newTitle}`;
-            }
+            document.getElementById('current-session-title').textContent = newTitle;
             
             // Refresh sessions list
-            if (typeof loadSessions === 'function') {
-                loadSessions();
-            }
-            
-            console.log('Title generation completed successfully');
+            loadSessions();
         } catch (error) {
             console.error('Error generating title:', error);
-            // Don't throw the error, just log it so chat continues to work
         }
     }
 }
@@ -658,13 +503,11 @@ function updateOrAddAssistantMessage(content) {
     // Render Markdown for the content
     let renderedContent;
     try {
-        // Ensure content is a string and properly encoded
-        content = String(content || '');
         renderedContent = md.render(content);
     } catch (e) {
         console.error('Error rendering markdown:', e);
         // Show error message in Persian
-        if (e.message && (e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline'))) {
+        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
             renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
         } else {
             // Fallback to plain text if markdown rendering fails
@@ -725,12 +568,9 @@ function updateOrAddAssistantMessage(content) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    // Use requestAnimationFrame for smoother scrolling performance
-    requestAnimationFrame(() => {
-        if (isUserAtBottom()) {
-            scrollToBottom();
-        }
-    });
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
 }
 
 // Update the streaming handler to handle images
@@ -741,13 +581,11 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     // Render Markdown for the content
     let renderedContent;
     try {
-        // Ensure content is a string and properly encoded
-        content = String(content || '');
         renderedContent = md.render(content);
     } catch (e) {
         console.error('Error rendering markdown:', e);
         // Show error message in Persian
-        if (e.message && (e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline'))) {
+        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
             renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
         } else {
             // Fallback to plain text if markdown rendering fails
@@ -870,12 +708,9 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    // Use requestAnimationFrame for smoother scrolling performance
-    requestAnimationFrame(() => {
-        if (isUserAtBottom()) {
-            scrollToBottom();
-        }
-    });
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
 }
 
 // Generate chat title using AI
@@ -1198,7 +1033,6 @@ function sendMessageInternal(message, files) {
                     // Handle regular content (only if it doesn't contain any special markers)
                     else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
                         assistantContent += chunk;
-                        // Check if we have images to determine which update function to call
                         if (imagesData.length > 0) {
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
                         } else {

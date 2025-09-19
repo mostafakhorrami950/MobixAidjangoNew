@@ -177,17 +177,11 @@
                                 <select class="form-select" id="modal-chatbot-select">
                                     <option value="">-- چت‌باتی را انتخاب کنید --</option>
                                     {% for chatbot in available_chatbots %}
-                                    <option value="{{ chatbot.id }}" 
-                                            data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}"
-                                            {% if not chatbot.has_access %}disabled style="color: #999;"{% endif %}>
-                                        {{ chatbot.name }}
-                                        {% if not chatbot.requires_subscription %}
-                                            <span class="badge bg-success">رایگان</span>
-                                        {% elif chatbot.has_access %}
-                                            <span class="badge bg-warning">ویژه</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">نیاز به اشتراک</span>
-                                        {% endif %}
+                                        <option value="{{ chatbot.id }}" data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}">
+                                            {{ chatbot.name }}
+                                            {% if not chatbot.ai_model %}
+                                                <span class="badge bg-warning">نیاز به انتخاب مدل</span>
+                                            {% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>
@@ -204,16 +198,12 @@
                                 <select class="form-select" id="modal-model-select">
                                     <option value="">-- مدلی را انتخاب کنید --</option>
                                     {% for model in available_models %}
-                                        <option value="{{ model.model_id }}" 
-                                                data-is-free="{{ model.is_free }}"
-                                                {% if not model.has_access %}disabled style="color: #999;"{% endif %}>
+                                        <option value="{{ model.model_id }}" data-is-free="{{ model.is_free }}">
                                             {{ model.name }} 
                                             {% if model.is_free %}
                                                 <span class="badge bg-success">رایگان</span>
-                                            {% elif model.has_access %}
-                                                <span class="badge bg-warning">ویژه</span>
                                             {% else %}
-                                                <span class="badge bg-secondary">نیاز به اشتراک</span>
+                                                <span class="badge bg-warning">ویژه</span>
                                             {% endif %}
                                         </option>
                                     {% endfor %}
@@ -454,39 +444,6 @@
     border: 1px solid #e9ecef;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 10;
-}
-
-/* Upgrade link styles */
-.upgrade-link {
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    border: none;
-    color: white;
-    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
-}
-
-.upgrade-link:hover {
-    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-    color: white;
-    text-decoration: none;
-}
-
-.upgrade-link:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-.upgrade-link i {
-    font-size: 0.8rem;
 }
 
 /* File preview styles for multiple files - استایل پیش‌نمایش فایل برای چندین فایل */
