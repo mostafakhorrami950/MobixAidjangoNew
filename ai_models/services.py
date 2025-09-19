@@ -231,7 +231,8 @@ class OpenRouterService:
                         data = line[6:]
                         if data == '[DONE]':
                             if usage_data:
-                                yield f"\n\n[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
+                                usage_json = json.dumps(usage_data, ensure_ascii=False)
+                                yield f"\n\n[USAGE_DATA]{usage_json}[USAGE_DATA_END]"
                             return
                         
                         try:
@@ -256,9 +257,13 @@ class OpenRouterService:
                                 images = delta.get('images', [])
                                 
                                 if images:
-                                    yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
-                                if content:
-                                    yield content
+                                    images_json = json.dumps(images, ensure_ascii=False)
+                                    yield f"\n\n[IMAGES]{images_json}[IMAGES_END]"
+                            if content:
+                                # Ensure proper UTF-8 encoding for content
+                                if isinstance(content, bytes):
+                                    content = content.decode('utf-8')
+                                yield content
                                 
                                 finish_reason = choice.get('finish_reason')
                                 if finish_reason == 'length':

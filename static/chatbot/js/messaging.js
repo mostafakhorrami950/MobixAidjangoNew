@@ -218,6 +218,12 @@ function sendMessage() {
                     const chunk = decoder.decode(value, { stream: true });
                     console.log('Received chunk from message sending (length:', chunk.length, '):', chunk.substring(0, 100), '...');
                     
+                    // Skip empty chunks
+                    if (!chunk.trim()) {
+                        read();
+                        return;
+                    }
+                    
                     // Check if chunk contains any special data markers
                     const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
                     const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
@@ -306,20 +312,23 @@ function sendMessage() {
                         console.log('Assistant content preview:', assistantContent.substring(0, 100) + '...');
                         
                         // Hide typing indicator on first content chunk
-                        if (assistantContent.trim().length > 0) {
+                        if (assistantContent.trim().length > 0 && document.getElementById('typing-indicator')) {
                             console.log('Hiding typing indicator for streaming content');
                             hideTypingIndicator();
                         }
                         
                         // Update the streaming message with current content immediately
-                        if (imagesData.length > 0) {
-                            console.log('Updating streaming message with images');
-                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
-                        } else {
-                            console.log('Updating streaming message without images');
-                            updateOrAddAssistantMessage(assistantContent, assistantMessageId);
-                        }
-                        console.log('Assistant message updated in DOM');
+                        // Use requestAnimationFrame for better performance
+                        requestAnimationFrame(() => {
+                            if (imagesData.length > 0) {
+                                console.log('Updating streaming message with images');
+                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                            } else {
+                                console.log('Updating streaming message without images');
+                                updateOrAddAssistantMessage(assistantContent, assistantMessageId);
+                            }
+                            console.log('Assistant message updated in DOM');
+                        });
                     }
                 } catch (decodeError) {
                     console.error('Decoding error:', decodeError);
@@ -517,16 +526,23 @@ function sendMessage() {
 async function checkAndGenerateTitle(message) {
     // Only generate title for the first message
     const chatContainer = document.getElementById('chat-container');
-    const messageElements = chatContainer.querySelectorAll('.message-user, .message-assistant');
     
-    // If this is the first user message (should be the only user message in container)
     // Count only user messages to determine if this is the first one
     const userMessageElements = chatContainer.querySelectorAll('.message-user');
+    console.log('User messages count for title generation:', userMessageElements.length);
+    
     if (userMessageElements.length === 1 && currentSessionId) {
         try {
+            console.log('Generating title for first message:', message);
             // Get session info to get chatbot and model IDs
             const response = await fetch(`/chat/session/${currentSessionId}/messages/`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to get session data');
+            }
+            
             const sessionData = await response.json();
+            console.log('Session data for title generation:', sessionData);
             
             // Generate title using the first message
             const titleResponse = await fetch(CHAT_URLS.generateChatTitle, {
@@ -537,16 +553,21 @@ async function checkAndGenerateTitle(message) {
                 },
                 body: JSON.stringify({
                     first_message: message,
-                    chatbot_id: sessionData.chatbot_id, // This will be the chatbot ID
-                    model_id: null // We'll use chatbot_id instead
+                    chatbot_id: sessionData.chatbot_id,
+                    model_id: sessionData.ai_model_name ? null : 'fallback' // Fallback if no chatbot
                 })
             });
             
+            if (!titleResponse.ok) {
+                throw new Error('Title generation failed');
+            }
+            
             const titleData = await titleResponse.json();
             const newTitle = titleData.title || 'چت جدید';
+            console.log('Generated title:', newTitle);
             
             // Update the session title
-            await fetch(`/chat/session/${currentSessionId}/update-title/`, {
+            const updateResponse = await fetch(`/chat/session/${currentSessionId}/update-title/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -557,13 +578,25 @@ async function checkAndGenerateTitle(message) {
                 })
             });
             
+            if (!updateResponse.ok) {
+                throw new Error('Failed to update title');
+            }
+            
             // Update UI with new title
-            document.getElementById('current-session-title').textContent = newTitle;
+            const titleElement = document.getElementById('current-session-title');
+            if (titleElement) {
+                titleElement.innerHTML = `<i class="fas fa-comments"></i> ${newTitle}`;
+            }
             
             // Refresh sessions list
-            loadSessions();
+            if (typeof loadSessions === 'function') {
+                loadSessions();
+            }
+            
+            console.log('Title generation completed successfully');
         } catch (error) {
             console.error('Error generating title:', error);
+            // Don't throw the error, just log it so chat continues to work
         }
     }
 }
@@ -576,11 +609,13 @@ function updateOrAddAssistantMessage(content) {
     // Render Markdown for the content
     let renderedContent;
     try {
+        // Ensure content is a string and properly encoded
+        content = String(content || '');
         renderedContent = md.render(content);
     } catch (e) {
         console.error('Error rendering markdown:', e);
         // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
+        if (e.message && (e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline'))) {
             renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
         } else {
             // Fallback to plain text if markdown rendering fails
@@ -641,9 +676,12 @@ function updateOrAddAssistantMessage(content) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
-        scrollToBottom();
-    }
+    // Use requestAnimationFrame for smoother scrolling performance
+    requestAnimationFrame(() => {
+        if (isUserAtBottom()) {
+            scrollToBottom();
+        }
+    });
 }
 
 // Update the streaming handler to handle images
@@ -654,11 +692,13 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     // Render Markdown for the content
     let renderedContent;
     try {
+        // Ensure content is a string and properly encoded
+        content = String(content || '');
         renderedContent = md.render(content);
     } catch (e) {
         console.error('Error rendering markdown:', e);
         // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
+        if (e.message && (e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline'))) {
             renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
         } else {
             // Fallback to plain text if markdown rendering fails
@@ -781,9 +821,12 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
-        scrollToBottom();
-    }
+    // Use requestAnimationFrame for smoother scrolling performance
+    requestAnimationFrame(() => {
+        if (isUserAtBottom()) {
+            scrollToBottom();
+        }
+    });
 }
 
 // Generate chat title using AI

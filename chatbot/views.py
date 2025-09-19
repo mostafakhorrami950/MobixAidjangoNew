@@ -830,7 +830,9 @@ def send_message(request, session_id):
                     'created_at': user_message.created_at.isoformat(),
                 }
                 
-                yield f"[USER_MESSAGE]{json.dumps(user_message_data)}[USER_MESSAGE_END]".encode('utf-8')
+                # Encode user message data as UTF-8
+                user_message_json = json.dumps(user_message_data, ensure_ascii=False)
+                yield f"[USER_MESSAGE]{user_message_json}[USER_MESSAGE_END]".encode('utf-8')
                 
                 full_response = ""
                 usage_data = None
@@ -875,16 +877,25 @@ def send_message(request, session_id):
                             continue
                         
                         # As soon as we receive a chunk of the response, we add it to the message and save to database
+                        # Ensure proper UTF-8 encoding for chunk
+                        if isinstance(chunk, bytes):
+                            chunk = chunk.decode('utf-8')
                         full_response += chunk
                         assistant_message_obj.content = full_response
                         assistant_message_obj.save(update_fields=['content']) # Only update content field
 
-                        yield chunk.encode('utf-8')
+                        # Ensure chunk is properly encoded as UTF-8
+                        if isinstance(chunk, str):
+                            yield chunk.encode('utf-8')
+                        else:
+                            yield chunk
 
                 except Exception as e:
                     # In case of an error, log it and inform the user
                     logger.error(f"Error in streaming: {str(e)}", exc_info=True)
-                    yield f"Error: {str(e)}".encode('utf-8')
+                    # Ensure error message is properly encoded
+                    error_msg = f"Error: {str(e)}"
+                    yield error_msg.encode('utf-8')
 
                 finally:
                     # This block always runs, whether the response is fully received or the connection is lost
@@ -984,10 +995,14 @@ def send_message(request, session_id):
                                     except Exception as e:
                                         logger.error(f"Error updating ChatSessionUsage: {str(e)}")
 
-            return StreamingHttpResponse(
+            # Ensure proper UTF-8 encoding for streaming response
+            response = StreamingHttpResponse(
                 generate(),
                 content_type='text/plain; charset=utf-8'
             )
+            response['Cache-Control'] = 'no-cache'
+            response['Connection'] = 'keep-alive'
+            return response
 
         except Exception as e:
             logger.error(f"Error in send_message: {str(e)}", exc_info=True)
