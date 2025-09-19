@@ -396,6 +396,23 @@ function handleEditStreamingResponse(response) {
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                    // Use the existing hasImages variable instead of redeclaring it
+                    if (imagesData.length > 0) {
+                        const formattedImageUrls = imagesData.map(img => {
+                            if (img.image_url && img.image_url.url) {
+                                let imageUrl = img.image_url.url;
+                                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                    imageUrl = '/media/' + imageUrl;
+                                }
+                                return imageUrl;
+                            }
+                            return '';
+                        }).filter(url => url.trim() !== '');
+                        
+                        if (formattedImageUrls.length > 0) {
+                            hasImages = true;
+                        }
+                    }
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                         // For image editing chatbots, refresh the page after successful image generation
                         console.log('Image generated successfully during editing, refreshing page...');
