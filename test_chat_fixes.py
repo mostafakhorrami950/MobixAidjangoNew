@@ -13,7 +13,7 @@ import django
 from django.conf import settings
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixaidjangonew.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixai.settings')
 django.setup()
 
 from chatbot.models import ChatSession, ChatMessage, Chatbot

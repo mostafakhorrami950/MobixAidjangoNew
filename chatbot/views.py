@@ -1,17 +1,28 @@
-from django.shortcuts import render, redirect, get_object_or_404
+import logging
+import json
+import uuid
+import mimetypes
+import os
+from datetime import timedelta
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, StreamingHttpResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, StreamingHttpResponse
+from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import Q, Sum
 from django.apps import apps
+from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.urls import reverse
+import inspect
+
 from ai_models.services import OpenRouterService
 from subscriptions.models import UserSubscription
 from subscriptions.services import UsageService
 from .file_services import FileUploadService, GlobalFileService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
-import json
 
 # Add import for PDF processing
 import PyPDF2
@@ -775,7 +786,9 @@ def send_message(request, session_id):
             
             # رابطه چند-به-چند بین پیام و فایل‌ها - Many-to-many relationship between message and files
             for file_order, uploaded_file_record in enumerate(uploaded_file_records):
-                MessageFile.objects.create(
+                # Use apps.get_model to get the MessageFile model
+                MessageFileModel = apps.get_model('chatbot', 'MessageFile')
+                MessageFileModel.objects.create(
                     message=user_message,
                     uploaded_file=uploaded_file_record,
                     file_order=file_order
@@ -839,6 +852,12 @@ def send_message(request, session_id):
                 images_data = None
                 assistant_message_obj = None  # Object to hold assistant message for updating
 
+                # Ensure we have a fresh generator instance
+                if not hasattr(response, '__iter__'):
+                    logger.error("Response is not a valid iterable")
+                    yield "Error: Invalid response object".encode('utf-8')
+                    return
+
                 try:
                     # Create an empty assistant message object to update later
                     assistant_message_obj = ChatMessage.objects.create(
@@ -848,7 +867,34 @@ def send_message(request, session_id):
                         tokens_count=0
                     )
 
-                    for chunk in response:
+                    # Ensure we're working with a fresh generator
+                    # Check if response is a generator function or a generator object
+                    if inspect.isgeneratorfunction(response):
+                        # If it's a generator function, call it to get the generator
+                        response_generator = response()
+                    elif inspect.isgenerator(response):
+                        # If it's already a generator object, use it directly
+                        # But log a warning as this could cause issues
+                        logger.warning("Response is already a generator object, this may cause 'generator already executing' errors")
+                        response_generator = response
+                    elif callable(response):
+                        # If it's callable but not a generator function, call it
+                        response_generator = response()
+                    else:
+                        # If it's not callable, assume it's already iterable
+                        response_generator = response
+                    
+                    # Ensure response_generator is actually iterable
+                    if not hasattr(response_generator, '__iter__'):
+                        logger.error("Response generator is not iterable")
+                        yield "Error: Response generator is not iterable".encode('utf-8')
+                        return
+
+                    for chunk in response_generator:
+                        # Ensure chunk is a string for string operations
+                        if isinstance(chunk, bytes):
+                            chunk = chunk.decode('utf-8')
+                        
                         # Handle image data
                         if '[IMAGES]' in chunk and '[IMAGES_END]' in chunk:
                             start_idx = chunk.find('[IMAGES]') + 8
@@ -877,19 +923,20 @@ def send_message(request, session_id):
                             continue
                         
                         # As soon as we receive a chunk of the response, we add it to the message and save to database
-                        # Ensure proper UTF-8 encoding for chunk
-                        if isinstance(chunk, bytes):
-                            chunk = chunk.decode('utf-8')
                         full_response += chunk
                         assistant_message_obj.content = full_response
                         assistant_message_obj.save(update_fields=['content']) # Only update content field
 
-                        # Ensure chunk is properly encoded as UTF-8
-                        if isinstance(chunk, str):
-                            yield chunk.encode('utf-8')
-                        else:
-                            yield chunk
+                        # Yield chunk encoded as UTF-8
+                        yield chunk.encode('utf-8')
 
+                except ValueError as e:
+                    if "generator already executing" in str(e):
+                        logger.error(f"Generator already executing error: {str(e)}")
+                        yield "Error: Generator is already executing. Please wait for the current response to complete.".encode('utf-8')
+                    else:
+                        logger.error(f"ValueError in streaming: {str(e)}", exc_info=True)
+                        yield f"Error: {str(e)}".encode('utf-8')
                 except Exception as e:
                     # In case of an error, log it and inform the user
                     logger.error(f"Error in streaming: {str(e)}", exc_info=True)
@@ -898,6 +945,9 @@ def send_message(request, session_id):
                     yield error_msg.encode('utf-8')
 
                 finally:
+                    # Initialize images_saved variable
+                    images_saved = False
+                    
                     # This block always runs, whether the response is fully received or the connection is lost
                     if assistant_message_obj:
                         prompt_tokens = 0
@@ -918,9 +968,8 @@ def send_message(request, session_id):
                             completion_tokens = UsageService.calculate_tokens_for_message(full_response)
                             total_tokens_used = prompt_tokens + completion_tokens
                             assistant_message_obj.tokens_count = completion_tokens # فقط توکن‌های پاسخ را ذخیره کن
-                        
+                    
                         # If image data is available, save the URLs
-                        images_saved = False
                         if images_data:
                             saved_image_urls, _ = openrouter_service.process_image_response(images_data, session)
                             if saved_image_urls:
@@ -928,72 +977,73 @@ def send_message(request, session_id):
                                 images_saved = True
                         
                         assistant_message_obj.save()
+                    
+                    # Update session timestamp
+                    session.updated_at = timezone.now()
+                    session.save()
+                    
+                    # Update usage counters - only for image editing chatbots if images were successfully generated
+                    if subscription_type and assistant_message_obj:
+                        # For image editing chatbots, only increment usage if images were successfully generated
+                        if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
+                            if images_saved:
+                                # Only increment usage if images were successfully saved
+                                UsageService.increment_image_generation_usage(
+                                    request.user, subscription_type
+                                )
                         
-                        # Update session timestamp
-                        session.updated_at = timezone.now()
-                        session.save()
-                        
-                        # Update usage counters - only for image editing chatbots if images were successfully generated
-                        if subscription_type:
-                            # For image editing chatbots, only increment usage if images were successfully generated
-                            if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
-                                if images_saved:
-                                    # Only increment usage if images were successfully saved
-                                    UsageService.increment_image_generation_usage(
-                                        request.user, subscription_type
+                        # For other chatbots or if images were generated successfully, increment regular usage
+                        if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
+                            if usage_data:
+                                # Use actual token counts from API
+                                prompt_tokens = usage_data.get('prompt_tokens', 0)
+                                completion_tokens = usage_data.get('completion_tokens', 0)
+                                total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                                
+                                # Log token usage for debugging
+                                logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
+                                
+                                UsageService.increment_usage(
+                                    request.user, subscription_type,
+                                    messages_count=2,  # User message + assistant message
+                                    tokens_count=total_tokens_used,
+                                    is_free_model=is_free_model
+                                )
+                            else:
+                                # Fallback to our calculation if API doesn't provide usage data
+                                # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
+                                # توکن‌های خروجی پاسخ دستیار است
+                                prompt_tokens = user_message_tokens
+                                completion_tokens = UsageService.calculate_tokens_for_message(full_response)
+                                total_tokens_used = prompt_tokens + completion_tokens
+                                
+                                # Log token usage for debugging
+                                logger.info(f"Token usage calculated - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
+                                
+                                UsageService.increment_usage(
+                                    request.user, subscription_type,
+                                    messages_count=2,  # User message + assistant message
+                                    tokens_count=total_tokens_used,
+                                    is_free_model=is_free_model
+                                )
+                                
+                                # Also update ChatSessionUsage
+                                try:
+                                    ChatSessionUsageModel = apps.get_model('chatbot', 'ChatSessionUsage')
+                                    chat_session_usage, created = ChatSessionUsageModel.objects.get_or_create(
+                                        session=session,
+                                        user=request.user,
+                                        subscription_type=subscription_type,
+                                        defaults={'is_free_model': is_free_model}
                                     )
-                            
-                            # For other chatbots or if images were generated successfully, increment regular usage
-                            if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
-                                if usage_data:
-                                    # Use actual token counts from API
-                                    prompt_tokens = usage_data.get('prompt_tokens', 0)
-                                    completion_tokens = usage_data.get('completion_tokens', 0)
-                                    total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-                                    
-                                    # Log token usage for debugging
-                                    logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                                    
-                                    UsageService.increment_usage(
-                                        request.user, subscription_type,
-                                        messages_count=2,  # User message + assistant message
-                                        tokens_count=total_tokens_used,
-                                        is_free_model=is_free_model
-                                    )
-                                else:
-                                    # Fallback to our calculation if API doesn't provide usage data
-                                    # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
-                                    # توکن‌های خروجی پاسخ دستیار است
-                                    prompt_tokens = user_message_tokens
-                                    completion_tokens = UsageService.calculate_tokens_for_message(full_response)
-                                    total_tokens_used = prompt_tokens + completion_tokens
-                                    
-                                    # Log token usage for debugging
-                                    logger.info(f"Token usage calculated - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                                    
-                                    UsageService.increment_usage(
-                                        request.user, subscription_type,
-                                        messages_count=2,  # User message + assistant message
-                                        tokens_count=total_tokens_used,
-                                        is_free_model=is_free_model
-                                    )
-                                    
-                                    # Also update ChatSessionUsage
-                                    try:
-                                        chat_session_usage, created = ChatSessionUsage.objects.get_or_create(
-                                            session=session,
-                                            user=request.user,
-                                            subscription_type=subscription_type,
-                                            defaults={'is_free_model': is_free_model}
-                                        )
-                                        if is_free_model:
-                                            chat_session_usage.free_model_tokens_count = chat_session_usage.free_model_tokens_count + total_tokens_used
-                                        else:
-                                            chat_session_usage.tokens_count = chat_session_usage.tokens_count + total_tokens_used
-                                        chat_session_usage.save()
-                                        logger.info(f"ChatSessionUsage updated - Session: {session.id}, Tokens: {total_tokens_used}")
-                                    except Exception as e:
-                                        logger.error(f"Error updating ChatSessionUsage: {str(e)}")
+                                    if is_free_model:
+                                        chat_session_usage.free_model_tokens_count = chat_session_usage.free_model_tokens_count + total_tokens_used
+                                    else:
+                                        chat_session_usage.tokens_count = chat_session_usage.tokens_count + total_tokens_used
+                                    chat_session_usage.save()
+                                    logger.info(f"ChatSessionUsage updated - Session: {session.id}, Tokens: {total_tokens_used}")
+                                except Exception as e:
+                                    logger.error(f"Error updating ChatSessionUsage: {str(e)}")
 
             # Ensure proper UTF-8 encoding for streaming response
             response = StreamingHttpResponse(
