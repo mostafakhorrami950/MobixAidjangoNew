@@ -120,45 +120,53 @@ function sendMessage() {
             reader.read().then(({ done, value }) => {
                 if (done) {
                     console.log('Message sending stream finished');
+                    
+                    // Hide typing indicator first
+                    hideTypingIndicator();
+                    
                     const streamingElement = document.getElementById('streaming-assistant');
                     if (streamingElement) {
                         streamingElement.remove();
                     }
                 
-                    // Add final message with images if any
-                    const messageData = {
-                        type: 'assistant',
-                        content: assistantContent,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    // Add the assistant message ID if we have it
-                    if (assistantMessageId) {
-                        messageData.id = assistantMessageId;
-                    }
-                
-                    // Add image URLs if any images were generated
-                    let hasImages = false;
-                    if (imagesData.length > 0) {
-                        const formattedImageUrls = imagesData.map(img => {
-                            if (img.image_url && img.image_url.url) {
-                                let imageUrl = img.image_url.url;
-                                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                                    imageUrl = '/media/' + imageUrl;
-                                }
-                                return imageUrl;
-                            }
-                            return '';
-                        }).filter(url => url.trim() !== '');
+                    // Add final message with images if any (only if we have content)
+                    if (assistantContent.trim()) {
+                        const messageData = {
+                            type: 'assistant',
+                            content: assistantContent,
+                            created_at: new Date().toISOString()
+                        };
                         
-                        if (formattedImageUrls.length > 0) {
-                            messageData.image_url = formattedImageUrls.join(',');
-                            hasImages = true;
+                        // Add the assistant message ID if we have it
+                        if (assistantMessageId) {
+                            messageData.id = assistantMessageId;
                         }
+                    
+                        // Add image URLs if any images were generated
+                        let hasImages = false;
+                        if (imagesData.length > 0) {
+                            const formattedImageUrls = imagesData.map(img => {
+                                if (img.image_url && img.image_url.url) {
+                                    let imageUrl = img.image_url.url;
+                                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                                        imageUrl = '/media/' + imageUrl;
+                                    }
+                                    return imageUrl;
+                                }
+                                return '';
+                            }).filter(url => url.trim() !== '');
+                            
+                            if (formattedImageUrls.length > 0) {
+                                messageData.image_url = formattedImageUrls.join(',');
+                                hasImages = true;
+                            }
+                        }
+                    
+                        addMessageToChat(messageData);
+                        console.log('Final message added to chat');
+                    } else {
+                        console.log('No final content to add to chat');
                     }
-                
-                    addMessageToChat(messageData);
-                    hideTypingIndicator();
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
@@ -277,10 +285,20 @@ function sendMessage() {
                         console.log('Received assistant content chunk:', chunk);
                         assistantContent += chunk;
                         console.log('Updated assistant content length:', assistantContent.length);
+                        console.log('Current assistant content preview:', assistantContent.substring(0, 100) + '...');
+                        
+                        // Hide typing indicator on first content chunk
+                        if (assistantContent.trim().length > 0) {
+                            console.log('Hiding typing indicator for streaming content');
+                            hideTypingIndicator();
+                        }
+                        
                         // Update the streaming message with current content
                         if (imagesData.length > 0) {
+                            console.log('Updating streaming message with images');
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
                         } else {
+                            console.log('Updating streaming message without images');
                             updateOrAddAssistantMessage(assistantContent, assistantMessageId);
                         }
                         console.log('Assistant message updated in DOM');

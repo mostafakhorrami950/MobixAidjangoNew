@@ -147,23 +147,26 @@
                 return;
             }
             
-            // Fetch menu items from the server
+            // Show default menu items immediately to avoid loading state
+            showDefaultDesktopMenuItems();
+            
+            // Then try to load custom menu items
             fetch(BASE_URLS.getSidebarMenuItems)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.error) {
-                        console.error('Error loading menu items:', data.error);
-                        showDefaultDesktopMenuItems();
+                    if (data.error || !data.menu_items || data.menu_items.length === 0) {
+                        console.log('No custom menu items found, keeping defaults');
                         return;
                     }
                     
-                    // Clear loading states
-                    if (desktopMenuLoadingLeft) {
-                        desktopMenuLoadingLeft.remove();
-                    }
-                    if (desktopMenuLoadingRight) {
-                        desktopMenuLoadingRight.remove();
-                    }
+                    // Clear existing items if we have custom ones
+                    desktopNavLeft.innerHTML = '';
+                    desktopNavRight.innerHTML = '';
                     
                     // Separate items for left and right menus
                     const leftItems = [];
@@ -173,26 +176,24 @@
                     const isAuthenticated = document.body.dataset.authenticated === 'true';
                     
                     // Filter items based on user authentication status and categorize
-                    if (data.menu_items && data.menu_items.length > 0) {
-                        data.menu_items.forEach(item => {
-                            // Skip items that should only be shown to authenticated users if user is not authenticated
-                            if (item.show_only_for_authenticated && !isAuthenticated) {
-                                return;
-                            }
-                            
-                            // Skip items that should only be shown to non-authenticated users if user is authenticated
-                            if (item.show_only_for_non_authenticated && isAuthenticated) {
-                                return;
-                            }
-                            
-                            // Categorize items based on their names
-                            if (['ورود', 'خروج', 'پروفایل', 'داشبورد', 'تراکنش‌های مالی', 'خرید اشتراک'].some(keyword => item.name.includes(keyword))) {
-                                rightItems.push(item);
-                            } else {
-                                leftItems.push(item);
-                            }
-                        });
-                    }
+                    data.menu_items.forEach(item => {
+                        // Skip items that should only be shown to authenticated users if user is not authenticated
+                        if (item.show_only_for_authenticated && !isAuthenticated) {
+                            return;
+                        }
+                        
+                        // Skip items that should only be shown to non-authenticated users if user is authenticated
+                        if (item.show_only_for_non_authenticated && isAuthenticated) {
+                            return;
+                        }
+                        
+                        // Categorize items based on their names
+                        if (['ورود', 'خروج', 'پروفایل', 'داشبورد', 'تراکنش‌های مالی', 'خرید اشتراک'].some(keyword => item.name.includes(keyword))) {
+                            rightItems.push(item);
+                        } else {
+                            leftItems.push(item);
+                        }
+                    });
                     
                     // Add left menu items
                     leftItems.forEach(item => {
@@ -224,15 +225,10 @@
                         `;
                         desktopNavRight.appendChild(li);
                     });
-                    
-                    // If no items were added, show defaults
-                    if (leftItems.length === 0 && rightItems.length === 0) {
-                        showDefaultDesktopMenuItems();
-                    }
                 })
                 .catch(error => {
-                    console.error('Error loading menu items:', error);
-                    showDefaultDesktopMenuItems();
+                    console.log('Error loading custom menu items, keeping defaults:', error);
+                    // Default items are already loaded, so we don't need to do anything
                 });
         }
         
