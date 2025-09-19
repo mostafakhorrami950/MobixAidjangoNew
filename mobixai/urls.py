@@ -29,6 +29,9 @@ urlpatterns = [
     path('', include('core.urls')),  # Include core app URLs
 ]
 
-# Serve media files during development
+# Serve static and media files during development
 if settings.DEBUG:
+    # Static files (CSS, JS, images)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Media files (uploaded content)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
