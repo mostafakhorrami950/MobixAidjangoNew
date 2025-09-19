@@ -310,7 +310,7 @@ function sendMessage() {
                             hideTypingIndicator();
                         }
                         
-                        // Update the streaming message with current content
+                        // Update the streaming message with current content immediately
                         if (imagesData.length > 0) {
                             console.log('Updating streaming message with images');
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
