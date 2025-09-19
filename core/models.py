@@ -2,6 +2,31 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
+class TermsAndConditions(models.Model):
+    title = models.CharField(max_length=200, default="شرایط و قوانین استفاده", verbose_name="عنوان")
+    content = models.TextField(
+        verbose_name="محتوای شرایط و قوانین",
+        help_text="محتوای شرایط و قوانین استفاده از سرویس را وارد کنید",
+        default="شرایط و قوانین استفاده از سرویس در اینجا قرار خواهد گرفت."
+    )
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+    
+    class Meta:
+        verbose_name = "شرایط و قوانین"
+        verbose_name_plural = "شرایط و قوانین"
+        db_table = 'terms_and_conditions'
+    
+    def __str__(self):
+        return self.title
+    
+    @classmethod
+    def get_active_terms(cls):
+        """Get the active terms and conditions"""
+        return cls.objects.filter(is_active=True).first()
+
+
 class GlobalSettings(models.Model):
     """
     Global application settings that can be configured by admin

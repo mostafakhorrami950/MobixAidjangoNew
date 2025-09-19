@@ -64,50 +64,90 @@
                                 </div>
                             </div>
                             
-                            <!-- Usage Statistics -->
+                        <!-- Usage Statistics -->
                             <div class="col-md-6 mb-4">
                                 <div class="card h-100" style="border: 1px solid #E6EEF6; border-radius: 12px; box-shadow: 0 6px 18px rgba(11,18,32,0.06);">
                                     <div class="card-body">
                                         <h5 class="card-title">
-                                            <i class="fas fa-chart-line me-2"></i> آمار استفاده
+                                            <i class="fas fa-chart-line me-2"></i> خلاصه آمار استفاده
                                         </h5>
                                         <p class="mb-2"><strong>تعداد چت‌ها:</strong> {{ session_count }}</p>
                                         <p class="mb-2"><strong>تعداد پیام‌ها:</strong> {{ message_count }}</p>
                                         <p class="mb-0"><strong>آخرین فعالیت:</strong> {{ last_activity|date:"d M Y H:i" }}</p>
-                                        {% if user_subscription %}
+                                        {% if usage_summary %}
                                             <div class="mt-3">
-                                                <p class="mb-1"><strong>استفاده از توکن‌ها:</strong></p>
-                                                {% if user_subscription.subscription_type.max_tokens and user_subscription.subscription_type.max_tokens > 0 %}
-                                                    <p class="mb-1 small">{{ user_tokens_used|default:0 }} از {{ user_subscription.subscription_type.max_tokens }} توکن استفاده شده</p>
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                                                        </div>
+                                                <div class="row text-center">
+                                                    <div class="col-12 mb-2">
+                                                        <span class="badge bg-success">{{ usage_summary.subscription_name }}</span>
                                                     </div>
-                                                    <script>
-                                                        document.addEventListener('DOMContentLoaded', function() {
-                                                            var progressBar = document.currentScript.previousElementSibling.previousElementSibling;
-                                                            var tokensUsed = parseInt("{{ user_tokens_used|default:0 }}");
-                                                            var maxTokens = parseInt("{{ user_subscription.subscription_type.max_tokens }}");
-                                                            var percentage = maxTokens > 0 ? (tokensUsed / maxTokens) * 100 : 0;
-                                                            progressBar.style.width = percentage + '%';
-                                                            progressBar.setAttribute('aria-valuenow', percentage);
-                                                            progressBar.textContent = percentage.toFixed(1) + '%';
-                                                        });
-                                                    </script>
-                                                {% else %}
-                                                    <p class="mb-1 small">استفاده نامحدود از توکن‌ها</p>
-                                                    <div class="progress" style="height: 20px;">
-                                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">
-                                                            نامحدود
-                                                        </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted">پیام‌های امروز</small><br>
+                                                        <strong>{{ usage_summary.messages_today.used }}</strong>
+                                                        {% if usage_summary.messages_today.limit %}
+                                                            <small> از {{ usage_summary.messages_today.limit }}</small>
+                                                        {% endif %}
                                                     </div>
-                                                {% endif %}
+                                                    <div class="col-6">
+                                                        <small class="text-muted">تصاویر امروز</small><br>
+                                                        <strong>{{ usage_summary.images_today.used }}</strong>
+                                                        {% if usage_summary.images_today.limit %}
+                                                            <small> از {{ usage_summary.images_today.limit }}</small>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
                                             </div>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Detailed Usage Statistics -->
+                        {% if usage_cards %}
+                        <div class="row mb-4">
+                            <div class="col-12 mb-3">
+                                <h4><i class="fas fa-analytics"></i> آمار تفصیلی مصرف</h4>
+                            </div>
+                            {% for card in usage_cards %}
+                            <div class="col-md-4 col-lg-3 mb-3">
+                                <div class="card h-100" style="border: 1px solid #E6EEF6; border-radius: 12px; box-shadow: 0 6px 18px rgba(11,18,32,0.06);">
+                                    <div class="card-body text-center">
+                                        <div class="mb-3">
+                                            <i class="{{ card.icon }} fa-2x" style="color: 
+                                                {% if card.color == 'primary' %}#4F46E5
+                                                {% elif card.color == 'success' %}#10B981
+                                                {% elif card.color == 'info' %}#06B6D4
+                                                {% elif card.color == 'warning' %}#F59E0B
+                                                {% else %}#6B7280{% endif %};"></i>
+                                        </div>
+                                        <h6 class="card-title mb-3">{{ card.title }}</h6>
+                                        <div class="mb-2">
+                                            <span class="h5">{{ card.used }}</span>
+                                            {% if card.limit %}
+                                                <small class="text-muted"> / {{ card.limit }}</small>
+                                            {% endif %}
+                                        </div>
+                                        {% if card.remaining is not None %}
+                                            <div class="mb-2">
+                                                <small class="text-muted">باقیمانده: {{ card.remaining }}</small>
+                                            </div>
+                                        {% endif %}
+                                        {% if card.limit and card.limit > 0 %}
+                                            <div class="progress" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ card.color }}" role="progressbar" 
+                                                     style="width: {{ card.percentage|floatformat:1 }}%" 
+                                                     aria-valuenow="{{ card.percentage|floatformat:1 }}" 
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <small class="text-muted mt-1">{{ card.percentage|floatformat:1 }}%</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                         
                         <!-- Financial Transactions -->
                         <div class="row mb-4">

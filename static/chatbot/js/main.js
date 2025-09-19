@@ -250,13 +250,25 @@ function loadAvailableModelsForUser() {
             data.models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.model_id;
-                option.textContent = model.name;
                 
-                // Add class based on model type
+                // Add access information to the text
                 if (model.is_free) {
+                    option.textContent = `${model.name} (رایگان)`;
                     option.className = 'model-option-free';
                 } else {
-                    option.className = 'model-option-premium';
+                    if (model.user_has_access) {
+                        option.textContent = `${model.name} (ویژه)`;
+                        option.className = 'model-option-premium';
+                    } else {
+                        option.textContent = `${model.name} (نیاز به اشتراک)`;
+                        option.className = 'model-option-disabled';
+                        option.disabled = true;
+                    }
+                }
+                
+                // Disable option if user doesn't have access
+                if (!model.user_has_access) {
+                    option.disabled = true;
                 }
                 
                 modelSelect.appendChild(option);

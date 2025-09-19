@@ -43,6 +43,98 @@
             <div id="remaining-value-result"></div>
         </div>
         
+        <!-- Current Usage Overview -->
+        {% if usage_summary %}
+        <div class="usage-overview">
+            <div class="usage-header">
+                <div class="usage-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div>
+                    <h3 class="usage-title">وضعیت فعلی مصرف شما</h3>
+                    <p class="usage-description">قبل از خرید، مصرف فعلی خود را بررسی کنید</p>
+                </div>
+            </div>
+            <div class="usage-stats-grid">
+                <div class="usage-stat">
+                    <div class="usage-stat-icon tokens-paid">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>توکن‌های پولی</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.tokens_summary.paid_used }}</span>
+                            {% if usage_summary.tokens_summary.paid_limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.tokens_summary.paid_limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.tokens_summary.paid_remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.paid_remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon tokens-free">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>توکن‌های رایگان</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.tokens_summary.free_used }}</span>
+                            {% if usage_summary.tokens_summary.free_limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.tokens_summary.free_limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.tokens_summary.free_remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.free_remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon messages">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>پیام‌های امروز</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.messages_today.used }}</span>
+                            {% if usage_summary.messages_today.limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.messages_today.limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.messages_today.remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.messages_today.remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon images">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>تصاویر امروز</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.images_today.used }}</span>
+                            {% if usage_summary.images_today.limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.images_today.limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.images_today.remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.images_today.remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <!-- Subscription Plans -->
         {% if subscriptions %}
         <div class="plans-grid">
@@ -378,4 +470,152 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<style>
+/* Usage Overview Styles */
+.usage-overview {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    color: white;
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+}
+
+.usage-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.usage-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.usage-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.usage-description {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.usage-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.usage-stat {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.usage-stat:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.usage-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.usage-stat-icon.tokens-paid {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+}
+
+.usage-stat-icon.tokens-free {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.usage-stat-icon.messages {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.usage-stat-icon.images {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.usage-stat-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    opacity: 0.9;
+}
+
+.usage-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.usage-numbers .used {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.usage-numbers .separator {
+    opacity: 0.7;
+}
+
+.usage-numbers .limit {
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+.usage-stat .remaining {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .usage-overview {
+        padding: 1.5rem;
+    }
+    
+    .usage-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .usage-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .usage-stat {
+        padding: 1rem;
+    }
+}
+</style>
+
 {% endblock %}

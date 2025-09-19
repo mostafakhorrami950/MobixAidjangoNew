@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem
+from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem, LimitationMessage
 
 class ChatSessionInline(admin.TabularInline):
     model = ChatSession
@@ -105,3 +105,17 @@ class SidebarMenuItemAdmin(admin.ModelAdmin):
     list_editable = ('order', 'is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated')
     fields = ('name', 'url_name', 'icon_class', 'order', 'is_active', 'show_only_for_authenticated', 'show_only_for_non_authenticated', 'required_permission')
     readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(LimitationMessage)
+class LimitationMessageAdmin(admin.ModelAdmin):
+    list_display = ('limitation_type', 'title', 'is_active', 'updated_at')
+    list_filter = ('limitation_type', 'is_active', 'created_at', 'updated_at')
+    search_fields = ('title', 'message', 'limitation_type')
+    list_editable = ('is_active',)
+    fields = ('limitation_type', 'title', 'message', 'is_active')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields['message'].widget.attrs.update({'rows': 4, 'cols': 80})
+        return form

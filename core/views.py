@@ -6,6 +6,8 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.apps import apps
 from subscriptions.services import UsageService
+from subscriptions.usage_stats import UserUsageStatsService
+from .models import TermsAndConditions
 
 def home(request):
     """
@@ -62,7 +64,12 @@ def dashboard(request):
         user=request.user
     ).order_by('-created_at')[:5]
     
-    # Get user's token usage information
+    # Get comprehensive usage statistics
+    usage_stats = UserUsageStatsService.get_user_usage_statistics(request.user)
+    usage_summary = UserUsageStatsService.get_usage_summary_for_dashboard(request.user)
+    usage_cards = UserUsageStatsService.get_usage_cards_data(request.user)
+    
+    # Get user's token usage information (for backward compatibility)
     user_tokens_used = 0
     if user_subscription:
         # Calculate total tokens used using the new ChatSessionUsage method
@@ -79,6 +86,10 @@ def dashboard(request):
         'recent_sessions': recent_sessions,
         'recent_transactions': recent_transactions,
         'user_tokens_used': user_tokens_used,
+        # Usage statistics
+        'usage_stats': usage_stats,
+        'usage_summary': usage_summary,
+        'usage_cards': usage_cards,
     }
     
     return render(request, 'dashboard.html', context)
@@ -106,3 +117,28 @@ def financial_transactions(request):
     }
     
     return render(request, 'financial_transactions.html', context)
+
+def terms_and_conditions(request):
+    """
+    Display terms and conditions
+    """
+    terms = TermsAndConditions.get_active_terms()
+    if not terms:
+        # Create default terms if none exist
+        terms = TermsAndConditions.objects.create(
+            title="شرایط و قوانین استفاده",
+            content="""
+            شرایط و قوانین استفاده از سرویس MobixAI:
+            
+            ۱. با استفاده از این سرویس، شما موافقت خود را با این شرایط اعلام می‌کنید.
+            ۲. از سرویس در امور غیرقانونی استفاده نکنید.
+            ۳. حریم خصوصی کاربران رعایت می‌شود.
+            ۴. استفاده مناسب از منابع سرویس ضروری است.
+            ۵. شرایط این قابل تغییر است.
+            """.strip()
+        )
+    
+    context = {
+        'terms': terms
+    }
+    return render(request, 'terms_and_conditions.html', context)

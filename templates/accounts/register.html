@@ -90,7 +90,7 @@
                         required
                     >
                     <label class="form-check-label" for="{{ form.terms_accepted.id_for_label }}">
-                        من <a href="#" target="_blank">شرایط و قوانین استفاده</a> را مطالعه و قبول می‌کنم
+                        من <a href="#" onclick="showTermsModal(); return false;">شرایط و قوانین استفاده</a> را مطالعه و قبول می‌کنم
                     </label>
                     {% if form.terms_accepted.errors %}
                         {% for error in form.terms_accepted.errors %}
@@ -119,7 +119,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is already authenticated and redirect
     if (document.body.dataset.authenticated === 'true') {
-        window.location.href = '/dashboard/';
+        window.location.href = '{% url "dashboard" %}';
         return;
     }
     const form = document.getElementById('registerForm');
@@ -203,6 +203,73 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.classList.add('loading');
         submitBtn.textContent = 'در حال ایجاد حساب...';
         submitBtn.disabled = true;
+    });
+});
+</script>
+
+<!-- Terms and Conditions Modal -->
+<div class="terms-modal-overlay" id="termsModalOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none;">
+    <div class="terms-modal" id="termsModal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; z-index: 1001; display: none;">
+        <div class="terms-modal-header" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="terms-modal-title" style="font-size: 1.5rem; font-weight: 700; color: #1f2937; margin: 0;">شرایط و قوانین استفاده</h2>
+            <button class="terms-modal-close" id="termsModalClose" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s ease;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="terms-modal-body" id="termsModalBody" style="padding: 1.5rem; color: #374151; line-height: 1.7; white-space: pre-line; text-align: justify;">
+            در حال بارگذاری...
+        </div>
+    </div>
+</div>
+
+<script>
+// Terms Modal functionality
+function showTermsModal() {
+    // Load terms content via AJAX
+    fetch('{% url "terms_and_conditions" %}')
+        .then(response => response.text())
+        .then(html => {
+            // Extract content from the response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const termsContent = doc.querySelector('.terms-content');
+            
+            if (termsContent) {
+                document.getElementById('termsModalBody').innerHTML = termsContent.innerHTML;
+            } else {
+                document.getElementById('termsModalBody').innerHTML = 'شرایط و قوانین در حال حاضر در دسترس نیست.';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading terms:', error);
+            document.getElementById('termsModalBody').innerHTML = 'خطا در بارگذاری شرایط و قوانین.';
+        });
+    
+    document.getElementById('termsModalOverlay').style.display = 'block';
+    document.getElementById('termsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'none';
+    document.getElementById('termsModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Modal event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('termsModalClose').addEventListener('click', hideTermsModal);
+    document.getElementById('termsModalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideTermsModal();
+        }
+    });
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideTermsModal();
+        }
     });
 });
 </script>

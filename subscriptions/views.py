@@ -8,6 +8,7 @@ from django.conf import settings
 from django.apps import apps
 from decimal import Decimal
 from .services import UsageService
+from .usage_stats import UserUsageStatsService
 from accounts.models import User
 from zarinpal import ZarinPal
 import json
@@ -74,7 +75,19 @@ def purchase_subscription(request):
     # Exclude free subscriptions from the purchase page
     SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
     subscriptions = SubscriptionType.objects.filter(is_active=True).exclude(price=0)
-    return render(request, 'subscriptions/purchase.html', {'subscriptions': subscriptions})
+    
+    # Get comprehensive usage statistics for the user
+    usage_stats = UserUsageStatsService.get_user_usage_statistics(request.user)
+    usage_summary = UserUsageStatsService.get_usage_summary_for_dashboard(request.user)
+    usage_cards = UserUsageStatsService.get_usage_cards_data(request.user)
+    
+    context = {
+        'subscriptions': subscriptions,
+        'usage_stats': usage_stats,
+        'usage_summary': usage_summary,
+        'usage_cards': usage_cards,
+    }
+    return render(request, 'subscriptions/purchase.html', context)
 
 @login_required
 def apply_discount_code(request):

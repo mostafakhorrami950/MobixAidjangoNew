@@ -344,3 +344,42 @@ class SidebarMenuItem(models.Model):
     class Meta:
         db_table = 'sidebar_menu_items'
         ordering = ['order', 'name']
+
+
+class LimitationMessage(models.Model):
+    """
+    Model to store configurable limitation messages for different types of limits
+    """
+    LIMITATION_TYPES = [
+        ('token_limit', 'Token Limit Reached'),
+        ('message_limit', 'Message Limit Reached'),
+        ('daily_limit', 'Daily Limit Reached'),
+        ('weekly_limit', 'Weekly Limit Reached'),
+        ('monthly_limit', 'Monthly Limit Reached'),
+        ('file_upload_limit', 'File Upload Limit Reached'),
+        ('image_generation_limit', 'Image Generation Limit Reached'),
+        ('subscription_required', 'Subscription Required'),
+        ('model_access_denied', 'Model Access Denied'),
+        ('general_limit', 'General Limit Reached'),
+    ]
+    
+    limitation_type = models.CharField(
+        max_length=50, 
+        choices=LIMITATION_TYPES, 
+        unique=True,
+        help_text="Type of limitation this message applies to"
+    )
+    title = models.CharField(max_length=200, help_text="Title of the limitation message")
+    message = models.TextField(help_text="The message content to show to users")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.get_limitation_type_display()}: {self.title}"
+    
+    class Meta:
+        db_table = 'limitation_messages'
+        verbose_name = "Limitation Message"
+        verbose_name_plural = "Limitation Messages"
+        ordering = ['limitation_type']

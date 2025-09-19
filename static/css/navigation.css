@@ -9,8 +9,11 @@
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   padding: 0;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 1000;
   backdrop-filter: blur(20px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -476,4 +479,16 @@
 /* Page Load Animation */
 .modern-navbar {
   animation: slideDown 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Main content padding to prevent overlap with fixed navbar */
+main {
+  padding-top: 80px; /* Adjust based on navbar height */
+}
+
+@media (max-width: 768px) {
+  /* On mobile, navbar is hidden and hamburger is used instead */
+  main {
+    padding-top: 0;
+  }
 }

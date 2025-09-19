@@ -10,6 +10,7 @@ from ai_models.services import OpenRouterService
 from subscriptions.models import UserSubscription
 from subscriptions.services import UsageService
 from .file_services import FileUploadService, GlobalFileService
+from .limitation_service import LimitationMessageService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
 import json
 
@@ -22,43 +23,77 @@ import mimetypes
 import PyPDF2
 import io
 
+
+def _send_initial_welcome_message(session, chatbot, ai_model):
+    """
+    Send an initial welcome message when a new session is created
+    """
+    try:
+        ChatMessage = apps.get_model('chatbot', 'ChatMessage')
+        
+        # Create welcome message content
+        welcome_content = f"سلام! به چت‌بات **{chatbot.name}** خوش آمدید."
+        
+        if chatbot.description:
+            welcome_content += f"\n\n📝 **درباره این چت‌بات:**\n{chatbot.description}"
+        
+        if ai_model:
+            welcome_content += f"\n\n🤖 **مدل هوش مصنوعی:** {ai_model.name}"
+            if hasattr(ai_model, 'description') and ai_model.description:
+                welcome_content += f"\n{ai_model.description}"
+        
+        welcome_content += "\n\n💬 حالا می‌توانید سوال خود را بپرسید!"
+        
+        # Create the welcome message
+        ChatMessage.objects.create(
+            session=session,
+            message_type='assistant',
+            content=welcome_content,
+            tokens_count=0  # Welcome messages don't count toward usage
+        )
+        
+    except Exception as e:
+        # Don't fail session creation if welcome message fails
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error sending welcome message: {str(e)}")
+
 @login_required
 def chat(request):
-    # Get all available chatbots for the user
+    # Get all chatbots and AI models (visible to all users)
     Chatbot = apps.get_model('chatbot', 'Chatbot')
     ChatSession = apps.get_model('chatbot', 'ChatSession')
     AIModel = apps.get_model('ai_models', 'AIModel')
     user_subscription = request.user.get_subscription_type()
     
-    if user_subscription:
-        # Get chatbots available for user's subscription
-        available_chatbots = Chatbot.objects.filter(
-            Q(is_active=True) & 
-            (Q(subscription_types=user_subscription) | Q(subscription_types=None))
-        ).distinct()
-    else:
-        # If no subscription, only show chatbots with no subscription requirement
-        available_chatbots = Chatbot.objects.filter(
-            is_active=True,
-            subscription_types=None
-        )
+    # Get ALL active chatbots (not just those available to user)
+    all_chatbots = Chatbot.objects.filter(is_active=True)
     
-    # Also get available AI models for backward compatibility
+    # Add access information to each chatbot
+    available_chatbots = []
+    for chatbot in all_chatbots:
+        has_access = True
+        if chatbot.subscription_types.exists():
+            if not user_subscription or not chatbot.subscription_types.filter(id=user_subscription.id).exists():
+                has_access = False
+        
+        chatbot.user_has_access = has_access
+        available_chatbots.append(chatbot)
+    
+    # Get ALL active AI models (not just those available to user)
+    all_models = AIModel.objects.filter(is_active=True)
+    
+    # Add access information to each model
     available_models = []
-    if user_subscription:
-        # Get models available for user's subscription
-        models = AIModel.objects.filter(
-            is_active=True,
-            subscriptions__subscription_types=user_subscription
-        ).distinct()
-        available_models.extend(models)
-    
-    # Add free models (available to all users)
-    free_models = AIModel.objects.filter(is_active=True, is_free=True)
-    available_models.extend(free_models)
-    
-    # Remove duplicates
-    available_models = list(set(available_models))
+    for model in all_models:
+        has_access = model.is_free  # Free models are always accessible
+        if not model.is_free and user_subscription:
+            # Check if user's subscription has access to this model
+            if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                has_access = True
+        
+        model.user_has_access = has_access
+        available_models.append(model)
     
     # Get user's chat sessions
     chat_sessions = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
@@ -73,7 +108,7 @@ def chat(request):
 @login_required
 def get_available_models_for_user(request):
     """
-    Get all available AI models for the current user based on their subscription
+    Get all AI models for the current user with access information
     """
     if request.method != 'GET':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
@@ -82,30 +117,27 @@ def get_available_models_for_user(request):
         AIModel = apps.get_model('ai_models', 'AIModel')
         user_subscription = request.user.get_subscription_type()
         
-        # Get text generation models only (for chat)
-        models_query = AIModel.objects.filter(
+        # Get ALL text generation models (for chat)
+        all_models = AIModel.objects.filter(
             is_active=True,
             model_type='text'
         )
         
-        # Apply subscription filtering
-        if user_subscription:
-            # Get models available for user's subscription
-            models = models_query.filter(
-                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
-            ).distinct()
-        else:
-            # If no subscription, only show free models
-            models = models_query.filter(is_free=True).distinct()
-        
-        # Format models for JSON response
+        # Format models for JSON response with access information
         model_list = []
-        for model in models:
+        for model in all_models:
+            has_access = model.is_free  # Free models are always accessible
+            if not model.is_free and user_subscription:
+                # Check if user's subscription has access to this model
+                if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                    has_access = True
+            
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type
+                'model_type': model.model_type,
+                'user_has_access': has_access
             })
         
         return JsonResponse({
@@ -143,24 +175,21 @@ def get_available_models_for_chatbot(request, chatbot_id):
                 model_type='text'
             )
         
-        # Apply subscription filtering
-        if user_subscription:
-            # Get models available for user's subscription
-            models = models_query.filter(
-                Q(is_free=True) | Q(subscriptions__subscription_types=user_subscription)
-            ).distinct()
-        else:
-            # If no subscription, only show free models
-            models = models_query.filter(is_free=True).distinct()
-        
-        # Format models for JSON response
+        # Format models for JSON response with access information
         model_list = []
-        for model in models:
+        for model in models_query:
+            has_access = model.is_free  # Free models are always accessible
+            if not model.is_free and user_subscription:
+                # Check if user's subscription has access to this model
+                if model.subscriptions.filter(subscription_types=user_subscription).exists():
+                    has_access = True
+            
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
-                'model_type': model.model_type
+                'model_type': model.model_type,
+                'user_has_access': has_access
             })
         
         return JsonResponse({
@@ -196,9 +225,9 @@ def create_default_session(request):
                     selected_ai_model = AIModel.objects.get(model_id=ai_model_id, is_active=True)
                     # Check if user has access to the selected model
                     if not request.user.has_access_to_model(selected_ai_model):
-                        return JsonResponse({
-                            'error': 'شما دسترسی لازم به مدل انتخابی را ندارید'
-                        }, status=403)
+                        # Use configurable limitation message
+                        limitation_msg = LimitationMessageService.get_model_access_denied_message()
+                        return JsonResponse({'error': limitation_msg['message']}, status=403)
                 except AIModel.DoesNotExist:
                     return JsonResponse({
                         'error': 'مدل انتخابی وجود ندارد'
@@ -235,15 +264,15 @@ def create_default_session(request):
             if chatbot.subscription_types.exists():
                 user_subscription = request.user.get_subscription_type()
                 if not user_subscription or not chatbot.subscription_types.filter(id=user_subscription.id).exists():
-                    return JsonResponse({
-                        'error': 'شما دسترسی لازم به چت‌بات پیش‌فرض را ندارید'
-                    }, status=403)
+                    # Use configurable limitation message
+                    limitation_msg = LimitationMessageService.get_subscription_required_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
             
             # Check if user has access to the AI model
             if not request.user.has_access_to_model(ai_model):
-                return JsonResponse({
-                    'error': 'شما دسترسی لازم به مدل پیش‌فرض را ندارید'
-                }, status=403)
+                # Use configurable limitation message
+                limitation_msg = LimitationMessageService.get_model_access_denied_message()
+                return JsonResponse({'error': limitation_msg['message']}, status=403)
             
             # Create new chat session
             session = ChatSession.objects.create(
@@ -252,6 +281,9 @@ def create_default_session(request):
                 ai_model=ai_model,
                 title='چت جدید'
             )
+            
+            # Send initial welcome message
+            _send_initial_welcome_message(session, chatbot, ai_model)
             
             return JsonResponse({
                 'session_id': session.id,
@@ -287,7 +319,9 @@ def create_session(request):
             if chatbot.subscription_types.exists():
                 user_subscription = request.user.get_subscription_type()
                 if not user_subscription or not chatbot.subscription_types.filter(id=user_subscription.id).exists():
-                    return JsonResponse({'error': 'شما دسترسی لازم به این چت‌بات را ندارید'}, status=403)
+                    # Use configurable limitation message
+                    limitation_msg = LimitationMessageService.get_subscription_required_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
             
             # Check if AI model is provided
             ai_model_id = data.get('ai_model_id')
@@ -298,7 +332,9 @@ def create_session(request):
             try:
                 selected_model = AIModel.objects.get(model_id=ai_model_id, is_active=True)
                 if not request.user.has_access_to_model(selected_model):
-                    return JsonResponse({'error': 'شما دسترسی لازم به مدل انتخابی را ندارید'}, status=403)
+                    # Use configurable limitation message
+                    limitation_msg = LimitationMessageService.get_model_access_denied_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
             except AIModel.DoesNotExist:
                 return JsonResponse({'error': 'مدل انتخابی وجود ندارد'}, status=400)
             
@@ -310,6 +346,9 @@ def create_session(request):
                 ai_model=selected_model,  # This is kept for backward compatibility
                 title=title
             )
+            
+            # Send initial welcome message
+            _send_initial_welcome_message(session, chatbot, selected_model)
             
             return JsonResponse({
                 'session_id': session.id,
@@ -467,7 +506,9 @@ def send_message(request, session_id):
                     request.user, ai_model, subscription_type
                 )
                 if not within_limit:
-                    return JsonResponse({'error': message}, status=403)
+                    # Use configurable limitation message
+                    limitation_msg = LimitationMessageService.get_token_limit_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
 
             # Check image generation limits if requested
             if generate_image and subscription_type:
@@ -475,7 +516,9 @@ def send_message(request, session_id):
                     request.user, subscription_type
                 )
                 if not within_limit:
-                    return JsonResponse({'error': message}, status=403)
+                    # Use configurable limitation message
+                    limitation_msg = LimitationMessageService.get_image_generation_limit_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
 
             # Handle file upload if present
             content_parts = []
@@ -596,14 +639,18 @@ def send_message(request, session_id):
                             request.user, subscription_type, session
                         )
                         if not within_limit:
-                            return JsonResponse({'error': f"محدودیت آپلود فایل: {message}"}, status=403)
+                            # Use configurable limitation message
+                            limitation_msg = LimitationMessageService.get_file_upload_limit_message()
+                            return JsonResponse({'error': limitation_msg['message']}, status=403)
                         
                         # Also check subscription-based file size limit (more restrictive than global)
                         within_limit, message = FileUploadService.check_file_size_limit(
                             subscription_type, uploaded_file.size
                         )
                         if not within_limit:
-                            return JsonResponse({'error': f"فایل '{uploaded_file.name}': {message}"}, status=403)
+                            # Use configurable limitation message with file details
+                            limitation_msg = LimitationMessageService.get_file_upload_limit_message()
+                            return JsonResponse({'error': f"فایل '{uploaded_file.name}': {limitation_msg['message']}"}, status=403)
                         
                         # Check subscription-based file extension (if more restrictive than global)
                         file_extension = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''

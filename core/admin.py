@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GlobalSettings
+from .models import GlobalSettings, TermsAndConditions
 
 
 @admin.register(GlobalSettings)
@@ -34,3 +34,30 @@ class GlobalSettingsAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Prevent deletion of GlobalSettings
         return False
+
+
+@admin.register(TermsAndConditions)
+class TermsAndConditionsAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'updated_at', 'created_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('title', 'content')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'content', 'is_active')
+        }),
+        ('تاریخ ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def has_delete_permission(self, request, obj=None):
+        # Prevent deletion if this is the only active terms
+        if obj and obj.is_active:
+            active_terms_count = TermsAndConditions.objects.filter(is_active=True).count()
+            if active_terms_count <= 1:
+                return False
+        return True

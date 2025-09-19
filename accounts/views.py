@@ -49,12 +49,15 @@ def register(request):
 def verify_otp(request):
     # Redirect if user is already authenticated
     if request.user.is_authenticated:
-        return redirect('chat')
+        return redirect('dashboard')
         
     phone_number = request.session.get('phone_number')
     if not phone_number:
-        messages.error(request, 'جلسه منقضی شده است. لطفاً مجدداً ثبت نام کنید.')
-        return redirect('register')
+        messages.error(request, 'جلسه شما منقضی شده است. لطفاً مجدداً از صفحه ورود یا ثبت نام اقدام کنید.')
+        # Redirect to login if they're trying to login or register if new user
+        if 'registration_user_id' in request.session:
+            return redirect('register')
+        return redirect('login')
     
     if request.method == 'POST':
         form = OTPVerificationForm(request.POST)
@@ -64,7 +67,7 @@ def verify_otp(request):
             
             # Verify the phone number matches the session
             if form_phone_number != phone_number:
-                messages.error(request, 'شماره تلفن وارد شده با جلسه فعلی مطابقت ندارد.')
+                messages.error(request, 'شماره تلفن وارد شده با شماره درخواستی مطابقت ندارد. لطفاً مجدداً تلاش کنید.')
                 return render(request, 'accounts/verify_otp.html', {'form': form})
             
             try:
@@ -89,23 +92,30 @@ def verify_otp(request):
                     messages.success(request, 'شماره تلفن با موفقیت تأیید شد! خوش آمدید.')
                     logger.info(f'User {user.phone_number} successfully verified and logged in')
                     
-                    return redirect('chat')  # Redirect to chat page
+                    # Check if user came from registration or login
+                    if 'registration_user_id' in request.session:
+                        # New user - redirect to dashboard
+                        return redirect('dashboard')
+                    else:
+                        # Existing user logging in - redirect to chat
+                        return redirect('dashboard')
                 else:
-                    messages.error(request, 'کد تأیید نامعتبر یا منقضی شده است.')
+                    if 'expired' in message.lower() or 'منقضی' in message:
+                        messages.error(request, 'کد تأیید منقضی شده است. لطفاً کد جدید درخواست کنید.')
+                    elif 'not found' in message.lower() or 'یافت نشد' in message:
+                        messages.error(request, 'کد تأیید وجود ندارد. لطفاً مجدداً تلاش کنید.')
+                    else:
+                        messages.error(request, 'کد تأیید اشتباه است. لطفاً دوباره بررسی کنید.')
                     logger.warning(f'Invalid OTP for user {phone_number}: {message}')
             except User.DoesNotExist:
-                messages.error(request, 'کاربری با این شماره تلفن یافت نشد.')
+                messages.error(request, 'خطای سیستمی: کاربر یافت نشد. لطفاً مجدداً ثبت نام کنید.')
                 logger.error(f'User not found for phone number: {phone_number}')
+                return redirect('register')
         else:
-            # Form validation errors
+            # Form validation errors - display the actual error messages from forms.py
             for field, errors in form.errors.items():
                 for error in errors:
-                    if field == 'otp_code':
-                        messages.error(request, 'کد تأیید باید ۶ رقم باشد.')
-                    elif field == 'phone_number':
-                        messages.error(request, 'شماره تلفن معتبر نیست.')
-                    else:
-                        messages.error(request, error)
+                    messages.error(request, str(error))
     else:
         form = OTPVerificationForm(initial={'phone_number': phone_number})
     
@@ -114,13 +124,21 @@ def verify_otp(request):
 def login_view(request):
     # Redirect if user is already authenticated
     if request.user.is_authenticated:
-        return redirect('chat')
+        return redirect('dashboard')
         
     if request.method == 'POST':
         phone_number = request.POST.get('phone_number')
         
+        # Validate phone number format
         if not phone_number:
-            messages.error(request, 'لطفاً شماره تلفن را وارد کنید.')
+            messages.error(request, 'لطفاً شمارع تلفن را وارد کنید.')
+            return render(request, 'accounts/login.html')
+            
+        phone_number = phone_number.strip()
+        
+        # Basic validation
+        if not phone_number.isdigit() or len(phone_number) != 11 or not phone_number.startswith('09'):
+            messages.error(request, 'شماره تلفن باید ۱۱ رقم باشد و با ۰۹ شروع شود.')
             return render(request, 'accounts/login.html')
         
         try:
@@ -139,7 +157,7 @@ def login_view(request):
                 else:
                     messages.error(request, f'خطا در ارسال کد تأیید: {message}')
         except User.DoesNotExist:
-            messages.error(request, 'هیچ حسابی با این شماره تلفن یافت نشد. لطفاً ابتدا ثبت نام کنید.')
+            messages.error(request, 'هیچ حساب کاربری با این شماره تلفن یافت نشد. ابتدا ثبت نام کنید.')
     
     return render(request, 'accounts/login.html')
 

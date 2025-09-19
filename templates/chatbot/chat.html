@@ -177,10 +177,10 @@
                                 <select class="form-select" id="modal-chatbot-select">
                                     <option value="">-- چت‌باتی را انتخاب کنید --</option>
                                     {% for chatbot in available_chatbots %}
-                                        <option value="{{ chatbot.id }}" data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}">
+                                        <option value="{{ chatbot.id }}" data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}" {% if not chatbot.user_has_access %}disabled{% endif %}>
                                             {{ chatbot.name }}
-                                            {% if not chatbot.ai_model %}
-                                                <span class="badge bg-warning">نیاز به انتخاب مدل</span>
+                                            {% if not chatbot.user_has_access %}
+                                                (نیاز به اشتراک)
                                             {% endif %}
                                         </option>
                                     {% endfor %}
@@ -198,12 +198,16 @@
                                 <select class="form-select" id="modal-model-select">
                                     <option value="">-- مدلی را انتخاب کنید --</option>
                                     {% for model in available_models %}
-                                        <option value="{{ model.model_id }}" data-is-free="{{ model.is_free }}">
+                                        <option value="{{ model.model_id }}" data-is-free="{{ model.is_free }}" {% if not model.user_has_access %}disabled{% endif %}>
                                             {{ model.name }} 
                                             {% if model.is_free %}
-                                                <span class="badge bg-success">رایگان</span>
+                                                (رایگان)
                                             {% else %}
-                                                <span class="badge bg-warning">ویژه</span>
+                                                {% if model.user_has_access %}
+                                                    (ویژه)
+                                                {% else %}
+                                                    (نیاز به اشتراک)
+                                                {% endif %}
                                             {% endif %}
                                         </option>
                                     {% endfor %}
@@ -374,6 +378,18 @@
     content: " (ویژه)";
     color: #ffc107;
     font-weight: bold;
+}
+
+.model-option-disabled::after {
+    content: " (نیاز به اشتراک)";
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Disabled option styles */
+option:disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
 }
 
 /* Welcome web search styles */

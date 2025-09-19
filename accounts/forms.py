@@ -37,12 +37,24 @@ class RegistrationForm(forms.ModelForm):
     def clean_phone_number(self):
         phone_number = self.cleaned_data['phone_number']
         
+        # Remove any whitespace
+        phone_number = phone_number.strip()
+        
         # Basic phone number validation
-        if not phone_number.isdigit() or not phone_number.startswith('09') or len(phone_number) != 11:
-            raise forms.ValidationError('شماره تلفن باید ۱۱ رقم باشد و با ۰۹ شروع شود.')
+        if not phone_number:
+            raise forms.ValidationError('شماره تلفن وارد نشده است.')
+            
+        if not phone_number.isdigit():
+            raise forms.ValidationError('شماره تلفن تنها باید شامل عدد باشد.')
+            
+        if len(phone_number) != 11:
+            raise forms.ValidationError('شماره تلفن باید دقیقاً ۱۱ رقم باشد.')
+            
+        if not phone_number.startswith('09'):
+            raise forms.ValidationError('شماره تلفن باید با ۰۹ شروع شود.')
         
         if User.objects.filter(phone_number=phone_number).exists():
-            raise forms.ValidationError('این شماره تلفن قبلاً ثبت شده است.')
+            raise forms.ValidationError('این شماره تلفن قبلاً ثبت شده است. لطفاً وارد شوید.')
         return phone_number
 
 class OTPVerificationForm(forms.Form):
@@ -71,6 +83,17 @@ class OTPVerificationForm(forms.Form):
     
     def clean_otp_code(self):
         otp_code = self.cleaned_data['otp_code']
-        if not otp_code.isdigit() or len(otp_code) != 6:
-            raise forms.ValidationError('کد تأیید باید ۶ رقم باشد.')
+        
+        # Remove any whitespace
+        otp_code = otp_code.strip()
+        
+        if not otp_code:
+            raise forms.ValidationError('کد تأیید وارد نشده است.')
+            
+        if not otp_code.isdigit():
+            raise forms.ValidationError('کد تأیید تنها باید شامل عدد باشد.')
+            
+        if len(otp_code) != 6:
+            raise forms.ValidationError('کد تأیید باید دقیقاً ۶ رقم باشد.')
+            
         return otp_code
