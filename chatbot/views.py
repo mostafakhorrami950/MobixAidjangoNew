@@ -907,6 +907,24 @@ def send_message(request, session_id):
                         
                         assistant_message_obj.save()
                         
+                        # Auto-generate title after first user message if needed
+                        title_generated = False
+                        new_title = None
+                        try:
+                            if session.should_auto_generate_title():
+                                from .title_service import ChatTitleService
+                                success, new_title = ChatTitleService.generate_and_update_title(
+                                    session, user_message_content, request.user
+                                )
+                                if success:
+                                    title_generated = True
+                                    logger.info(f"Auto-generated title for session {session.id}: {new_title}")
+                                    # Send title to client via stream
+                                    title_data = {'title': new_title, 'session_id': session.id}
+                                    yield f"[TITLE_UPDATE]{json.dumps(title_data)}[TITLE_UPDATE_END]".encode('utf-8')
+                        except Exception as e:
+                            logger.warning(f"Failed to auto-generate title: {str(e)}")
+                        
                         # Update session timestamp
                         session.updated_at = timezone.now()
                         session.save()

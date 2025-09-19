@@ -32,6 +32,7 @@ class ChatSession(models.Model):
     chatbot = models.ForeignKey(Chatbot, on_delete=models.CASCADE, null=True, blank=True)
     ai_model = models.ForeignKey(AIModel, on_delete=models.CASCADE, null=True, blank=True)  # Kept for backward compatibility
     title = models.CharField(max_length=200, blank=True)
+    auto_generate_title = models.BooleanField(default=True, help_text="Whether to auto-generate title from first message")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
@@ -53,6 +54,60 @@ class ChatSession(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+    
+    def should_auto_generate_title(self):
+        """
+        بررسی اینکه آیا باید عنوان خودکار تولید شود
+        Check if title should be auto-generated
+        """
+        if not self.auto_generate_title:
+            return False
+        
+        # اگر قبلاً عنوان سفارشی تنظیم شده
+        if self.title and self.title != 'چت جدید':
+            return False
+        
+        # بررسی تعداد پیام‌های کاربر
+        user_messages_count = self.messages.filter(
+            message_type='user', 
+            disabled=False
+        ).count()
+        
+        return user_messages_count == 1
+    
+    def get_first_user_message(self):
+        """
+        دریافت اولین پیام کاربر برای تولید عنوان
+        Get first user message for title generation
+        """
+        return self.messages.filter(
+            message_type='user',
+            disabled=False
+        ).order_by('created_at').first()
+    
+    def generate_title_from_first_message(self):
+        """
+        تولید عنوان بر اساس اولین پیام کاربر
+        Generate title based on first user message
+        """
+        try:
+            from .title_service import ChatTitleService
+            
+            if not self.should_auto_generate_title():
+                return False, self.title
+            
+            first_message = self.get_first_user_message()
+            if not first_message:
+                return False, self.title
+            
+            return ChatTitleService.generate_and_update_title(
+                self, first_message.content, self.user
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in generate_title_from_first_message: {str(e)}")
+            return False, self.title
     
     def __str__(self):
         if self.chatbot:

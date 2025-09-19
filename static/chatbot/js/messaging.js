@@ -60,8 +60,7 @@ function sendMessage() {
     // Show typing indicator
     showTypingIndicator();
 
-    // Check if this is the first message to generate title
-    checkAndGenerateTitle(message);
+    // Title will be auto-generated on server-side after first message
 
     const isWebSearchEnabled = sessionStorage.getItem(`webSearch_${currentSessionId}`) === 'true';
     const isImageGenerationEnabled = sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true';
@@ -188,6 +187,7 @@ function sendMessage() {
                     const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
                     const hasImages = chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]');
                     const hasUsageData = chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]');
+                    const hasTitleUpdate = chunk.includes('[TITLE_UPDATE]') && chunk.includes('[TITLE_UPDATE_END]');
                     
                     // Handle user message data
                     if (hasUserMessage) {
@@ -263,8 +263,23 @@ function sendMessage() {
                         // It's handled on the server side
                         console.log('Received usage data, ignoring');
                     }
+                    // Handle title update
+                    else if (hasTitleUpdate) {
+                        const startIdx = chunk.indexOf('[TITLE_UPDATE]') + 14;
+                        const endIdx = chunk.indexOf('[TITLE_UPDATE_END]');
+                        const titleJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const titleData = JSON.parse(titleJson);
+                            console.log('Received title update:', titleData);
+                            if (titleData.title && titleData.session_id == currentSessionId) {
+                                updateSessionTitleInUI(titleData.title);
+                            }
+                        } catch (parseError) {
+                            console.error('Error parsing title update data:', parseError);
+                        }
+                    }
                     // Handle regular content (only if it doesn't contain any special markers)
-                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
+                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData && !hasTitleUpdate) {
                         console.log('Received assistant content:', chunk);
                         assistantContent += chunk;
                         // Update the streaming message with current content
@@ -440,58 +455,21 @@ function sendMessage() {
     });
 }
 
-// Check if this is the first message and generate title
-async function checkAndGenerateTitle(message) {
-    // Only generate title for the first message
-    const chatContainer = document.getElementById('chat-container');
-    const messageElements = chatContainer.querySelectorAll('.message-user, .message-assistant');
-    
-    // If this is the first user message (should be the only user message in container)
-    // Count only user messages to determine if this is the first one
-    const userMessageElements = chatContainer.querySelectorAll('.message-user');
-    if (userMessageElements.length === 1 && currentSessionId) {
-        try {
-            // Get session info to get chatbot and model IDs
-            const response = await fetch(`/chat/session/${currentSessionId}/messages/`);
-            const sessionData = await response.json();
-            
-            // Generate title using the first message
-            const titleResponse = await fetch(CHAT_URLS.generateChatTitle, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    first_message: message,
-                    chatbot_id: sessionData.chatbot_id, // This will be the chatbot ID
-                    model_id: null // We'll use chatbot_id instead
-                })
-            });
-            
-            const titleData = await titleResponse.json();
-            const newTitle = titleData.title || 'چت جدید';
-            
-            // Update the session title
-            await fetch(`/chat/session/${currentSessionId}/update-title/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    title: newTitle
-                })
-            });
-            
-            // Update UI with new title
-            document.getElementById('current-session-title').textContent = newTitle;
-            
-            // Refresh sessions list
-            loadSessions();
-        } catch (error) {
-            console.error('Error generating title:', error);
+// Function to update title in UI after auto-generation
+function updateSessionTitleInUI(newTitle) {
+    try {
+        // Update current session title display
+        const titleElement = document.getElementById('current-session-title');
+        if (titleElement) {
+            titleElement.innerHTML = `<i class="fas fa-comments"></i> ${newTitle}`;
         }
+        
+        // Refresh sessions list to show new title
+        loadSessions();
+        
+        console.log('Session title updated in UI:', newTitle);
+    } catch (error) {
+        console.error('Error updating session title in UI:', error);
     }
 }
 
@@ -895,8 +873,7 @@ function sendMessageInternal(message, files) {
     // Show typing indicator
     showTypingIndicator();
 
-    // Check if this is the first message to generate title
-    checkAndGenerateTitle(message);
+    // Title will be auto-generated on server-side after first message
 
     const isWebSearchEnabled = sessionStorage.getItem(`webSearch_${currentSessionId}`) === 'true';
     const isImageGenerationEnabled = sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true';
@@ -986,6 +963,7 @@ function sendMessageInternal(message, files) {
                     const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
                     const hasImages = chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]');
                     const hasUsageData = chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]');
+                    const hasTitleUpdate = chunk.includes('[TITLE_UPDATE]') && chunk.includes('[TITLE_UPDATE_END]');
                     
                     // Handle user message data (skip it for display)
                     if (hasUserMessage) {
@@ -1030,8 +1008,23 @@ function sendMessageInternal(message, files) {
                     else if (hasUsageData) {
                         // Ignore usage data
                     }
+                    // Handle title update
+                    else if (hasTitleUpdate) {
+                        const startIdx = chunk.indexOf('[TITLE_UPDATE]') + 14;
+                        const endIdx = chunk.indexOf('[TITLE_UPDATE_END]');
+                        const titleJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const titleData = JSON.parse(titleJson);
+                            console.log('Received title update in sendMessageInternal:', titleData);
+                            if (titleData.title && titleData.session_id == currentSessionId) {
+                                updateSessionTitleInUI(titleData.title);
+                            }
+                        } catch (parseError) {
+                            console.error('Error parsing title update data:', parseError);
+                        }
+                    }
                     // Handle regular content (only if it doesn't contain any special markers)
-                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData) {
+                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData && !hasTitleUpdate) {
                         assistantContent += chunk;
                         if (imagesData.length > 0) {
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
