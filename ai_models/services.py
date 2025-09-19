@@ -189,6 +189,7 @@ class OpenRouterService:
         https://openrouter.ai/docs/streaming
         """
         try:
+            # Get fresh response for each streaming request
             response = self.send_text_message(
                 ai_model, messages, stream=True, web_search=web_search, 
                 modalities=modalities, plugins=plugins
@@ -200,7 +201,8 @@ class OpenRouterService:
             if not hasattr(response, 'iter_content'):
                 return {"error": "Invalid response object for streaming"}
             
-            def generate():
+            # Create a new generator function each time to avoid "generator already executing"
+            def create_generator():
                 usage_data = None
                 
                 try:
@@ -216,73 +218,80 @@ class OpenRouterService:
                             return
                     
                     # Use iter_lines to process SSE lines as they arrive (per docs)
-                    for raw_line in response.iter_lines(decode_unicode=True):
-                        if not raw_line:
-                            continue
-                        line = raw_line.strip()
-                        
-                        # Ignore SSE comments
-                        if line.startswith(':'):
-                            continue
-                        
-                        if not line.startswith('data: '):
-                            continue
-                        
-                        data = line[6:]
-                        if data == '[DONE]':
-                            if usage_data:
-                                usage_json = json.dumps(usage_data, ensure_ascii=False)
-                                yield f"\n\n[USAGE_DATA]{usage_json}[USAGE_DATA_END]"
-                            return
-                        
-                        try:
-                            parsed = json.loads(data)
+                    try:
+                        line_iterator = response.iter_lines(decode_unicode=True)
+                        for raw_line in line_iterator:
+                            if not raw_line:
+                                continue
+                            line = raw_line.strip()
                             
-                            # Mid-stream error
-                            if 'error' in parsed:
-                                err_msg = parsed['error'].get('message', 'Unknown streaming error')
-                                yield f"\n\nStreaming Error: {err_msg}"
-                                if parsed.get('choices', [{}])[0].get('finish_reason') == 'error':
-                                    return
+                            # Ignore SSE comments
+                            if line.startswith(':'):
+                                continue
                             
-                            # Capture usage
-                            if 'usage' in parsed:
-                                usage_data = parsed['usage']
+                            if not line.startswith('data: '):
+                                continue
                             
-                            # Normal content
-                            if 'choices' in parsed and parsed['choices']:
-                                choice = parsed['choices'][0]
-                                delta = choice.get('delta', {})
-                                content = delta.get('content', '')
-                                images = delta.get('images', [])
+                            data = line[6:]
+                            if data == '[DONE]':
+                                if usage_data:
+                                    usage_json = json.dumps(usage_data, ensure_ascii=False)
+                                    yield f"\n\n[USAGE_DATA]{usage_json}[USAGE_DATA_END]"
+                                return
+                            
+                            try:
+                                parsed = json.loads(data)
                                 
-                                if images:
-                                    images_json = json.dumps(images, ensure_ascii=False)
-                                    yield f"\n\n[IMAGES]{images_json}[IMAGES_END]"
-                            if content:
-                                # Ensure proper UTF-8 encoding for content
-                                if isinstance(content, bytes):
-                                    content = content.decode('utf-8')
-                                yield content
+                                # Mid-stream error
+                                if 'error' in parsed:
+                                    err_msg = parsed['error'].get('message', 'Unknown streaming error')
+                                    yield f"\n\nStreaming Error: {err_msg}"
+                                    if parsed.get('choices', [{}])[0].get('finish_reason') == 'error':
+                                        return
                                 
-                                finish_reason = choice.get('finish_reason')
-                                if finish_reason == 'length':
-                                    yield "\n\n[Stream ended: Maximum length reached]"
-                                    return
-                                if finish_reason == 'error':
-                                    yield "\n\n[Stream ended: Error occurred]"
-                                    return
-                        except json.JSONDecodeError:
-                            # Skip non-JSON payloads safely
-                            continue
-                        except Exception as e:
-                            # Yield a minimal error and continue/stop to avoid breaking the stream
-                            yield f"\n\nStreaming parse error: {str(e)}"
-                            return
+                                # Capture usage
+                                if 'usage' in parsed:
+                                    usage_data = parsed['usage']
+                                
+                                # Normal content
+                                if 'choices' in parsed and parsed['choices']:
+                                    choice = parsed['choices'][0]
+                                    delta = choice.get('delta', {})
+                                    content = delta.get('content', '')
+                                    images = delta.get('images', [])
+                                    
+                                    if images:
+                                        images_json = json.dumps(images, ensure_ascii=False)
+                                        yield f"\n\n[IMAGES]{images_json}[IMAGES_END]"
+                                    if content:
+                                        # Ensure proper UTF-8 encoding for content
+                                        if isinstance(content, bytes):
+                                            content = content.decode('utf-8')
+                                        yield content
+                                        
+                                        finish_reason = choice.get('finish_reason')
+                                        if finish_reason == 'length':
+                                            yield "\n\n[Stream ended: Maximum length reached]"
+                                            return
+                                        if finish_reason == 'error':
+                                            yield "\n\n[Stream ended: Error occurred]"
+                                            return
+                            except json.JSONDecodeError:
+                                # Skip non-JSON payloads safely
+                                continue
+                            except Exception as e:
+                                # Yield a minimal error and continue/stop to avoid breaking the stream
+                                yield f"\n\nStreaming parse error: {str(e)}"
+                                return
+                    except Exception as iter_error:
+                        yield f"\n\nIteration error: {str(iter_error)}"
+                        return
+                        
                 except Exception as e:
                     yield f"\n\nStreaming error: {str(e)}"
                 
-            return generate()
+            # Return the generator function itself, not its result
+            return create_generator()
             
         except Exception as e:
             return {"error": f"Streaming initialization error: {str(e)}"}

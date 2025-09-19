@@ -11,8 +11,32 @@ function displayErrorMessage(errorMessage) {
     });
 }
 
+// Helper function to clean up streaming state
+function cleanupStreamingState() {
+    // Remove any existing streaming elements
+    const streamingElement = document.getElementById('streaming-assistant');
+    if (streamingElement) {
+        streamingElement.remove();
+    }
+    
+    // Hide typing indicator
+    hideTypingIndicator();
+    
+    // Re-enable input
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.disabled = false;
+        messageInput.focus();
+    }
+    
+    // Reset button state
+    setButtonState(false);
+    
+    console.log('Streaming state cleaned up');
+}
+
 // Send message with streaming support
-function sendMessage() {
+async function sendMessage() {
     console.log('sendMessage called');
     const messageInput = document.getElementById('message-input');
     const message = messageInput.value.trim();
@@ -92,6 +116,14 @@ function sendMessage() {
     let assistantMessageId = null; // To store assistant message ID from server
     let hasImages = false; // Declare hasImages at function scope
     
+    // بررسی اینکه آیا streaming قبلی هنوز در حال اجرا است یا نه
+    if (abortController && !abortController.signal.aborted) {
+        console.log('Previous streaming still active, aborting it...');
+        abortController.abort();
+        // کمی صبر می‌کنیم تا streaming قبلی تمام شود
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
     // ساخت یک کنترلر جدید برای هر درخواست
     abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
     setButtonState(true); // تغییر دکمه به حالت "توقف"
@@ -114,12 +146,31 @@ function sendMessage() {
         }
 
         // Handle streaming response
+        // Make sure to clean up any existing streaming elements
+        const existingStreaming = document.getElementById('streaming-assistant');
+        if (existingStreaming) {
+            existingStreaming.remove();
+        }
+        
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
+        
+        // Track reader state to prevent multiple reads
+        let readerClosed = false;
 
         function read() {
+            // Check if reader is already closed or aborted
+            if (readerClosed || abortController.signal.aborted) {
+                return;
+            }
+            
             reader.read().then(({ done, value }) => {
+                // Check again after the async read
+                if (readerClosed || abortController.signal.aborted) {
+                    return;
+                }
                 if (done) {
+                    readerClosed = true; // Mark reader as closed
                     console.log('Message sending stream finished');
                     
                     // Hide typing indicator first
@@ -336,6 +387,8 @@ function sendMessage() {
                 
                 read();
             }).catch(error => {
+                readerClosed = true; // Mark reader as closed on any error
+                
                 if (error.name === 'AbortError') {
                     console.log('درخواست توسط کاربر متوقف شد.');
                     // پیام ناقص قبلاً در سمت سرور ذخیره شده است
@@ -415,22 +468,18 @@ function sendMessage() {
                     }
                 } else {
                     console.error('Streaming error:', error);
-                    const streamingElement = document.getElementById('streaming-assistant');
-                    if (streamingElement) {
-                        streamingElement.remove();
-                    }
-                    hideTypingIndicator();
+                    cleanupStreamingState();
                     displayErrorMessage(`خطا: ${error.message || 'خطای نامشخص'}`);
-                    // Re-enable input and reset button state after streaming is complete
-                    messageInput.disabled = false;
-                    messageInput.focus();
-                    setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+                    // Additional cleanup handled by cleanupStreamingState()
                 }
             });
         }
         read();
     })
     .catch(error => {
+        // Mark any ongoing operations as complete
+        readerClosed = true;
+        
         // Remove the streaming assistant message if it exists
         const streamingElement = document.getElementById('streaming-assistant');
         if (streamingElement) {
