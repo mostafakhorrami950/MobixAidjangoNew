@@ -105,9 +105,6 @@ function sendMessage() {
         // Handle streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        
-        // Buffer to accumulate partial data
-        let buffer = '';
 
         function read() {
             reader.read().then(({ done, value }) => {
@@ -185,149 +182,111 @@ function sendMessage() {
                     const chunk = decoder.decode(value, { stream: true });
                     console.log('Received chunk from message sending:', chunk);
                     
-                    // Accumulate chunk in buffer
-                    buffer += chunk;
+                    // Check if chunk contains any special data markers
+                    const hasUserMessage = chunk.includes('[USER_MESSAGE]') && chunk.includes('[USER_MESSAGE_END]');
+                    const hasAssistantMessageId = chunk.includes('[ASSISTANT_MESSAGE_ID]') && chunk.includes('[ASSISTANT_MESSAGE_ID_END]');
+                    const hasImages = chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]');
+                    const hasUsageData = chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]');
+                    const hasTitleUpdate = chunk.includes('[TITLE_UPDATE]') && chunk.includes('[TITLE_UPDATE_END]');
                     
-                    // Process complete markers from buffer
-                    while (true) {
-                        // Check for different types of markers
-                        const userMessageStart = buffer.indexOf('[USER_MESSAGE]');
-                        const userMessageEnd = buffer.indexOf('[USER_MESSAGE_END]');
-                        const assistantMessageIdStart = buffer.indexOf('[ASSISTANT_MESSAGE_ID]');
-                        const assistantMessageIdEnd = buffer.indexOf('[ASSISTANT_MESSAGE_ID_END]');
-                        const imagesStart = buffer.indexOf('[IMAGES]');
-                        const imagesEnd = buffer.indexOf('[IMAGES_END]');
-                        const usageDataStart = buffer.indexOf('[USAGE_DATA]');
-                        const usageDataEnd = buffer.indexOf('[USAGE_DATA_END]');
-                        const titleUpdateStart = buffer.indexOf('[TITLE_UPDATE]');
-                        const titleUpdateEnd = buffer.indexOf('[TITLE_UPDATE_END]');
+                    // Handle user message data
+                    if (hasUserMessage) {
+                        const startIdx = chunk.indexOf('[USER_MESSAGE]') + 14;
+                        const endIdx = chunk.indexOf('[USER_MESSAGE_END]');
+                        const userMessageJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            userMessageData = JSON.parse(userMessageJson);
+                            console.log('Received user message data from server:', userMessageData);
+                            // Update the temporary user message with the real data from server
+                            updateUserMessageWithServerData(userMessageData);
+                        } catch (parseError) {
+                            console.error('Error parsing user message data:', parseError);
+                        }
                         
-                        let processed = false;
-                        
-                        // Handle user message data
+                        // Process any remaining content after removing the user message data
+                        let remainingContent = chunk;
+                        const userMessageStart = remainingContent.indexOf('[USER_MESSAGE]');
+                        const userMessageEnd = remainingContent.indexOf('[USER_MESSAGE_END]') + 18; // 18 = length of '[USER_MESSAGE_END]'
                         if (userMessageStart !== -1 && userMessageEnd !== -1) {
-                            const startIdx = userMessageStart + 14; // length of '[USER_MESSAGE]'
-                            const userMessageJson = buffer.substring(startIdx, userMessageEnd);
-                            try {
-                                userMessageData = JSON.parse(userMessageJson);
-                                console.log('Received user message data from server:', userMessageData);
-                                // Update the temporary user message with the real data from server
-                                updateUserMessageWithServerData(userMessageData);
-                            } catch (parseError) {
-                                console.error('Error parsing user message data:', parseError);
-                            }
+                            // Remove the user message data from the chunk
+                            remainingContent = remainingContent.substring(0, userMessageStart) + remainingContent.substring(userMessageEnd);
                             
-                            // Remove processed data from buffer
-                            buffer = buffer.substring(userMessageEnd + 18); // 18 = length of '[USER_MESSAGE_END]'
-                            processed = true;
-                            continue;
-                        }
-                        
-                        // Handle assistant message ID
-                        else if (assistantMessageIdStart !== -1 && assistantMessageIdEnd !== -1) {
-                            const startIdx = assistantMessageIdStart + 22; // length of '[ASSISTANT_MESSAGE_ID]'
-                            const endIdx = assistantMessageIdEnd;
-                            const assistantMessageJson = buffer.substring(startIdx, endIdx);
-                            try {
-                                const assistantData = JSON.parse(assistantMessageJson);
-                                assistantMessageId = assistantData.assistant_message_id;
-                                console.log('Received assistant message ID:', assistantMessageId);
-                            } catch (parseError) {
-                                console.error('Error parsing assistant message ID:', parseError);
-                            }
-                            
-                            // Remove processed data from buffer
-                            buffer = buffer.substring(assistantMessageIdEnd + 26); // 26 = length of '[ASSISTANT_MESSAGE_ID_END]'
-                            processed = true;
-                            continue;
-                        }
-                        
-                        // Handle image data
-                        else if (imagesStart !== -1 && imagesEnd !== -1) {
-                            const startIdx = imagesStart + 8; // length of '[IMAGES]'
-                            const endIdx = imagesEnd;
-                            const imagesJson = buffer.substring(startIdx, endIdx);
-                            try {
-                                const newImages = JSON.parse(imagesJson);
-                                imagesData = imagesData.concat(newImages);
-                                console.log('Received images data:', imagesData);
-                                // Update the streaming message with images immediately
-                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                                
-                                // Force scroll to show the new images
-                                setTimeout(() => {
-                                    scrollToBottom();
-                                }, 100);
-                            } catch (parseError) {
-                                console.error('Error parsing images data:', parseError);
-                            }
-                            
-                            // Remove processed data from buffer
-                            buffer = buffer.substring(imagesEnd + 12); // 12 = length of '[IMAGES_END]'
-                            processed = true;
-                            continue;
-                        }
-                        
-                        // Handle usage data (ignore for now)
-                        else if (usageDataStart !== -1 && usageDataEnd !== -1) {
-                            // We don't need to do anything with usage data here
-                            // It's handled on the server side
-                            console.log('Received usage data, ignoring');
-                            
-                            // Remove processed data from buffer
-                            buffer = buffer.substring(usageDataEnd + 16); // 16 = length of '[USAGE_DATA_END]'
-                            processed = true;
-                            continue;
-                        }
-                        
-                        // Handle title update
-                        else if (titleUpdateStart !== -1 && titleUpdateEnd !== -1) {
-                            const startIdx = titleUpdateStart + 14; // length of '[TITLE_UPDATE]'
-                            const endIdx = titleUpdateEnd;
-                            const titleJson = buffer.substring(startIdx, endIdx);
-                            try {
-                                const titleData = JSON.parse(titleJson);
-                                console.log('Received title update:', titleData);
-                                if (titleData.title && titleData.session_id == currentSessionId) {
-                                    updateSessionTitleInUI(titleData.title);
+                            // Add remaining content as assistant content if it's not empty
+                            if (remainingContent.trim()) {
+                                console.log('Adding remaining content after user message filtering:', remainingContent);
+                                assistantContent += remainingContent;
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent, assistantMessageId);
                                 }
-                            } catch (parseError) {
-                                console.error('Error parsing title update data:', parseError);
                             }
-                            
-                            // Remove processed data from buffer
-                            buffer = buffer.substring(titleUpdateEnd + 18); // 18 = length of '[TITLE_UPDATE_END]'
-                            processed = true;
-                            continue;
                         }
-                        
-                        // Handle regular content (text content that doesn't contain markers)
-                        else if (buffer.length > 0 && 
-                                userMessageStart === -1 && 
-                                assistantMessageIdStart === -1 && 
-                                imagesStart === -1 && 
-                                usageDataStart === -1 && 
-                                titleUpdateStart === -1) {
-                            // Add buffer content to assistant content
-                            assistantContent += buffer;
-                            console.log('Adding content to assistant message:', buffer);
+                    }
+                    // Handle assistant message ID
+                    else if (hasAssistantMessageId) {
+                        const startIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID]') + 22;
+                        const endIdx = chunk.indexOf('[ASSISTANT_MESSAGE_ID_END]');
+                        const assistantMessageJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const assistantData = JSON.parse(assistantMessageJson);
+                            assistantMessageId = assistantData.assistant_message_id;
+                            console.log('Received assistant message ID:', assistantMessageId);
+                        } catch (parseError) {
+                            console.error('Error parsing assistant message ID:', parseError);
+                        }
+                    }
+                    // Handle image data
+                    else if (hasImages) {
+                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
+                        const endIdx = chunk.indexOf('[IMAGES_END]');
+                        const imagesJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const newImages = JSON.parse(imagesJson);
+                            imagesData = imagesData.concat(newImages);
+                            console.log('Received images data:', imagesData);
+                            // Update the streaming message with images immediately
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
                             
-                            // Update the streaming message with current content
-                            if (imagesData.length > 0) {
-                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                            } else {
-                                updateOrAddAssistantMessage(assistantContent);
+                            // Force scroll to show the new images
+                            setTimeout(() => {
+                                scrollToBottom();
+                            }, 100);
+                        } catch (parseError) {
+                            console.error('Error parsing images data:', parseError);
+                        }
+                    }
+                    // Handle usage data (ignore for now)
+                    else if (hasUsageData) {
+                        // We don't need to do anything with usage data here
+                        // It's handled on the server side
+                        console.log('Received usage data, ignoring');
+                    }
+                    // Handle title update
+                    else if (hasTitleUpdate) {
+                        const startIdx = chunk.indexOf('[TITLE_UPDATE]') + 14;
+                        const endIdx = chunk.indexOf('[TITLE_UPDATE_END]');
+                        const titleJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const titleData = JSON.parse(titleJson);
+                            console.log('Received title update:', titleData);
+                            if (titleData.title && titleData.session_id == currentSessionId) {
+                                updateSessionTitleInUI(titleData.title);
                             }
-                            
-                            // Clear buffer
-                            buffer = '';
-                            processed = true;
-                            continue;
+                        } catch (parseError) {
+                            console.error('Error parsing title update data:', parseError);
                         }
-                        
-                        // If no markers were found and no content was processed, break
-                        if (!processed) {
-                            break;
+                    }
+                    // Handle regular content (only if it doesn't contain any special markers)
+                    else if (!hasUserMessage && !hasAssistantMessageId && !hasImages && !hasUsageData && !hasTitleUpdate) {
+                        console.log('Received assistant content:', chunk);
+                        assistantContent += chunk;
+                        // Update the streaming message with current content
+                        if (imagesData.length > 0) {
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData, assistantMessageId);
+                        } else {
+                            updateOrAddAssistantMessage(assistantContent, assistantMessageId);
                         }
                     }
                 } catch (decodeError) {
