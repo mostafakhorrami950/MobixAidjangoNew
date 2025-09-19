@@ -92,7 +92,11 @@ WSGI_APPLICATION = "mobixai.wsgi.application"
 # Priority: MySQL > PostgreSQL > SQLite
 
 if config('MYSQL_DATABASE', default=None):
-    # MySQL database configuration with full Persian/UTF-8 support
+    # تنظیم PyMySQL به عنوان درایور MySQL
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    
+    # MySQL database configuration with full Persian/UTF-8 support using PyMySQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -106,6 +110,10 @@ if config('MYSQL_DATABASE', default=None):
                 'use_unicode': True,
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci",
                 'isolation_level': None,
+                # تنظیمات خاص PyMySQL
+                'connect_timeout': 60,
+                'read_timeout': 60,
+                'write_timeout': 60,
             },
             'TEST': {
                 'CHARSET': 'utf8mb4',

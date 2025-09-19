@@ -11,6 +11,14 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.append(str(BASE_DIR))
 
+# تنظیم PyMySQL قبل از Django
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    print("✏️ PyMySQL به عنوان درایور MySQL تنظیم شد")
+except ImportError:
+    print("⚠️ PyMySQL نصب نشده. لطفاً نصب کنید: pip install PyMySQL")
+
 # تنظیم Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixai.settings')
 django.setup()
