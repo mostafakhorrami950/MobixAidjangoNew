@@ -88,8 +88,32 @@ WSGI_APPLICATION = "mobixai.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Use PostgreSQL in production, SQLite in development
-if config('DATABASE_URL', default=None) and dj_database_url:
+# Database configuration with multi-database support
+# Priority: MySQL > PostgreSQL > SQLite
+
+if config('MYSQL_DATABASE', default=None):
+    # MySQL database configuration with full Persian/UTF-8 support
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': config('MYSQL_DATABASE'),
+            'USER': config('MYSQL_USER'),
+            'PASSWORD': config('MYSQL_PASSWORD'),
+            'HOST': config('MYSQL_HOST', default='localhost'),
+            'PORT': config('MYSQL_PORT', default='3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'use_unicode': True,
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci",
+                'isolation_level': None,
+            },
+            'TEST': {
+                'CHARSET': 'utf8mb4',
+                'COLLATION': 'utf8mb4_unicode_ci',
+            }
+        }
+    }
+elif config('DATABASE_URL', default=None) and dj_database_url:
     # Production database (PostgreSQL)
     DATABASES = {
         'default': dj_database_url.parse(config('DATABASE_URL'))
@@ -123,16 +147,30 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
+# Internationalization with Persian language support
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+# Persian language and Iran timezone support
+LANGUAGES = [
+    ('en', 'English'),
+    ('fa', 'فارسی'),
+]
+
+TIME_ZONE = "Asia/Tehran"
 
 USE_I18N = True
 
+USE_L10N = True
+
 USE_TZ = True
+
+# Default charset for the entire project
+DEFAULT_CHARSET = 'utf-8'
+
+# Ensure proper encoding handling
+FILE_CHARSET = 'utf-8'
 
 
 # Static files (CSS, JavaScript, Images)
