@@ -417,9 +417,9 @@
     transform: none !important;
   }
   
-  /* Hide main navigation items in desktop - they'll be in sidebar */
-  .navbar-nav .nav-item:not(.user-item):not(.brand-item) {
-    display: none;
+  /* Ensure main navigation items are visible on desktop */
+  .navbar-nav .nav-item {
+    display: inline-flex !important;
   }
   
   /* Show only brand and user avatar in desktop navbar */
