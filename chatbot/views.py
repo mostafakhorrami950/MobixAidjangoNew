@@ -843,11 +843,8 @@ def send_message(request, session_id):
                             images_json = chunk[start_idx:end_idx]
                             try:
                                 images_data = json.loads(images_json)
-                                # Increment image generation usage if subscription type is available
-                                if subscription_type and generate_image:
-                                    UsageService.increment_image_generation_usage(
-                                        request.user, subscription_type
-                                    )
+                                # Note: Image generation usage will be incremented later in the finally block
+                                # to avoid double counting
                             except json.JSONDecodeError:
                                 pass
                             continue
