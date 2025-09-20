@@ -286,6 +286,11 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(response => response.json())
     .then(data => {
         const resultDiv = document.getElementById('remaining-value-result');
+        if (!resultDiv) {
+            console.error('Result div not found');
+            return;
+        }
+        
         if (data.error) {
             resultDiv.innerHTML = `<div class="calculator-result error"><small>${data.error}</small></div>`;
         } else {
@@ -326,7 +331,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const subscriptionId = finalPriceClass.split('-')[2];
                     const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
                     const discountResultElement = document.getElementById(`discount-result-${subscriptionId}`);
-                    const purchaseButton = element.closest('.plan-footer').querySelector('.purchase-btn');
+                    const planFooter = element.closest('.plan-footer');
+                    const purchaseButton = planFooter ? planFooter.querySelector('.purchase-btn') : null;
                     
                     // Only update if no discount has been applied (discount result is empty)
                     if (originalPriceElement && (!discountResultElement || !discountResultElement.innerHTML.trim())) {
@@ -341,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         
                         // Disable payment button if remaining value is greater than original price
-                        if (data.total_remaining_value_tomans > originalPrice) {
+                        if (purchaseButton && data.total_remaining_value_tomans > originalPrice) {
                             purchaseButton.disabled = true;
                             purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
                             purchaseButton.style.opacity = '0.7';
@@ -355,18 +361,20 @@ document.addEventListener('DOMContentLoaded', function() {
     .catch(error => {
         console.error('Error:', error);
         const resultDiv = document.getElementById('remaining-value-result');
-        resultDiv.innerHTML = `
-            <div class="calculator-result error">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>خطا در محاسبه</strong>
+        if (resultDiv) {
+            resultDiv.innerHTML = `
+                <div class="calculator-result error">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>خطا در محاسبه</strong>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 14px;">
+                        امکان محاسبه مقدار باقیمانده وجود ندارد. لطفاً بعداً دوباره تلاش کنید.
+                        <br><small>جزئیات خطا: ${error.message || 'Unknown error'}</small>
+                    </div>
                 </div>
-                <div style="margin-top: 0.5rem; font-size: 14px;">
-                    امکان محاسبه مقدار باقیمانده وجود ندارد. لطفاً بعداً دوباره تلاش کنید.
-                    <br><small>جزئیات خطا: ${error.message || 'Unknown error'}</small>
-                </div>
-            </div>
-        `;
+            `;
+        }
     });
     
     // Apply discount code functionality
@@ -374,10 +382,17 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const subscriptionId = this.getAttribute('data-subscription-id');
             const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
-            const code = codeInput.value.trim();
+            const code = codeInput ? codeInput.value.trim() : '';
             
             if (!code) {
                 alert('لطفاً کد تخفیف را وارد کنید');
+                return;
+            }
+            
+            // Get CSRF token
+            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfTokenElement) {
+                alert('خطا در ارسال درخواست. لطفاً صفحه را دوباره بارگذاری کنید.');
                 return;
             }
             
@@ -386,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    'X-CSRFToken': csrfTokenElement.value
                 },
                 body: `code=${encodeURIComponent(code)}&subscription_id=${subscriptionId}`
             })
@@ -395,30 +410,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
                 const finalPriceSpan = document.querySelector(`.final-price-${subscriptionId}`);
                 const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
-                const purchaseButton = finalPriceSpan.closest('.plan-footer').querySelector('.purchase-btn');
+                const planFooter = finalPriceSpan ? finalPriceSpan.closest('.plan-footer') : null;
+                const purchaseButton = planFooter ? planFooter.querySelector('.purchase-btn') : null;
                 
                 if (data.success) {
                     // Update UI with discount information
-                    resultDiv.innerHTML = `
-                        <div class="discount-result success">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                <i class="fas fa-check-circle"></i>
-                                <strong>کد تخفیف با موفقیت اعمال شد!</strong>
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <div class="discount-result success">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <strong>کد تخفیف با موفقیت اعمال شد!</strong>
+                                </div>
+                                <div>میزان تخفیف: <strong>${data.discount_amount.toFixed(0)} تومان</strong></div>
+                                <div>قیمت نهایی: <strong>${data.final_price.toFixed(0)} تومان</strong></div>
                             </div>
-                            <div>میزان تخفیف: <strong>${data.discount_amount.toFixed(0)} تومان</strong></div>
-                            <div>قیمت نهایی: <strong>${data.final_price.toFixed(0)} تومان</strong></div>
-                        </div>
-                    `;
-                    finalPriceSpan.textContent = data.final_price.toFixed(0);
-                    discountCodeInput.value = data.discount_code;
+                        `;
+                    }
+                    if (finalPriceSpan) {
+                        finalPriceSpan.textContent = data.final_price.toFixed(0);
+                    }
+                    if (discountCodeInput) {
+                        discountCodeInput.value = data.discount_code;
+                    }
                     
                     // Disable payment button if final price is 0 or negative
-                    if (data.final_price <= 0) {
+                    if (purchaseButton && data.final_price <= 0) {
                         purchaseButton.disabled = true;
                         purchaseButton.innerHTML = '<i class="fas fa-gift"></i> پرداخت رایگان - نیازی به پرداخت نیست';
                         purchaseButton.style.opacity = '0.7';
                         purchaseButton.style.cursor = 'not-allowed';
-                    } else {
+                    } else if (purchaseButton) {
                         // Re-enable button if it was previously disabled
                         purchaseButton.disabled = false;
                         purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${data.final_price.toFixed(0)} تومان`;
@@ -434,32 +456,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else {
-                    resultDiv.innerHTML = `
-                        <div class="discount-result error">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-exclamation-circle"></i>
-                                ${data.error}
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <div class="discount-result error">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    ${data.error}
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
+                    }
                     // Reset to original price minus remaining value
-                    const originalPrice = document.querySelector(`.original-price-${subscriptionId}`).textContent;
+                    const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
                     const remainingValueResult = document.getElementById('remaining-value-result');
-                    if (remainingValueResult && remainingValueResult.textContent) {
+                    if (originalPriceElement && remainingValueResult && remainingValueResult.textContent) {
                         // Try to extract remaining value from the result
                         const remainingValueMatch = remainingValueResult.textContent.match(/ارزش کل باقیمانده: ([\d,]+)/);
-                        if (remainingValueMatch) {
+                        const originalPrice = originalPriceElement.textContent;
+                        if (remainingValueMatch && finalPriceSpan) {
                             const remainingValue = parseFloat(remainingValueMatch[1].replace(/,/g, ''));
                             const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
                             finalPriceSpan.textContent = finalPrice.toFixed(0);
                             
                             // Check if we should disable the button based on remaining value
-                            if (remainingValue > parseFloat(originalPrice)) {
+                            if (purchaseButton && remainingValue > parseFloat(originalPrice)) {
                                 purchaseButton.disabled = true;
                                 purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
                                 purchaseButton.style.opacity = '0.7';
                                 purchaseButton.style.cursor = 'not-allowed';
-                            } else {
+                            } else if (purchaseButton) {
                                 // Re-enable button if it was previously disabled due to remaining value
                                 purchaseButton.disabled = false;
                                 purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${finalPrice.toFixed(0)} تومان`;
@@ -477,52 +502,56 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             // If final price is 0, show a special message
                             if (finalPrice === 0) {
-                                resultDiv.innerHTML = `
-                                    <div class="discount-result success">
-                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                            <i class="fas fa-gift"></i>
-                                            <strong>عالی! پرداخت رایگان!</strong>
+                                if (resultDiv) {
+                                    resultDiv.innerHTML = `
+                                        <div class="discount-result success">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                                <i class="fas fa-gift"></i>
+                                                <strong>عالی! پرداخت رایگان!</strong>
+                                            </div>
+                                            <div>ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.</div>
                                         </div>
-                                        <div>ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.</div>
-                                    </div>
-                                `;
-                            } else if (remainingValue > parseFloat(originalPrice)) {
-                                // Check if remaining value is greater than original price
-                                purchaseButton.disabled = true;
-                                purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
-                                purchaseButton.style.opacity = '0.7';
-                                purchaseButton.style.cursor = 'not-allowed';
+                                    `;
+                                }
                             }
-                        } else {
+                        } else if (finalPriceSpan) {
                             finalPriceSpan.textContent = originalPrice;
                             // Re-enable button with original price
+                            if (purchaseButton) {
+                                purchaseButton.disabled = false;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                                purchaseButton.style.opacity = '1';
+                                purchaseButton.style.cursor = 'pointer';
+                            }
+                        }
+                    } else if (originalPriceElement && finalPriceSpan) {
+                        finalPriceSpan.textContent = originalPriceElement.textContent;
+                        // Re-enable button with original price
+                        if (purchaseButton) {
                             purchaseButton.disabled = false;
-                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPriceElement.textContent} تومان`;
                             purchaseButton.style.opacity = '1';
                             purchaseButton.style.cursor = 'pointer';
                         }
-                    } else {
-                        finalPriceSpan.textContent = originalPrice;
-                        // Re-enable button with original price
-                        purchaseButton.disabled = false;
-                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
-                        purchaseButton.style.opacity = '1';
-                        purchaseButton.style.cursor = 'pointer';
                     }
-                    discountCodeInput.value = '';
+                    if (discountCodeInput) {
+                        discountCodeInput.value = '';
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
-                resultDiv.innerHTML = `
-                    <div class="discount-result error">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            خطا در اعمال کد تخفیف. لطفاً دوباره تلاش کنید.
+                if (resultDiv) {
+                    resultDiv.innerHTML = `
+                        <div class="discount-result error">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                خطا در اعمال کد تخفیف. لطفاً دوباره تلاش کنید.
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             });
         });
     });
@@ -530,12 +559,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Clear discount when form is submitted without a code
     document.querySelectorAll('.payment-form').forEach(form => {
         form.addEventListener('submit', function() {
-            const subscriptionId = this.querySelector('.apply-discount-btn').getAttribute('data-subscription-id');
-            const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
-            const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
-            
-            if (!codeInput.value.trim() && discountCodeInput.value) {
-                discountCodeInput.value = '';
+            const applyButton = this.querySelector('.apply-discount-btn');
+            if (applyButton) {
+                const subscriptionId = applyButton.getAttribute('data-subscription-id');
+                const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
+                
+                if (codeInput && !codeInput.value.trim() && discountCodeInput) {
+                    discountCodeInput.value = '';
+                }
             }
         });
     });
