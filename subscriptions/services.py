@@ -294,13 +294,14 @@ class UsageService:
     @staticmethod
     def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
         """
-        Create a new usage record for each event.
+        Create a new usage record for each event with proper token separation.
         """
         logger.info(f"Incrementing usage for user {user.id}, is_free_model: {is_free_model}")
         logger.debug(f"Messages count: {messages_count}, Tokens count: {tokens_count}")
         
         UserUsage = apps.get_model('subscriptions', 'UserUsage')
         
+        # به طور پیش‌فرض همه مقادیر صفر هستند
         defaults = {
             'messages_count': 0,
             'tokens_count': 0,
@@ -308,12 +309,17 @@ class UsageService:
             'free_model_tokens_count': 0
         }
         
+        # تفکیک دقیق بین مدل‌های رایگان و پولی
         if is_free_model:
+            # برای مدل‌های رایگان
             defaults['free_model_messages_count'] = messages_count
             defaults['free_model_tokens_count'] = tokens_count
+            logger.debug(f"Setting free model usage - Messages: {messages_count}, Tokens: {tokens_count}")
         else:
+            # برای مدل‌های پولی
             defaults['messages_count'] = messages_count
             defaults['tokens_count'] = tokens_count
+            logger.debug(f"Setting paid model usage - Messages: {messages_count}, Tokens: {tokens_count}")
             
         usage_record = UserUsage.objects.create(
             user=user,
@@ -321,7 +327,9 @@ class UsageService:
             **defaults
         )
         
-        logger.debug(f"Created usage record with ID: {usage_record.id}")
+        # لاگ تفصیلی برای ردیابی
+        model_type = "Free" if is_free_model else "Paid"
+        logger.info(f"Created {model_type} model usage record - ID: {usage_record.id}, Messages: {messages_count}, Tokens: {tokens_count}")
         return usage_record
 
     @staticmethod
@@ -491,9 +499,13 @@ class UsageService:
                 total_free_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)[1]
                 logger.debug(f"Total free tokens used: {total_free_tokens_used}")
                 
+                # Calculate estimated tokens for the new message (more reasonable estimate)
+                estimated_tokens = 50  # Conservative estimate for free models
+                
                 # Check if adding new tokens would exceed the max_tokens_free limit
-                if total_free_tokens_used >= subscription_type.max_tokens_free:
-                    message = f"شما به حد مجاز توکن‌های رایگان ({subscription_type.max_tokens_free} عدد) رسیده‌اید"
+                if total_free_tokens_used + estimated_tokens > subscription_type.max_tokens_free:
+                    remaining_tokens = subscription_type.max_tokens_free - total_free_tokens_used
+                    message = f"شما به حد مجاز توکن‌های رایگان ({subscription_type.max_tokens_free} عدد) رسیده‌اید. توکن‌های باقیمانده: {max(0, remaining_tokens)}"
                     logger.info(f"Max free tokens limit exceeded: {message}")
                     return False, message
             

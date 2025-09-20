@@ -896,19 +896,21 @@ def send_message(request, session_id):
                         total_tokens_used = 0
                         
                         if usage_data:
-                            # اولویت با داده‌های دقیق API است
+                            # از داده‌های API استفاده کنیم
                             prompt_tokens = usage_data.get('prompt_tokens', 0)
                             completion_tokens = usage_data.get('completion_tokens', 0)
                             total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-                            assistant_message_obj.tokens_count = total_tokens_used # ثبت کل توکن‌های تبادل
+                            # ثبت فقط توکن‌های پاسخ دستیار برای پیام دستیار
+                            assistant_message_obj.tokens_count = completion_tokens
+                            logger.debug(f"توکن‌های ثبت شده برای پیام دستیار: {completion_tokens}")
                         else:
                             # در صورت نبود داده، از محاسبه خودمان استفاده می‌کنیم
-                            # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
-                            # توکن‌های خروجی پاسخ دستیار است
                             prompt_tokens = user_message_tokens
                             completion_tokens = UsageService.calculate_tokens_for_message(full_response)
                             total_tokens_used = prompt_tokens + completion_tokens
-                            assistant_message_obj.tokens_count = completion_tokens # فقط توکن‌های پاسخ را ذخیره کن
+                            # ثبت فقط توکن‌های پاسخ دستیار
+                            assistant_message_obj.tokens_count = completion_tokens
+                            logger.debug(f"توکن‌های محاسبه شده برای پیام دستیار: {completion_tokens}")
                         
                         # If image data is available, save the URLs
                         images_saved = False
@@ -987,20 +989,34 @@ def send_message(request, session_id):
                                         is_free_model=is_free_model
                                     )
                                     
-                                    # Also update ChatSessionUsage
+                                    # Also update ChatSessionUsage با دقت بیشتر
                                     try:
                                         chat_session_usage, created = ChatSessionUsage.objects.get_or_create(
                                             session=session,
                                             user=request.user,
                                             subscription_type=subscription_type,
-                                            defaults={'is_free_model': is_free_model}
+                                            defaults={
+                                                'is_free_model': is_free_model,
+                                                'tokens_count': 0,
+                                                'free_model_tokens_count': 0
+                                            }
                                         )
+                                        
+                                        # به‌روزرسانی توکن‌ها بر اساس نوع مدل
                                         if is_free_model:
-                                            chat_session_usage.free_model_tokens_count = chat_session_usage.free_model_tokens_count + total_tokens_used
+                                            chat_session_usage.free_model_tokens_count += total_tokens_used
+                                            logger.debug(f"Free model tokens updated: +{total_tokens_used}, Total: {chat_session_usage.free_model_tokens_count}")
                                         else:
-                                            chat_session_usage.tokens_count = chat_session_usage.tokens_count + total_tokens_used
+                                            chat_session_usage.tokens_count += total_tokens_used
+                                            logger.debug(f"Paid model tokens updated: +{total_tokens_used}, Total: {chat_session_usage.tokens_count}")
+                                        
+                                        # اطمینان از اینکه is_free_model به‌روز است
+                                        if chat_session_usage.is_free_model != is_free_model:
+                                            chat_session_usage.is_free_model = is_free_model
+                                            logger.debug(f"Model type updated to: {'Free' if is_free_model else 'Paid'}")
+                                        
                                         chat_session_usage.save()
-                                        logger.info(f"ChatSessionUsage updated - Session: {session.id}, Tokens: {total_tokens_used}")
+                                        logger.info(f"ChatSessionUsage updated - Session: {session.id}, {'Free' if is_free_model else 'Paid'} Tokens: {total_tokens_used}")
                                     except Exception as e:
                                         logger.error(f"Error updating ChatSessionUsage: {str(e)}")
 
