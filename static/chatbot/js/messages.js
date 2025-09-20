@@ -682,21 +682,6 @@ function updateOrAddAssistantMessage(content, messageId = null) {
         currentAssistantMessageId = messageId;
     }
     
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
     if (!assistantElement) {
         // Create new assistant message element with same structure as addMessageToChat
         assistantElement = document.createElement('div');
@@ -718,38 +703,17 @@ function updateOrAddAssistantMessage(content, messageId = null) {
                 <strong>دستیار</strong>
                 <small class="text-muted float-end">${timestamp}</small>
             </div>
-            <div class="message-content">${renderedContent}</div>
+            <div class="message-content"></div>
         `;
         assistantElement.innerHTML = elementContent;
         chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
-            
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
-                    }
-                });
-            }
-        }
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
     }
     
     // Add copy buttons to code blocks and quotes
@@ -759,6 +723,66 @@ function updateOrAddAssistantMessage(content, messageId = null) {
     if (isUserAtBottom()) {
         scrollToBottom();
     }
+}
+
+// Function to simulate typing effect
+function typeText(element, text) {
+    // Store the target element and text as data attributes
+    element.dataset.targetText = text;
+    
+    // If there's already a typing animation running, clear it
+    if (element.typingTimeout) {
+        clearTimeout(element.typingTimeout);
+        element.typingTimeout = null;
+    }
+    
+    // Get the currently displayed text
+    const currentText = element.dataset.currentText || '';
+    
+    // If we're already displaying the full text, no need to type
+    if (currentText === text) {
+        return;
+    }
+    
+    // If the new text is shorter than current text, reset
+    if (text.length < currentText.length) {
+        element.dataset.currentText = '';
+        element.innerHTML = '';
+    }
+    
+    // Start typing from where we left off
+    const startIndex = element.dataset.currentText ? element.dataset.currentText.length : 0;
+    
+    // Type one character at a time
+    function typeCharacter(index) {
+        if (index <= text.length) {
+            const partialText = text.substring(0, index);
+            element.dataset.currentText = partialText;
+            
+            // Convert markdown to HTML for the current partial text
+            let htmlContent;
+            try {
+                // For streaming, we render the partial text as-is without markdown
+                // to avoid issues with incomplete markdown tags
+                htmlContent = md.utils.escapeHtml(partialText);
+                // But we can still handle line breaks
+                htmlContent = htmlContent.replace(/\n/g, '<br>');
+            } catch (e) {
+                console.error('Error rendering markdown:', e);
+                htmlContent = md.utils.escapeHtml(partialText);
+            }
+            
+            element.innerHTML = htmlContent;
+            
+            // Continue typing
+            if (index < text.length) {
+                element.typingTimeout = setTimeout(() => typeCharacter(index + 1), 20);
+            }
+        }
+    }
+    
+    // Start typing from the next character
+    typeCharacter(startIndex);
 }
 
 // Function to format file sizes
@@ -843,49 +867,6 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null, messa
         currentAssistantMessageId = messageId;
     }
     
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
-    // Add image display if imagesData is present
-    let imageContent = '';
-    if (imagesData && imagesData.length > 0) {
-        imagesData.forEach(img => {
-            if (img.image_url && img.image_url.url) {
-                // Handle both absolute URLs and relative paths
-                let imageUrl = img.image_url.url;
-                // If it's a relative path, prepend the media URL
-                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                    imageUrl = '/media/' + imageUrl;
-                }
-                // If it already starts with /media/, make sure it's properly formatted
-                else if (imageUrl.startsWith('/media/')) {
-                    // It's already correctly formatted
-                }
-                // If it's already an absolute URL, leave it as is
-                imageContent += `<div class="image-container mt-2">
-                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
-                    <div class="mt-1">
-                        <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-download"></i> دانلود تصویر
-                        </a>
-                    </div>
-                </div>`;
-            }
-        });
-    }
-    
     if (!assistantElement) {
         // Create new assistant message element with same structure as addMessageToChat
         assistantElement = document.createElement('div');
@@ -907,43 +888,49 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null, messa
                 <strong>دستیار</strong>
                 <small class="text-muted float-end">${timestamp}</small>
             </div>
-            <div class="message-content">${renderedContent}</div>
-            ${imageContent}
+            <div class="message-content"></div>
         `;
         assistantElement.innerHTML = elementContent;
         chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
-            
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
+    }
+    
+    // Add images if they exist
+    if (imagesData && imagesData.length > 0) {
+        // Check if images have already been added
+        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
+        if (existingImageContainers.length === 0) {
+            // Add image display
+            let imageContent = '';
+            imagesData.forEach(img => {
+                if (img.image_url && img.image_url.url) {
+                    // Handle both absolute URLs and relative paths
+                    let imageUrl = img.image_url.url;
+                    // If it's a relative path, prepend the media URL
+                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                        imageUrl = '/media/' + imageUrl;
                     }
-                });
+                    imageContent += `<div class="image-container mt-2">
+                        <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <div class="mt-1">
+                            <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i> دانلود تصویر
+                            </a>
+                        </div>
+                    </div>`;
+                }
+            });
+            
+            if (imageContent) {
+                // Add the image content
+                assistantElement.insertAdjacentHTML('beforeend', imageContent);
             }
-        }
-        
-        // Add images if they exist and haven't been added yet
-        if (imageContent && !assistantElement.querySelector('.image-container')) {
-            assistantElement.insertAdjacentHTML('beforeend', imageContent);
         }
     }
     

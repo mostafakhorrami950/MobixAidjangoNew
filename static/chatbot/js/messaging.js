@@ -324,20 +324,36 @@ function sendMessage() {
                                     continue;
                             }
                         } else if (buffer.length > 0) {
-                            // If no markers found, add the entire buffer as regular content
-                            assistantContent += buffer;
-                            console.log('Adding remaining buffer content to assistant message:', buffer);
+                            // If no markers found, check if buffer contains any marker start sequences
+                            // If it does, we should wait for more data to complete the marker
+                            // Otherwise, add the entire buffer as regular content
                             
-                            // Update the streaming message with current content
-                            if (imagesData.length > 0) {
-                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                            } else {
-                                updateOrAddAssistantMessage(assistantContent);
+                            // Check if buffer contains the start of any marker
+                            const hasMarkerStart = 
+                                buffer.includes('[USER_MESSAGE') || 
+                                buffer.includes('[ASSISTANT_MESSAGE_ID') || 
+                                buffer.includes('[IMAGES') || 
+                                buffer.includes('[USAGE_DATA') || 
+                                buffer.includes('[TITLE_UPDATE');
+                            
+                            if (!hasMarkerStart) {
+                                // Safe to add the entire buffer as regular content
+                                assistantContent += buffer;
+                                console.log('Adding remaining buffer content to assistant message:', buffer);
+                                
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent);
+                                }
+                                
+                                // Clear buffer
+                                buffer = '';
+                                processed = true;
                             }
-                            
-                            // Clear buffer
-                            buffer = '';
-                            processed = true;
+                            // If buffer contains marker start, we wait for more data
+                            // Don't set processed = true to continue the loop
                         }
                         
                         // If no content was processed, break
@@ -534,21 +550,6 @@ function updateOrAddAssistantMessage(content) {
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
     if (!assistantElement) {
         // Create new assistant message element with same structure as addMessageToChat
         assistantElement = document.createElement('div');
@@ -564,38 +565,17 @@ function updateOrAddAssistantMessage(content) {
                 <strong>دستیار</strong>
                 <small class="text-muted float-end">${timestamp}</small>
             </div>
-            <div class="message-content">${renderedContent}</div>
+            <div class="message-content"></div>
         `;
         assistantElement.innerHTML = elementContent;
         chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
-            
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
-                    }
-                });
-            }
-        }
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
     }
     
     // Add copy buttons to code blocks and quotes
@@ -612,52 +592,6 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
-    // Add image display if imagesData is present
-    let imageContent = '';
-    if (imagesData && imagesData.length > 0) {
-        console.log('Processing images for display:', imagesData);
-        imagesData.forEach((img, index) => {
-            if (img.image_url && img.image_url.url) {
-                // Handle both absolute URLs and relative paths
-                let imageUrl = img.image_url.url;
-                // If it's a relative path, prepend the media URL
-                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                    imageUrl = '/media/' + imageUrl;
-                }
-                // If it already starts with /media/, make sure it's properly formatted
-                else if (imageUrl.startsWith('/media/')) {
-                    // It's already correctly formatted
-                }
-                // If it's already an absolute URL, leave it as is
-                console.log(`Image ${index + 1} URL:`, imageUrl);
-                imageContent += `<div class="image-container mt-2" data-image-index="${index}">
-                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;" onload="console.log('Image ${index + 1} loaded successfully')" onerror="console.error('Failed to load image ${index + 1}:', this.src)">
-                    <div class="mt-1">
-                        <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-download"></i> دانلود تصویر
-                        </a>
-                    </div>
-                </div>`;
-            }
-        });
-        console.log('Generated image content HTML:', imageContent);
-    }
-    
     if (!assistantElement) {
         // Create new assistant message element with same structure as addMessageToChat
         assistantElement = document.createElement('div');
@@ -673,68 +607,66 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
                 <strong>دستیار</strong>
                 <small class="text-muted float-end">${timestamp}</small>
             </div>
-            <div class="message-content">${renderedContent}</div>
-            ${imageContent}
+            <div class="message-content"></div>
         `;
         assistantElement.innerHTML = elementContent;
         chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
+    }
+    
+    // Add images if they exist
+    if (imagesData && imagesData.length > 0) {
+        // Check if images have already been added
+        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
+        if (existingImageContainers.length === 0) {
+            // Add image display
+            let imageContent = '';
+            imagesData.forEach((img, index) => {
+                if (img.image_url && img.image_url.url) {
+                    // Handle both absolute URLs and relative paths
+                    let imageUrl = img.image_url.url;
+                    // If it's a relative path, prepend the media URL
+                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                        imageUrl = '/media/' + imageUrl;
+                    }
+                    imageContent += `<div class="image-container mt-2" data-image-index="${index}">
+                        <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <div class="mt-1">
+                            <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i> دانلود تصویر
+                            </a>
+                        </div>
+                    </div>`;
+                }
+            });
             
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
+            if (imageContent) {
+                // Add the image content
+                assistantElement.insertAdjacentHTML('beforeend', imageContent);
+                
+                // Force image loading and display
+                const newImages = assistantElement.querySelectorAll('.image-container img');
+                newImages.forEach(img => {
+                    img.onload = function() {
+                        // Scroll to show the image when it loads
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 50);
+                    };
+                    // Ensure image loads even if cached
+                    if (img.complete) {
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 50);
                     }
                 });
             }
-        }
-        
-        // Add images if they exist
-        // Always update/replace images to ensure they're current
-        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
-        if (existingImageContainers.length > 0) {
-            // Remove existing image containers
-            existingImageContainers.forEach(container => container.remove());
-        }
-        
-        if (imageContent) {
-            // Add the new image content
-            assistantElement.insertAdjacentHTML('beforeend', imageContent);
-            
-            // Force image loading and display
-            const newImages = assistantElement.querySelectorAll('.image-container img');
-            newImages.forEach(img => {
-                img.onload = function() {
-                    // Scroll to show the image when it loads
-                    setTimeout(() => {
-                        scrollToBottom();
-                    }, 50);
-                };
-                // Ensure image loads even if cached
-                if (img.complete) {
-                    setTimeout(() => {
-                        scrollToBottom();
-                    }, 50);
-                }
-            });
         }
     }
     
@@ -1027,6 +959,66 @@ function ensureMessageIds() {
     messagesWithoutIds.forEach((message, index) => {
         console.warn('Message without ID found:', message);
     });
+}
+
+// Function to simulate typing effect
+function typeText(element, text) {
+    // Store the target element and text as data attributes
+    element.dataset.targetText = text;
+    
+    // If there's already a typing animation running, clear it
+    if (element.typingTimeout) {
+        clearTimeout(element.typingTimeout);
+        element.typingTimeout = null;
+    }
+    
+    // Get the currently displayed text
+    const currentText = element.dataset.currentText || '';
+    
+    // If we're already displaying the full text, no need to type
+    if (currentText === text) {
+        return;
+    }
+    
+    // If the new text is shorter than current text, reset
+    if (text.length < currentText.length) {
+        element.dataset.currentText = '';
+        element.innerHTML = '';
+    }
+    
+    // Start typing from where we left off
+    const startIndex = element.dataset.currentText ? element.dataset.currentText.length : 0;
+    
+    // Type one character at a time
+    function typeCharacter(index) {
+        if (index <= text.length) {
+            const partialText = text.substring(0, index);
+            element.dataset.currentText = partialText;
+            
+            // Convert markdown to HTML for the current partial text
+            let htmlContent;
+            try {
+                // For streaming, we render the partial text as-is without markdown
+                // to avoid issues with incomplete markdown tags
+                htmlContent = md.utils.escapeHtml(partialText);
+                // But we can still handle line breaks
+                htmlContent = htmlContent.replace(/\n/g, '<br>');
+            } catch (e) {
+                console.error('Error rendering markdown:', e);
+                htmlContent = md.utils.escapeHtml(partialText);
+            }
+            
+            element.innerHTML = htmlContent;
+            
+            // Continue typing
+            if (index < text.length) {
+                element.typingTimeout = setTimeout(() => typeCharacter(index + 1), 20);
+            }
+        }
+    }
+    
+    // Start typing from the current position
+    typeCharacter(startIndex);
 }
 
 // Function to show image generation success notification

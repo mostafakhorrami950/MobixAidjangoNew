@@ -7,153 +7,6 @@ let currentEditingMessageId = null;
 let originalMessageContent = null;
 let currentInlineEditElement = null;
 
-// Utility function to scroll to bottom with better reliability
-function scrollToBottom() {
-    // Multiple approaches to ensure scrolling works in all scenarios
-    function doScroll() {
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-    
-    // Immediate scroll
-    doScroll();
-    
-    // Scroll after a short delay to handle DOM updates
-    setTimeout(doScroll, 10);
-    
-    // Scroll using requestAnimationFrame for better timing
-    requestAnimationFrame(doScroll);
-    
-    // Additional scroll attempts with increasing delays
-    setTimeout(doScroll, 50);
-    setTimeout(doScroll, 100);
-    setTimeout(doScroll, 200);
-}
-
-// Helper function to check if the user is near the bottom of the page
-function isUserAtBottom() {
-    // A small buffer in pixels to ensure it works on all screen sizes
-    const threshold = 50; 
-    return (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - threshold);
-}
-
-// Function to add copy buttons to code blocks and quotes
-function addCopyButtonsToContent(messageElement) {
-    // Add copy buttons to code blocks
-    const codeBlocks = messageElement.querySelectorAll('pre');
-    codeBlocks.forEach(block => {
-        // Check if copy button already exists
-        if (!block.querySelector('.copy-code-btn')) {
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'btn btn-sm btn-outline-secondary copy-code-btn';
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            copyBtn.title = 'کپی کد';
-            copyBtn.style.cssText = 'position: absolute; top: 5px; left: 5px; z-index: 10;';
-            
-            // Wrap the code block in a relative container if needed
-            const parent = block.parentNode;
-            if (parent.style.position !== 'relative') {
-                block.style.position = 'relative';
-                block.style.paddingTop = '30px'; // Make space for the button
-            }
-            
-            block.appendChild(copyBtn);
-            
-            copyBtn.addEventListener('click', function() {
-                const code = block.querySelector('code');
-                if (code) {
-                    const text = code.textContent || code.innerText;
-                    if (navigator.clipboard) {
-                        navigator.clipboard.writeText(text).then(() => {
-                            // Show success feedback
-                            const originalHTML = copyBtn.innerHTML;
-                            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                            setTimeout(() => {
-                                copyBtn.innerHTML = originalHTML;
-                            }, 2000);
-                        }).catch(err => {
-                            console.error('Failed to copy: ', err);
-                        });
-                    } else {
-                        // Fallback for older browsers
-                        const textArea = document.createElement('textarea');
-                        textArea.value = text;
-                        document.body.appendChild(textArea);
-                        textArea.select();
-                        try {
-                            document.execCommand('copy');
-                            // Show success feedback
-                            const originalHTML = copyBtn.innerHTML;
-                            copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                            setTimeout(() => {
-                                copyBtn.innerHTML = originalHTML;
-                            }, 2000);
-                        } catch (err) {
-                            console.error('Fallback: Oops, unable to copy', err);
-                        }
-                        document.body.removeChild(textArea);
-                    }
-                }
-            });
-        }
-    });
-    
-    // Add copy buttons to blockquotes
-    const blockquotes = messageElement.querySelectorAll('blockquote');
-    blockquotes.forEach(blockquote => {
-        // Check if copy button already exists
-        if (!blockquote.querySelector('.copy-quote-btn')) {
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'btn btn-sm btn-outline-secondary copy-quote-btn';
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-            copyBtn.title = 'کپی نقل قول';
-            copyBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; z-index: 10;';
-            
-            // Wrap the blockquote in a relative container if needed
-            const parent = blockquote.parentNode;
-            if (parent.style.position !== 'relative') {
-                blockquote.style.position = 'relative';
-                blockquote.style.paddingRight = '30px'; // Make space for the button
-            }
-            
-            blockquote.appendChild(copyBtn);
-            
-            copyBtn.addEventListener('click', function() {
-                const text = blockquote.textContent || blockquote.innerText;
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        // Show success feedback
-                        const originalHTML = copyBtn.innerHTML;
-                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => {
-                            copyBtn.innerHTML = originalHTML;
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Failed to copy: ', err);
-                    });
-                } else {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        // Show success feedback
-                        const originalHTML = copyBtn.innerHTML;
-                        copyBtn.innerHTML = '<i class="fas fa-check"></i>';
-                        setTimeout(() => {
-                            copyBtn.innerHTML = originalHTML;
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Fallback: Oops, unable to copy', err);
-                    }
-                    document.body.removeChild(textArea);
-                }
-            });
-        }
-    });
-}
-
 // تابع برای اضافه کردن دکمه ویرایش به پیام‌های کاربر
 function addEditButtonToUserMessages() {
     console.log('Adding edit buttons to user messages');
@@ -452,18 +305,13 @@ function saveInlineEdit(messageId, newContent) {
         return handleEditStreamingResponse(response);
     })
     .then(() => {
-        // Check if this is an image editing chatbot
-        const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-        if (sessionData.chatbot_type === 'image_editing') {
-            // For image editing chatbots, refresh the page after successful image generation
-            showSuccessMessage('ویرایش پیام انجام شد. صفحه به‌روزرسانی می‌شود...');
-            setTimeout(() => {
-                location.reload();
-            }, 1500); // Refresh after showing success message
-        } else {
-            // For regular chatbots, show success message and don't refresh
-            showSuccessMessage('پیام با موفقیت ویرایش شد.');
-        }
+        // نمایش پیام موفقیت
+        showSuccessMessage('ویرایش پیام انجام شد. صفحه به‌روزرسانی می‌شود...');
+        
+        // Refresh the page to ensure clean UI state
+        setTimeout(() => {
+            location.reload();
+        }, 1500); // Refresh after showing success message
     })
     .catch(error => {
         console.error('Error editing message:', error);
@@ -557,8 +405,11 @@ function handleEditStreamingResponse(response) {
                         return;
                     }
                     
-                    // For all other chatbots, don't refresh the page to allow users to see the streaming updates
-                    console.log('Message editing completed successfully, keeping page for user to see updates...');
+                    // For all other chatbots, refresh the page to ensure clean UI state after editing
+                    console.log('Message editing completed successfully, refreshing page for clean UI...');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500); // Refresh after 1.5 seconds to show success message first
                     
                     return;
                 }
@@ -854,6 +705,200 @@ function markMessagesAsDisabled(messageIds) {
     }
 }
 
+// Function to simulate typing effect
+function typeText(element, text) {
+    // Store the target element and text as data attributes
+    element.dataset.targetText = text;
+    
+    // If there's already a typing animation running, clear it
+    if (element.typingTimeout) {
+        clearTimeout(element.typingTimeout);
+        element.typingTimeout = null;
+    }
+    
+    // Get the currently displayed text
+    const currentText = element.dataset.currentText || '';
+    
+    // If we're already displaying the full text, no need to type
+    if (currentText === text) {
+        return;
+    }
+    
+    // If the new text is shorter than current text, reset
+    if (text.length < currentText.length) {
+        element.dataset.currentText = '';
+        element.innerHTML = '';
+    }
+    
+    // Start typing from where we left off
+    const startIndex = element.dataset.currentText ? element.dataset.currentText.length : 0;
+    
+    // Type one character at a time
+    function typeCharacter(index) {
+        if (index <= text.length) {
+            const partialText = text.substring(0, index);
+            element.dataset.currentText = partialText;
+            
+            // Convert markdown to HTML for the current partial text
+            let htmlContent;
+            try {
+                // For streaming, we render the partial text as-is without markdown
+                // to avoid issues with incomplete markdown tags
+                htmlContent = md.utils.escapeHtml(partialText);
+                // But we can still handle line breaks
+                htmlContent = htmlContent.replace(/\n/g, '<br>');
+            } catch (e) {
+                console.error('Error rendering markdown:', e);
+                htmlContent = md.utils.escapeHtml(partialText);
+            }
+            
+            element.innerHTML = htmlContent;
+            
+            // Continue typing
+            if (index < text.length) {
+                element.typingTimeout = setTimeout(() => typeCharacter(index + 1), 20);
+            }
+        }
+    }
+    
+    // Start typing from the next character
+    typeCharacter(startIndex);
+}
+
+// Update or add assistant message for streaming
+function updateOrAddAssistantMessage(content) {
+    const chatContainer = document.getElementById('chat-container');
+    let assistantElement = document.getElementById('streaming-assistant');
+    
+    if (!assistantElement) {
+        // Create new assistant message element with same structure as addMessageToChat
+        assistantElement = document.createElement('div');
+        assistantElement.className = 'message-assistant';
+        assistantElement.id = 'streaming-assistant';
+        
+        // Format timestamp
+        const timestamp = new Date().toLocaleTimeString('fa-IR');
+        
+        // Create message content with metadata (similar to addMessageToChat)
+        let elementContent = `
+            <div class="message-header">
+                <strong>دستیار</strong>
+                <small class="text-muted float-end">${timestamp}</small>
+            </div>
+            <div class="message-content"></div>
+        `;
+        assistantElement.innerHTML = elementContent;
+        chatContainer.appendChild(assistantElement);
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
+    }
+    
+    // Add copy buttons to code blocks and quotes
+    addCopyButtonsToContent(assistantElement);
+    
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
+}
+
+// Update the streaming handler to handle images
+function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
+    const chatContainer = document.getElementById('chat-container');
+    let assistantElement = document.getElementById('streaming-assistant');
+    
+    if (!assistantElement) {
+        // Create new assistant message element with same structure as addMessageToChat
+        assistantElement = document.createElement('div');
+        assistantElement.className = 'message-assistant';
+        assistantElement.id = 'streaming-assistant';
+        
+        // Format timestamp
+        const timestamp = new Date().toLocaleTimeString('fa-IR');
+        
+        // Create message content with metadata (similar to addMessageToChat)
+        let elementContent = `
+            <div class="message-header">
+                <strong>دستیار</strong>
+                <small class="text-muted float-end">${timestamp}</small>
+            </div>
+            <div class="message-content"></div>
+        `;
+        assistantElement.innerHTML = elementContent;
+        chatContainer.appendChild(assistantElement);
+    }
+    
+    // Update content with typing effect
+    const contentDiv = assistantElement.querySelector('.message-content');
+    if (contentDiv) {
+        // Apply typing effect character by character
+        typeText(contentDiv, content);
+    }
+    
+    // Add images if they exist
+    if (imagesData && imagesData.length > 0) {
+        // Check if images have already been added
+        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
+        if (existingImageContainers.length === 0) {
+            // Add image display
+            let imageContent = '';
+            imagesData.forEach((img, index) => {
+                if (img.image_url && img.image_url.url) {
+                    // Handle both absolute URLs and relative paths
+                    let imageUrl = img.image_url.url;
+                    // If it's a relative path, prepend the media URL
+                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
+                        imageUrl = '/media/' + imageUrl;
+                    }
+                    imageContent += `<div class="image-container mt-2" data-image-index="${index}">
+                        <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <div class="mt-1">
+                            <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i> دانلود تصویر
+                            </a>
+                        </div>
+                    </div>`;
+                }
+            });
+            
+            if (imageContent) {
+                // Add the image content
+                assistantElement.insertAdjacentHTML('beforeend', imageContent);
+                
+                // Force image loading and display
+                const newImages = assistantElement.querySelectorAll('.image-container img');
+                newImages.forEach(img => {
+                    img.onload = function() {
+                        // Scroll to show the image when it loads
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 50);
+                    };
+                    // Ensure image loads even if cached
+                    if (img.complete) {
+                        setTimeout(() => {
+                            scrollToBottom();
+                        }, 50);
+                    }
+                });
+            }
+        }
+    }
+    
+    // Add copy buttons to code blocks and quotes
+    addCopyButtonsToContent(assistantElement);
+    
+    // Scroll to bottom during streaming ONLY if the user is already at the bottom
+    if (isUserAtBottom()) {
+        scrollToBottom();
+    }
+}
+
 // Variable to track if we're currently removing disabled messages
 let isRemovingDisabledMessages = false;
 
@@ -926,224 +971,6 @@ function removeDisabledMessages(disabledMessageIds) {
         console.error('Error removing disabled messages:', error);
         // Reset the flag in case of error
         isRemovingDisabledMessages = false;
-    }
-}
-
-// Update or add assistant message for streaming
-function updateOrAddAssistantMessage(content) {
-    const chatContainer = document.getElementById('chat-container');
-    let assistantElement = document.getElementById('streaming-assistant');
-    
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
-    if (!assistantElement) {
-        // Create new assistant message element with same structure as addMessageToChat
-        assistantElement = document.createElement('div');
-        assistantElement.className = 'message-assistant';
-        assistantElement.id = 'streaming-assistant';
-        
-        // Format timestamp
-        const timestamp = new Date().toLocaleTimeString('fa-IR');
-        
-        // Create message content with metadata (similar to addMessageToChat)
-        let elementContent = `
-            <div class="message-header">
-                <strong>دستیار</strong>
-                <small class="text-muted float-end">${timestamp}</small>
-            </div>
-            <div class="message-content">${renderedContent}</div>
-        `;
-        assistantElement.innerHTML = elementContent;
-        chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
-            
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
-                    }
-                });
-            }
-        }
-    }
-    
-    // Add copy buttons to code blocks and quotes
-    addCopyButtonsToContent(assistantElement);
-    
-    // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
-        scrollToBottom();
-    }
-}
-
-// Update the streaming handler to handle images
-function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
-    const chatContainer = document.getElementById('chat-container');
-    let assistantElement = document.getElementById('streaming-assistant');
-    
-    // Render Markdown for the content
-    let renderedContent;
-    try {
-        renderedContent = md.render(content);
-    } catch (e) {
-        console.error('Error rendering markdown:', e);
-        // Show error message in Persian
-        if (e.message && e.message.includes('code') || e.message.includes('quote') || e.message.includes('newline')) {
-            renderedContent = '<div class="alert alert-warning">هشدار: فرمت خط جدید یا نقل‌قول‌ها به درستی رندر نشدند.</div>' + md.utils.escapeHtml(content);
-        } else {
-            // Fallback to plain text if markdown rendering fails
-            renderedContent = md.utils.escapeHtml(content);
-        }
-    }
-    
-    // Add image display if imagesData is present
-    let imageContent = '';
-    if (imagesData && imagesData.length > 0) {
-        console.log('Processing images for display:', imagesData);
-        imagesData.forEach((img, index) => {
-            if (img.image_url && img.image_url.url) {
-                // Handle both absolute URLs and relative paths
-                let imageUrl = img.image_url.url;
-                // If it's a relative path, prepend the media URL
-                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('/media/')) {
-                    imageUrl = '/media/' + imageUrl;
-                }
-                // If it already starts with /media/, make sure it's properly formatted
-                else if (imageUrl.startsWith('/media/')) {
-                    // It's already correctly formatted
-                }
-                // If it's already an absolute URL, leave it as is
-                console.log(`Image ${index + 1} URL:`, imageUrl);
-                imageContent += `<div class="image-container mt-2" data-image-index="${index}">
-                    <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;" onload="console.log('Image ${index + 1} loaded successfully')" onerror="console.error('Failed to load image ${index + 1}:', this.src)">
-                    <div class="mt-1">
-                        <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-download"></i> دانلود تصویر
-                        </a>
-                    </div>
-                </div>`;
-            }
-        });
-        console.log('Generated image content HTML:', imageContent);
-    }
-    
-    if (!assistantElement) {
-        // Create new assistant message element with same structure as addMessageToChat
-        assistantElement = document.createElement('div');
-        assistantElement.className = 'message-assistant';
-        assistantElement.id = 'streaming-assistant';
-        
-        // Format timestamp
-        const timestamp = new Date().toLocaleTimeString('fa-IR');
-        
-        // Create message content with metadata (similar to addMessageToChat)
-        let elementContent = `
-            <div class="message-header">
-                <strong>دستیار</strong>
-                <small class="text-muted float-end">${timestamp}</small>
-            </div>
-            <div class="message-content">${renderedContent}</div>
-            ${imageContent}
-        `;
-        assistantElement.innerHTML = elementContent;
-        chatContainer.appendChild(assistantElement);
-    } else {
-        // Update existing element content only
-        const contentDiv = assistantElement.querySelector('.message-content');
-        if (contentDiv) {
-            contentDiv.innerHTML = renderedContent;
-            
-            // Apply syntax highlighting to new code blocks
-            if (hljs) {
-                const codeBlocks = contentDiv.querySelectorAll('pre code');
-                codeBlocks.forEach(block => {
-                    if (!block.dataset.highlighted) {
-                        try {
-                            // اطمینان از اینکه محتوا escape شده است
-                            if (block.innerHTML && !block.dataset.highlighted) {
-                                // بررسی امنیتی HTML
-                                if (block.innerHTML.includes('<') && !block.innerHTML.includes('&lt;')) {
-                                    block.innerHTML = block.innerHTML.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                }
-                                hljs.highlightElement(block);
-                                block.dataset.highlighted = 'true';
-                            }
-                        } catch (e) {
-                            console.warn('Syntax highlighting failed for block:', e);
-                        }
-                    }
-                });
-            }
-        }
-        
-        // Add images if they exist
-        // Always update/replace images to ensure they're current
-        const existingImageContainers = assistantElement.querySelectorAll('.image-container');
-        if (existingImageContainers.length > 0) {
-            // Remove existing image containers
-            existingImageContainers.forEach(container => container.remove());
-        }
-        
-        if (imageContent) {
-            // Add the new image content
-            assistantElement.insertAdjacentHTML('beforeend', imageContent);
-            
-            // Force image loading and display
-            const newImages = assistantElement.querySelectorAll('.image-container img');
-            newImages.forEach(img => {
-                img.onload = function() {
-                    // Scroll to show the image when it loads
-                    setTimeout(() => {
-                        scrollToBottom();
-                    }, 50);
-                };
-                // Ensure image loads even if cached
-                if (img.complete) {
-                    setTimeout(() => {
-                        scrollToBottom();
-                    }, 50);
-                }
-            });
-        }
-    }
-    
-    // Add copy buttons to code blocks and quotes
-    addCopyButtonsToContent(assistantElement);
-    
-    // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
-        scrollToBottom();
     }
 }
 
