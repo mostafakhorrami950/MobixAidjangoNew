@@ -990,7 +990,8 @@ def send_message(request, session_id):
 
             return StreamingHttpResponse(
                 generate(),
-                content_type='text/plain; charset=utf-8'
+                content_type='text/plain; charset=utf-8',
+                headers={'X-Accel-Buffering': 'no'}  # این خط را اضافه کنید
             )
 
         except Exception as e:
@@ -1809,7 +1810,8 @@ def edit_message(request, session_id, message_id):
         
         return StreamingHttpResponse(
             generate(),
-            content_type='text/plain; charset=utf-8'
+            content_type='text/plain; charset=utf-8',
+            headers={'X-Accel-Buffering': 'no'}  # این خط را اضافه کنید
         )
         
     except Exception as e:

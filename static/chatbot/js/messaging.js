@@ -831,7 +831,8 @@ async function createDefaultSessionAndSendMessage(message, files) {
         document.getElementById('delete-session-btn').style.display = 'inline-block';
         
         // فعال کردن input ها
-        document.getElementById('message-input').disabled = false;
+        const messageInput = document.getElementById('message-input');
+        messageInput.disabled = false;
         document.getElementById('send-button').disabled = false;
         
         // Store session data in localStorage (important for auto-refresh functionality)
