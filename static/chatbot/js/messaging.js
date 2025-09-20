@@ -4,8 +4,9 @@
 
 // Send message with streaming support
 function sendMessage() {
-    console.log('sendMessage called');
+    console.log('sendMessage function called - messaging.js loaded');
     const messageInput = document.getElementById('message-input');
+    console.log('messageInput element:', messageInput);
     const message = messageInput.value.trim();
     
     // دریافت فایل‌ها از مدیر آپلود چند فایل
