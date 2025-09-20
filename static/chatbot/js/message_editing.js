@@ -450,33 +450,108 @@ function handleEditStreamingResponse(response) {
                             console.error('Error parsing assistant message ID data:', parseError);
                         }
                     }
-                    // پردازش داده‌های تصویر
-                    else if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
-                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
-                        const endIdx = chunk.indexOf('[IMAGES_END]');
-                        const imagesJson = chunk.substring(startIdx, endIdx);
-                        try {
-                            const newImages = JSON.parse(imagesJson);
-                            imagesData = imagesData.concat(newImages);
-                            console.log('Received images data:', imagesData);
-                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                        } catch (parseError) {
-                            console.error('Error parsing images data:', parseError);
+                    
+                    // Buffer to accumulate partial data
+                    let buffer = chunk;
+                    
+                    // Process complete markers from buffer
+                    while (true) {
+                        // Check for different types of markers
+                        const imagesStart = buffer.indexOf('[IMAGES]');
+                        const imagesEnd = buffer.indexOf('[IMAGES_END]');
+                        const usageDataStart = buffer.indexOf('[USAGE_DATA]');
+                        const usageDataEnd = buffer.indexOf('[USAGE_DATA_END]');
+                        
+                        let processed = false;
+                        
+                        // Find the first marker in the buffer
+                        const markers = [
+                            { start: imagesStart, end: imagesEnd, name: 'IMAGES' },
+                            { start: usageDataStart, end: usageDataEnd, name: 'USAGE_DATA' }
+                        ];
+                        
+                        // Filter out markers that are not found (-1)
+                        const foundMarkers = markers.filter(marker => marker.start !== -1 && marker.end !== -1);
+                        
+                        if (foundMarkers.length > 0) {
+                            // Find the marker with the earliest start position
+                            const firstMarker = foundMarkers.reduce((earliest, current) => 
+                                current.start < earliest.start ? current : earliest
+                            );
+                            
+                            // Process any text before the first marker
+                            if (firstMarker.start > 0) {
+                                const textBeforeMarker = buffer.substring(0, firstMarker.start);
+                                assistantContent += textBeforeMarker;
+                                console.log('Adding text before marker to assistant message:', textBeforeMarker);
+                                
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent);
+                                }
+                                
+                                // Remove processed text from buffer
+                                buffer = buffer.substring(firstMarker.start);
+                                processed = true;
+                                continue;
+                            }
+                            
+                            // Handle the first marker based on its type
+                            switch (firstMarker.name) {
+                                case 'IMAGES':
+                                    const imagesJson = buffer.substring(8, imagesEnd); // 8 = length of '[IMAGES]'
+                                    try {
+                                        const newImages = JSON.parse(imagesJson);
+                                        imagesData = imagesData.concat(newImages);
+                                        console.log('Received images data:', imagesData);
+                                        // Update the streaming message with images immediately
+                                        updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                        
+                                        // Force scroll to show the new images
+                                        setTimeout(() => {
+                                            scrollToBottom();
+                                        }, 100);
+                                    } catch (parseError) {
+                                        console.error('Error parsing images data:', parseError);
+                                    }
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(imagesEnd + 12); // 12 = length of '[IMAGES_END]'
+                                    processed = true;
+                                    continue;
+                                    
+                                case 'USAGE_DATA':
+                                    // We don't need to do anything with usage data here
+                                    // It's handled on the server side
+                                    console.log('Received usage data, ignoring');
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(usageDataEnd + 16); // 16 = length of '[USAGE_DATA_END]'
+                                    processed = true;
+                                    continue;
+                            }
+                        } else if (buffer.length > 0) {
+                            // If no markers found, add the entire buffer as regular content
+                            assistantContent += buffer;
+                            console.log('Adding remaining buffer content to assistant message:', buffer);
+                            
+                            // Update the streaming message with current content
+                            if (imagesData.length > 0) {
+                                updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                            } else {
+                                updateOrAddAssistantMessage(assistantContent);
+                            }
+                            
+                            // Clear buffer
+                            buffer = '';
+                            processed = true;
                         }
-                    }
-                    // پردازش داده‌های استفاده
-                    else if (chunk.includes('[USAGE_DATA]') && chunk.includes('[USAGE_DATA_END]')) {
-                        // نادیده گرفتن داده‌های استفاده
-                        console.log('Received usage data chunk, ignoring');
-                    }
-                    // پردازش محتوای عادی
-                    else {
-                        console.log('Received content chunk:', chunk);
-                        assistantContent += chunk;
-                        if (imagesData.length > 0) {
-                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                        } else {
-                            updateOrAddAssistantMessage(assistantContent);
+                        
+                        // If no content was processed, break
+                        if (!processed) {
+                            break;
                         }
                     }
                 } catch (decodeError) {

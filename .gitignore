@@ -52,3 +52,6 @@ desktop.ini
 
 # Documents for test/demo
 test_file.*
+
+# Django collected static files
+/staticfiles/
