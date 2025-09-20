@@ -219,7 +219,7 @@ class UsageService:
     def get_user_usage_for_period(user, subscription_type, start_time, end_time):
         """
         Get user's message and token usage for a specific period
-        Returns (messages_count, tokens_count)
+        Returns (messages_count, total_tokens)
         """
         logger.debug(f"Getting user usage for period: {start_time} to {end_time}")
         
@@ -237,9 +237,12 @@ class UsageService:
         )
         
         total_messages = usage_data['total_messages'] or 0
-        total_tokens = (usage_data['total_tokens'] or 0) + (usage_data['total_free_tokens'] or 0)
+        total_paid_tokens = usage_data['total_tokens'] or 0
+        total_free_tokens = usage_data['total_free_tokens'] or 0
+        # For backward compatibility, we still return total_tokens as the sum
+        total_tokens = total_paid_tokens + total_free_tokens
         
-        logger.debug(f"Period usage data - Messages: {total_messages}, Tokens: {total_tokens}")
+        logger.debug(f"Period usage data - Messages: {total_messages}, Paid Tokens: {total_paid_tokens}, Free Tokens: {total_free_tokens}")
         return total_messages, total_tokens
     
     @staticmethod
@@ -272,7 +275,7 @@ class UsageService:
     def get_user_total_tokens_from_chat_sessions(user, subscription_type):
         """
         Get total tokens used by user across all chat sessions for a subscription type
-        Returns (total_tokens, free_model_tokens)
+        Returns (total_paid_tokens, total_free_tokens)
         """
         logger.debug(f"Getting total tokens from chat sessions for user {user.id}")
         
@@ -282,14 +285,16 @@ class UsageService:
             subscription_type=subscription_type
         )
         
-        total_tokens = 0
-        free_model_tokens = 0
+        total_paid_tokens = 0
+        total_free_tokens = 0
         for usage in chat_session_usages:
-            total_tokens += usage.tokens_count
-            free_model_tokens += usage.free_model_tokens_count
+            if usage.is_free_model:
+                total_free_tokens += usage.free_model_tokens_count
+            else:
+                total_paid_tokens += usage.tokens_count
         
-        logger.debug(f"Total tokens from chat sessions - Total: {total_tokens}, Free model: {free_model_tokens}")
-        return total_tokens, free_model_tokens
+        logger.debug(f"Total tokens from chat sessions - Paid: {total_paid_tokens}, Free: {total_free_tokens}")
+        return total_paid_tokens, total_free_tokens
     
     @staticmethod
     def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
@@ -516,20 +521,20 @@ class UsageService:
         logger.debug(f"Current time for time-based checks: {now}")
         
         # Hourly limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        hourly_start = now - timedelta(hours=1)
+        
         if subscription_type.hourly_max_tokens > 0:
             logger.debug(f"Checking hourly limit: {subscription_type.hourly_max_tokens}")
-            hourly_start = now - timedelta(hours=1)
             
             if is_free_model:
                 hourly_messages, hourly_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, hourly_start, now
                 )
-                logger.debug(f"Hourly free model usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
             else:
                 hourly_messages, hourly_tokens = UsageService.get_user_usage_for_period(
                     user, subscription_type, hourly_start, now
                 )
-                logger.debug(f"Hourly total usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
             
             if hourly_tokens >= subscription_type.hourly_max_tokens:
                 model_type = "رایگان" if is_free_model else "پولی"

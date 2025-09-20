@@ -1,32 +1,35 @@
-#!/usr/bin/env python
-"""
-اسکریپت تشخیص مشکل 403 Forbidden در ارسال پیام
-"""
 import os
+import sys
 import django
-from datetime import datetime, timedelta
+from django.conf import settings
+from django.apps import apps
+from django.contrib.auth import get_user_model
 
-# تنظیم Django
+# Add the project directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Configure Django settings
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixai.settings')
 django.setup()
 
-from accounts.models import User
-from subscriptions.services import UsageService
-from ai_models.models import AIModel
-from subscriptions.models import SubscriptionType, UserSubscription
 from django.utils import timezone
+from datetime import timedelta
+from subscriptions.services import UsageService
 
 def debug_403_error(user_id, model_id=None):
     """
-    تشخیص علت خطای 403 برای کاربر مشخص
+    Debug 403 Forbidden error for a user
     """
     try:
-        print(f"=== تشخیص مشکل 403 برای کاربر {user_id} ===\n")
+        # Get models dynamically
+        User = get_user_model()
+        AIModel = apps.get_model('ai_models', 'AIModel')
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
         
         # 1. بررسی کاربر
         try:
             user = User.objects.get(id=user_id)
-            print(f"✓ کاربر پیدا شد: {user.name} ({user.phone_number})")
+            print(f"✓ کاربر {user.name} ({user.phone_number}) یافت شد")
         except User.DoesNotExist:
             print(f"✗ کاربر با ID {user_id} یافت نشد")
             return
@@ -35,59 +38,51 @@ def debug_403_error(user_id, model_id=None):
         subscription = user.get_subscription_type()
         if subscription:
             print(f"✓ اشتراک فعال: {subscription.name}")
-            
-            # بررسی تاریخ انقضا
-            subscription_info = user.get_subscription_info()
-            if subscription_info:
-                if subscription_info.end_date:
-                    remaining_days = (subscription_info.end_date - timezone.now()).days
-                    if remaining_days > 0:
-                        print(f"✓ اشتراک معتبر: {remaining_days} روز باقی مانده")
-                    else:
-                        print(f"✗ اشتراک منقضی شده: {abs(remaining_days)} روز پیش")
-                else:
-                    print("✓ اشتراک بدون محدودیت زمان")
-            else:
-                print("⚠ اطلاعات اشتراک در دسترس نیست")
         else:
             print("✗ کاربر اشتراک فعال ندارد")
             return
         
-        # 3. بررسی مدل AI
+        # 3. بررسی مدل
         if model_id:
             try:
                 ai_model = AIModel.objects.get(model_id=model_id)
-                print(f"✓ مدل پیدا شد: {ai_model.name}")
+                print(f"✓ مدل {ai_model.name} یافت شد")
             except AIModel.DoesNotExist:
                 print(f"✗ مدل با ID {model_id} یافت نشد")
-                return
+                # Try to get any active text model
+                ai_model = AIModel.objects.filter(is_active=True, model_type='text').first()
+                if ai_model:
+                    print(f"→ استفاده از مدل جایگزین: {ai_model.name}")
+                else:
+                    print("✗ هیچ مدل فعالی یافت نشد")
+                    return
         else:
-            # استفاده از اولین مدل متنی فعال
+            # Get any active text model
             ai_model = AIModel.objects.filter(is_active=True, model_type='text').first()
             if ai_model:
-                print(f"✓ استفاده از مدل پیش‌فرض: {ai_model.name}")
+                print(f"✓ استفاده از مدل: {ai_model.name}")
             else:
-                print("✗ هیچ مدل فعال یافت نشد")
+                print("✗ هیچ مدل فعالی یافت نشد")
                 return
         
-        # 4. بررسی دسترسی به مدل
-        has_access = user.has_access_to_model(ai_model)
-        if has_access:
+        # 4. بررسی دسترسی کاربر به مدل
+        if user.has_access_to_model(ai_model):
             print(f"✓ کاربر دسترسی به مدل {ai_model.name} دارد")
         else:
             print(f"✗ کاربر دسترسی به مدل {ai_model.name} ندارد")
             print("  راه حل: مدل را به اشتراک کاربر اضافه کنید")
         
         # 5. بررسی توکن‌های مصرف شده
-        total_tokens, free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription)
+        total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription)
+        total_tokens = total_paid_tokens + total_free_tokens
         print(f"\n--- آمار استفاده ---")
         print(f"کل توکن‌های مصرف شده: {total_tokens:,}")
-        print(f"توکن‌های مدل رایگان: {free_tokens:,}")
+        print(f"توکن‌های مدل رایگان: {total_free_tokens:,}")
         print(f"حداکثر توکن مجاز: {subscription.max_tokens:,}")
         print(f"حداکثر توکن رایگان: {subscription.max_tokens_free:,}")
         
         remaining_tokens = max(0, subscription.max_tokens - total_tokens)
-        remaining_free_tokens = max(0, subscription.max_tokens_free - free_tokens)
+        remaining_free_tokens = max(0, subscription.max_tokens_free - total_free_tokens)
         
         print(f"توکن‌های باقیمانده: {remaining_tokens:,}")
         print(f"توکن‌های رایگان باقیمانده: {remaining_free_tokens:,}")
@@ -113,7 +108,6 @@ def debug_403_error(user_id, model_id=None):
         print(f"محدودیت ماهانه: {subscription.monthly_max_tokens:,}")
         
         # 8. بررسی usage records اخیر
-        from subscriptions.models import UserUsage
         recent_usage = UserUsage.objects.filter(
             user=user, 
             subscription_type=subscription,
@@ -150,6 +144,7 @@ def reset_user_limits(user_id):
     بازنشانی محدودیت‌های کاربر
     """
     try:
+        User = get_user_model()
         user = User.objects.get(id=user_id)
         subscription = user.get_subscription_type()
         

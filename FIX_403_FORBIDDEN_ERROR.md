@@ -46,9 +46,10 @@ else:
 from subscriptions.services import UsageService
 
 # بررسی توکن‌های مصرف شده
-total_tokens, free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription)
+total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription)
+total_tokens = total_paid_tokens + total_free_tokens
 print(f"کل توکن‌های مصرف شده: {total_tokens}")
-print(f"توکن‌های مدل رایگان: {free_tokens}")
+print(f"توکن‌های مدل رایگان: {total_free_tokens}")
 print(f"حداکثر توکن مجاز: {subscription.max_tokens}")
 ```
 

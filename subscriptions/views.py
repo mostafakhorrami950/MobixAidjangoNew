@@ -228,13 +228,14 @@ def initiate_payment(request, subscription_id):
 
         if user_subscription:
             # Consistent remaining value calculation
-            total_tokens_used, _ = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
+            total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
+            total_tokens_from_chat_sessions = total_paid_tokens + total_free_tokens
             
             UserUsage = apps.get_model('subscriptions', 'UserUsage')
             user_usage_records = UserUsage.objects.filter(user=user, subscription_type=user_subscription)
             
             total_user_usage_tokens = sum(record.tokens_count for record in user_usage_records)
-            combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
+            combined_total_tokens_used = total_tokens_from_chat_sessions + total_user_usage_tokens
 
             total_token_limit = user_subscription.max_tokens or 1000000
             remaining_tokens = max(0, total_token_limit - combined_total_tokens_used)
@@ -760,7 +761,8 @@ def intelligent_subscription_upgrade(request, new_subscription_id):
     # Calculate remaining value from current subscription using the new method
     try:
         # Calculate total tokens used using the new ChatSessionUsage method
-        total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, current_subscription)
+        total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, current_subscription)
+        total_tokens_used = total_paid_tokens + total_free_tokens
         
         # Use the subscription's max_tokens field
         total_token_limit = current_subscription.max_tokens

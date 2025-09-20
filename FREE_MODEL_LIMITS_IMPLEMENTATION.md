@@ -25,7 +25,7 @@ The `comprehensive_check` method in [subscriptions/services.py](file:///c%3A/Use
 ### 2. Implementation Details
 
 #### Max Tokens Free Check
-- The system retrieves the total free tokens used by calling `UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)[1]`
+- The system retrieves the total free tokens used by calling `UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)` and accessing the second element of the returned tuple
 - It compares this value against `subscription_type.max_tokens_free`
 - If the limit is exceeded, it returns an appropriate Persian error message
 
