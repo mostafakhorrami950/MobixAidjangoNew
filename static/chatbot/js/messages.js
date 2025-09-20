@@ -709,11 +709,34 @@ function updateOrAddAssistantMessage(content, messageId = null) {
         chatContainer.appendChild(assistantElement);
     }
     
-    // Update content with typing effect
+    // Update content immediately without typing effect for better streaming experience
     const contentDiv = assistantElement.querySelector('.message-content');
     if (contentDiv) {
-        // Apply typing effect character by character
-        typeText(contentDiv, content);
+        // Render Markdown for the content
+        let renderedContent;
+        try {
+            renderedContent = md.render(content);
+        } catch (e) {
+            console.error('Error rendering markdown:', e);
+            renderedContent = md.utils.escapeHtml(content).replace(/\n/g, '<br>');
+        }
+        
+        contentDiv.innerHTML = renderedContent;
+        
+        // Apply syntax highlighting to code blocks immediately
+        if (hljs) {
+            const codeBlocks = contentDiv.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+                if (!block.dataset.highlighted) {
+                    try {
+                        hljs.highlightElement(block);
+                        block.dataset.highlighted = 'true';
+                    } catch (e) {
+                        console.warn('Syntax highlighting failed for block:', e);
+                    }
+                }
+            });
+        }
     }
     
     // Add copy buttons to code blocks and quotes
@@ -894,11 +917,34 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null, messa
         chatContainer.appendChild(assistantElement);
     }
     
-    // Update content with typing effect
+    // Update content immediately without typing effect for better streaming experience
     const contentDiv = assistantElement.querySelector('.message-content');
     if (contentDiv) {
-        // Apply typing effect character by character
-        typeText(contentDiv, content);
+        // Render Markdown for the content
+        let renderedContent;
+        try {
+            renderedContent = md.render(content);
+        } catch (e) {
+            console.error('Error rendering markdown:', e);
+            renderedContent = md.utils.escapeHtml(content).replace(/\n/g, '<br>');
+        }
+        
+        contentDiv.innerHTML = renderedContent;
+        
+        // Apply syntax highlighting to code blocks immediately
+        if (hljs) {
+            const codeBlocks = contentDiv.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+                if (!block.dataset.highlighted) {
+                    try {
+                        hljs.highlightElement(block);
+                        block.dataset.highlighted = 'true';
+                    } catch (e) {
+                        console.warn('Syntax highlighting failed for block:', e);
+                    }
+                }
+            });
+        }
     }
     
     // Add images if they exist
