@@ -102,12 +102,9 @@ function sendMessage() {
             });
         }
 
-        // Handle streaming response
+        // Handle streaming response - Simplified approach
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
-        
-        // Buffer to accumulate partial data
-        let buffer = '';
 
         function read() {
             reader.read().then(({ done, value }) => {
@@ -125,11 +122,6 @@ function sendMessage() {
                         created_at: new Date().toISOString()
                     };
                     
-                    // Add the assistant message ID if we have it
-                    if (assistantMessageId) {
-                        messageData.id = assistantMessageId;
-                    }
-                
                     // Add image URLs if any images were generated
                     let hasImages = false;
                     if (imagesData.length > 0) {
@@ -185,180 +177,40 @@ function sendMessage() {
                     const chunk = decoder.decode(value, { stream: true });
                     console.log('Received chunk from message sending:', chunk);
                     
-                    // Accumulate chunk in buffer
-                    buffer += chunk;
-                    
-                    // Process complete markers from buffer
-                    while (true) {
-                        // Check for different types of markers
-                        const userMessageStart = buffer.indexOf('[USER_MESSAGE]');
-                        const userMessageEnd = buffer.indexOf('[USER_MESSAGE_END]');
-                        const assistantMessageIdStart = buffer.indexOf('[ASSISTANT_MESSAGE_ID]');
-                        const assistantMessageIdEnd = buffer.indexOf('[ASSISTANT_MESSAGE_ID_END]');
-                        const imagesStart = buffer.indexOf('[IMAGES]');
-                        const imagesEnd = buffer.indexOf('[IMAGES_END]');
-                        const usageDataStart = buffer.indexOf('[USAGE_DATA]');
-                        const usageDataEnd = buffer.indexOf('[USAGE_DATA_END]');
-                        const titleUpdateStart = buffer.indexOf('[TITLE_UPDATE]');
-                        const titleUpdateEnd = buffer.indexOf('[TITLE_UPDATE_END]');
-                        
-                        let processed = false;
-                        
-                        // Find the first marker in the buffer
-                        const markers = [
-                            { start: userMessageStart, end: userMessageEnd, name: 'USER_MESSAGE' },
-                            { start: assistantMessageIdStart, end: assistantMessageIdEnd, name: 'ASSISTANT_MESSAGE_ID' },
-                            { start: imagesStart, end: imagesEnd, name: 'IMAGES' },
-                            { start: usageDataStart, end: usageDataEnd, name: 'USAGE_DATA' },
-                            { start: titleUpdateStart, end: titleUpdateEnd, name: 'TITLE_UPDATE' }
-                        ];
-                        
-                        // Filter out markers that are not found (-1)
-                        const foundMarkers = markers.filter(marker => marker.start !== -1 && marker.end !== -1);
-                        
-                        if (foundMarkers.length > 0) {
-                            // Find the marker with the earliest start position
-                            const firstMarker = foundMarkers.reduce((earliest, current) => 
-                                current.start < earliest.start ? current : earliest
-                            );
+                    // Simple approach: handle special markers, otherwise add to content
+                    if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
+                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
+                        const endIdx = chunk.indexOf('[IMAGES_END]');
+                        const imagesJson = chunk.substring(startIdx, endIdx);
+                        try {
+                            const newImages = JSON.parse(imagesJson);
+                            imagesData = imagesData.concat(newImages);
+                            console.log('Received images data:', imagesData);
+                            // Update the streaming message with images immediately
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
                             
-                            // Process any text before the first marker
-                            if (firstMarker.start > 0) {
-                                const textBeforeMarker = buffer.substring(0, firstMarker.start);
-                                assistantContent += textBeforeMarker;
-                                console.log('Adding text before marker to assistant message:', textBeforeMarker);
-                                
-                                // Update the streaming message with current content
-                                if (imagesData.length > 0) {
-                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                                } else {
-                                    updateOrAddAssistantMessage(assistantContent);
-                                }
-                                
-                                // Remove processed text from buffer
-                                buffer = buffer.substring(firstMarker.start);
-                                processed = true;
-                                continue;
-                            }
-                            
-                            // Handle the first marker based on its type
-                            switch (firstMarker.name) {
-                                case 'USER_MESSAGE':
-                                    const userMessageJson = buffer.substring(14, userMessageEnd); // 14 = length of '[USER_MESSAGE]'
-                                    try {
-                                        userMessageData = JSON.parse(userMessageJson);
-                                        console.log('Received user message data from server:', userMessageData);
-                                        // Update the temporary user message with the real data from server
-                                        updateUserMessageWithServerData(userMessageData);
-                                    } catch (parseError) {
-                                        console.error('Error parsing user message data:', parseError);
-                                    }
-                                    
-                                    // Remove processed data from buffer
-                                    buffer = buffer.substring(userMessageEnd + 18); // 18 = length of '[USER_MESSAGE_END]'
-                                    processed = true;
-                                    continue;
-                                    
-                                case 'ASSISTANT_MESSAGE_ID':
-                                    const assistantMessageJson = buffer.substring(22, assistantMessageIdEnd); // 22 = length of '[ASSISTANT_MESSAGE_ID]'
-                                    try {
-                                        const assistantData = JSON.parse(assistantMessageJson);
-                                        assistantMessageId = assistantData.assistant_message_id;
-                                        console.log('Received assistant message ID:', assistantMessageId);
-                                    } catch (parseError) {
-                                        console.error('Error parsing assistant message ID:', parseError);
-                                    }
-                                    
-                                    // Remove processed data from buffer
-                                    buffer = buffer.substring(assistantMessageIdEnd + 26); // 26 = length of '[ASSISTANT_MESSAGE_ID_END]'
-                                    processed = true;
-                                    continue;
-                                    
-                                case 'IMAGES':
-                                    const imagesJson = buffer.substring(8, imagesEnd); // 8 = length of '[IMAGES]'
-                                    try {
-                                        const newImages = JSON.parse(imagesJson);
-                                        imagesData = imagesData.concat(newImages);
-                                        console.log('Received images data:', imagesData);
-                                        // Update the streaming message with images immediately
-                                        updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                                        
-                                        // Force scroll to show the new images
-                                        setTimeout(() => {
-                                            scrollToBottom();
-                                        }, 100);
-                                    } catch (parseError) {
-                                        console.error('Error parsing images data:', parseError);
-                                    }
-                                    
-                                    // Remove processed data from buffer
-                                    buffer = buffer.substring(imagesEnd + 12); // 12 = length of '[IMAGES_END]'
-                                    processed = true;
-                                    continue;
-                                    
-                                case 'USAGE_DATA':
-                                    // We don't need to do anything with usage data here
-                                    // It's handled on the server side
-                                    console.log('Received usage data, ignoring');
-                                    
-                                    // Remove processed data from buffer
-                                    buffer = buffer.substring(usageDataEnd + 16); // 16 = length of '[USAGE_DATA_END]'
-                                    processed = true;
-                                    continue;
-                                    
-                                case 'TITLE_UPDATE':
-                                    const titleJson = buffer.substring(14, titleUpdateEnd); // 14 = length of '[TITLE_UPDATE]'
-                                    try {
-                                        const titleData = JSON.parse(titleJson);
-                                        console.log('Received title update:', titleData);
-                                        if (titleData.title && titleData.session_id == currentSessionId) {
-                                            updateSessionTitleInUI(titleData.title);
-                                        }
-                                    } catch (parseError) {
-                                        console.error('Error parsing title update data:', parseError);
-                                    }
-                                    
-                                    // Remove processed data from buffer
-                                    buffer = buffer.substring(titleUpdateEnd + 18); // 18 = length of '[TITLE_UPDATE_END]'
-                                    processed = true;
-                                    continue;
-                            }
-                        } else if (buffer.length > 0) {
-                            // If no markers found, check if buffer contains any marker start sequences
-                            // If it does, we should wait for more data to complete the marker
-                            // Otherwise, add the entire buffer as regular content
-                            
-                            // Check if buffer contains the start of any marker
-                            const hasMarkerStart = 
-                                buffer.includes('[USER_MESSAGE') || 
-                                buffer.includes('[ASSISTANT_MESSAGE_ID') || 
-                                buffer.includes('[IMAGES') || 
-                                buffer.includes('[USAGE_DATA') || 
-                                buffer.includes('[TITLE_UPDATE');
-                            
-                            if (!hasMarkerStart) {
-                                // Safe to add the entire buffer as regular content
-                                assistantContent += buffer;
-                                console.log('Adding remaining buffer content to assistant message:', buffer);
-                                
-                                // Update the streaming message with current content
-                                if (imagesData.length > 0) {
-                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                                } else {
-                                    updateOrAddAssistantMessage(assistantContent);
-                                }
-                                
-                                // Clear buffer
-                                buffer = '';
-                                processed = true;
-                            }
-                            // If buffer contains marker start, we wait for more data
-                            // Don't set processed = true to continue the loop
+                            // Force scroll to show the new images
+                            setTimeout(() => {
+                                scrollToBottom();
+                            }, 100);
+                        } catch (parseError) {
+                            console.error('Error parsing images data:', parseError);
                         }
+                    }
+                    // Skip usage data and title updates - handle later if needed
+                    else if (chunk.includes('[USAGE_DATA]') || chunk.includes('[TITLE_UPDATE]') || chunk.includes('[USER_MESSAGE]') || chunk.includes('[ASSISTANT_MESSAGE_ID]')) {
+                        // Ignore these special markers for now to simplify streaming
+                        console.log('Ignoring special marker in chunk');
+                    }
+                    else {
+                        // Add chunk directly to assistant content
+                        assistantContent += chunk;
                         
-                        // If no content was processed, break
-                        if (!processed) {
-                            break;
+                        // Update the streaming message with current content
+                        if (imagesData.length > 0) {
+                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                        } else {
+                            updateOrAddAssistantMessage(assistantContent);
                         }
                     }
                 } catch (decodeError) {

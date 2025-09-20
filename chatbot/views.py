@@ -810,31 +810,12 @@ def send_message(request, session_id):
                 return JsonResponse({'error': response['error']}, status=500)
 
             def generate():
-                # Add USER_MESSAGE markers to send user message data to frontend
-                user_message_data = {
-                    'id': str(user_message.message_id),  # Use message_id (UUID) for editing
-                    'db_id': user_message.id,  # Keep database ID for other functionality
-                    'type': user_message.message_type,
-                    'content': user_message.content,
-                    'created_at': user_message.created_at.isoformat(),
-                }
-                
-                yield f"[USER_MESSAGE]{json.dumps(user_message_data)}[USER_MESSAGE_END]".encode('utf-8')
-                
                 full_response = ""
                 usage_data = None
                 images_data = None
                 assistant_message_obj = None  # Object to hold assistant message for updating
 
                 try:
-                    # Create an empty assistant message object to update later
-                    assistant_message_obj = ChatMessage.objects.create(
-                        session=session,
-                        message_type='assistant',
-                        content="",  # Initial content is empty
-                        tokens_count=0
-                    )
-
                     for chunk in response:
                         # Handle image data
                         if '[IMAGES]' in chunk and '[IMAGES_END]' in chunk:
@@ -843,8 +824,8 @@ def send_message(request, session_id):
                             images_json = chunk[start_idx:end_idx]
                             try:
                                 images_data = json.loads(images_json)
-                                # Note: Image generation usage will be incremented later in the finally block
-                                # to avoid double counting
+                                # Send images data to frontend immediately
+                                yield f"[IMAGES]{images_json}[IMAGES_END]".encode('utf-8')
                             except json.JSONDecodeError:
                                 pass
                             continue
@@ -860,11 +841,10 @@ def send_message(request, session_id):
                                 pass
                             continue
                         
-                        # As soon as we receive a chunk of the response, we add it to the message and save to database
+                        # Accumulate response for final save
                         full_response += chunk
-                        assistant_message_obj.content = full_response
-                        assistant_message_obj.save(update_fields=['content']) # Only update content field
 
+                        # Send chunk directly to frontend for immediate display
                         yield chunk.encode('utf-8')
 
                 except Exception as e:
@@ -874,7 +854,8 @@ def send_message(request, session_id):
 
                 finally:
                     # This block always runs, whether the response is fully received or the connection is lost
-                    if assistant_message_obj:
+                    # Create assistant message ONLY after streaming is complete
+                    if full_response:  # Only if we have some response content
                         prompt_tokens = 0
                         completion_tokens = 0
                         total_tokens_used = 0
@@ -884,15 +865,21 @@ def send_message(request, session_id):
                             prompt_tokens = usage_data.get('prompt_tokens', 0)
                             completion_tokens = usage_data.get('completion_tokens', 0)
                             total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-                            assistant_message_obj.tokens_count = total_tokens_used # ثبت کل توکن‌های تبادل
+                            tokens_count = total_tokens_used # ثبت کل توکن‌های تبادل
                         else:
                             # در صورت نبود داده، از محاسبه خودمان استفاده می‌کنیم
-                            # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
-                            # توکن‌های خروجی پاسخ دستیار است
                             prompt_tokens = user_message_tokens
                             completion_tokens = UsageService.calculate_tokens_for_message(full_response)
                             total_tokens_used = prompt_tokens + completion_tokens
-                            assistant_message_obj.tokens_count = completion_tokens # فقط توکن‌های پاسخ را ذخیره کن
+                            tokens_count = completion_tokens # فقط توکن‌های پاسخ را ذخیره کن
+                        
+                        # Create assistant message with final content
+                        assistant_message_obj = ChatMessage.objects.create(
+                            session=session,
+                            message_type='assistant',
+                            content=full_response,
+                            tokens_count=tokens_count
+                        )
                         
                         # If image data is available, save the URLs
                         images_saved = False
@@ -901,12 +888,9 @@ def send_message(request, session_id):
                             if saved_image_urls:
                                 assistant_message_obj.image_url = ",".join(saved_image_urls)
                                 images_saved = True
-                        
-                        assistant_message_obj.save()
+                                assistant_message_obj.save(update_fields=['image_url'])
                         
                         # Auto-generate title after first user message if needed
-                        title_generated = False
-                        new_title = None
                         try:
                             if session.should_auto_generate_title():
                                 from .title_service import ChatTitleService
@@ -914,11 +898,8 @@ def send_message(request, session_id):
                                     session, user_message_content, request.user
                                 )
                                 if success:
-                                    title_generated = True
                                     logger.info(f"Auto-generated title for session {session.id}: {new_title}")
-                                    # Send title to client via stream
-                                    title_data = {'title': new_title, 'session_id': session.id}
-                                    yield f"[TITLE_UPDATE]{json.dumps(title_data)}[TITLE_UPDATE_END]".encode('utf-8')
+                                    # Title will be loaded on next page refresh
                         except Exception as e:
                             logger.warning(f"Failed to auto-generate title: {str(e)}")
                         
