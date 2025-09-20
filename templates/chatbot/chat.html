@@ -581,17 +581,8 @@ option:disabled {
 <!-- JavaScript فایل‌های مجزا -->
 {% load static %}
 <!-- بارگذاری فایل‌های JavaScript به ترتیب صحیح -->
-<script>
-    console.log('Starting to load JavaScript files...');
-</script>
 <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
-<script>
-    console.log('markdown-it loaded:', typeof window.markdownit !== 'undefined');
-</script>
 <script src="{% static 'chatbot/js/config.js' %}"></script>
-<script>
-    console.log('config.js loaded, md defined:', typeof md !== 'undefined');
-</script>
 <script src="{% static 'chatbot/js/utils.js' %}"></script>
 <script>
     // تنظیم URL های Django بعد از بارگذاری utils.js
@@ -611,6 +602,5 @@ option:disabled {
 <script src="{% static 'chatbot/js/ui.js' %}"></script>
 <script src="{% static 'chatbot/js/message_editing.js' %}"></script>
 <script src="{% static 'chatbot/js/main.js' %}"></script>
-<script src="{% static 'chatbot/js/test-basic.js' %}"></script>
 
 {% endblock %}

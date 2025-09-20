@@ -8,7 +8,6 @@ let isWebSearchEnabledForNewSession = false;
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('main.js loaded and DOMContentLoaded fired');
     loadSessions();
     checkInitialSession(); // Check if we should load a specific session
     

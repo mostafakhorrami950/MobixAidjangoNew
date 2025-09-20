@@ -4,9 +4,8 @@
 
 // Send message with streaming support
 function sendMessage() {
-    console.log('sendMessage function called - messaging.js loaded');
+    console.log('sendMessage called');
     const messageInput = document.getElementById('message-input');
-    console.log('messageInput element:', messageInput);
     const message = messageInput.value.trim();
     
     // دریافت فایل‌ها از مدیر آپلود چند فایل
@@ -103,9 +102,12 @@ function sendMessage() {
             });
         }
 
-        // Handle streaming response - Simplified approach
+        // Handle streaming response
         const reader = response.body.getReader();
         const decoder = new TextDecoder('utf-8');
+        
+        // Buffer to accumulate partial data
+        let buffer = '';
 
         function read() {
             reader.read().then(({ done, value }) => {
@@ -123,6 +125,11 @@ function sendMessage() {
                         created_at: new Date().toISOString()
                     };
                     
+                    // Add the assistant message ID if we have it
+                    if (assistantMessageId) {
+                        messageData.id = assistantMessageId;
+                    }
+                
                     // Add image URLs if any images were generated
                     let hasImages = false;
                     if (imagesData.length > 0) {
@@ -176,53 +183,182 @@ function sendMessage() {
 
                 try {
                     const chunk = decoder.decode(value, { stream: true });
-                    console.log('Raw chunk received:', chunk.substring(0, 100)); // Log first 100 chars
+                    console.log('Received chunk from message sending:', chunk);
                     
-                    // Process images if present
-                    if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
-                        const startIdx = chunk.indexOf('[IMAGES]') + 8;
-                        const endIdx = chunk.indexOf('[IMAGES_END]');
-                        const imagesJson = chunk.substring(startIdx, endIdx);
-                        try {
-                            const newImages = JSON.parse(imagesJson);
-                            imagesData = imagesData.concat(newImages);
-                            console.log('Received images data:', imagesData);
-                            // Update the streaming message with images immediately
-                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                            
-                            // Force scroll to show the new images
-                            setTimeout(() => {
-                                scrollToBottom();
-                            }, 100);
-                        } catch (parseError) {
-                            console.error('Error parsing images data:', parseError);
-                        }
-                        // Continue without adding this chunk to text
-                        read();
-                        return;
-                    }
+                    // Accumulate chunk in buffer
+                    buffer += chunk;
                     
-                    // Remove all special markers from chunk
-                    let cleanChunk = chunk;
-                    // Remove any special markers that might be in the chunk
-                    cleanChunk = cleanChunk.replace(/\[USAGE_DATA\].*?\[USAGE_DATA_END\]/g, '');
-                    cleanChunk = cleanChunk.replace(/\[TITLE_UPDATE\].*?\[TITLE_UPDATE_END\]/g, '');
-                    cleanChunk = cleanChunk.replace(/\[USER_MESSAGE\].*?\[USER_MESSAGE_END\]/g, '');
-                    cleanChunk = cleanChunk.replace(/\[ASSISTANT_MESSAGE_ID\].*?\[ASSISTANT_MESSAGE_ID_END\]/g, '');
-                    cleanChunk = cleanChunk.replace(/\[IMAGES\].*?\[IMAGES_END\]/g, '');
-                    
-                    console.log('Clean chunk:', cleanChunk.substring(0, 100)); // Log clean chunk
-                    
-                    // Only add non-empty content
-                    if (cleanChunk && cleanChunk.trim()) {
-                        assistantContent += cleanChunk;
-                        console.log('Total assistant content length:', assistantContent.length);
+                    // Process complete markers from buffer
+                    while (true) {
+                        // Check for different types of markers
+                        const userMessageStart = buffer.indexOf('[USER_MESSAGE]');
+                        const userMessageEnd = buffer.indexOf('[USER_MESSAGE_END]');
+                        const assistantMessageIdStart = buffer.indexOf('[ASSISTANT_MESSAGE_ID]');
+                        const assistantMessageIdEnd = buffer.indexOf('[ASSISTANT_MESSAGE_ID_END]');
+                        const imagesStart = buffer.indexOf('[IMAGES]');
+                        const imagesEnd = buffer.indexOf('[IMAGES_END]');
+                        const usageDataStart = buffer.indexOf('[USAGE_DATA]');
+                        const usageDataEnd = buffer.indexOf('[USAGE_DATA_END]');
+                        const titleUpdateStart = buffer.indexOf('[TITLE_UPDATE]');
+                        const titleUpdateEnd = buffer.indexOf('[TITLE_UPDATE_END]');
                         
-                        // Update the streaming message immediately
-                        if (imagesData.length > 0) {
-                            updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
-                        } else {
-                            updateOrAddAssistantMessage(assistantContent);
+                        let processed = false;
+                        
+                        // Find the first marker in the buffer
+                        const markers = [
+                            { start: userMessageStart, end: userMessageEnd, name: 'USER_MESSAGE' },
+                            { start: assistantMessageIdStart, end: assistantMessageIdEnd, name: 'ASSISTANT_MESSAGE_ID' },
+                            { start: imagesStart, end: imagesEnd, name: 'IMAGES' },
+                            { start: usageDataStart, end: usageDataEnd, name: 'USAGE_DATA' },
+                            { start: titleUpdateStart, end: titleUpdateEnd, name: 'TITLE_UPDATE' }
+                        ];
+                        
+                        // Filter out markers that are not found (-1)
+                        const foundMarkers = markers.filter(marker => marker.start !== -1 && marker.end !== -1);
+                        
+                        if (foundMarkers.length > 0) {
+                            // Find the marker with the earliest start position
+                            const firstMarker = foundMarkers.reduce((earliest, current) => 
+                                current.start < earliest.start ? current : earliest
+                            );
+                            
+                            // Process any text before the first marker
+                            if (firstMarker.start > 0) {
+                                const textBeforeMarker = buffer.substring(0, firstMarker.start);
+                                assistantContent += textBeforeMarker;
+                                console.log('Adding text before marker to assistant message:', textBeforeMarker);
+                                
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent);
+                                }
+                                
+                                // Remove processed text from buffer
+                                buffer = buffer.substring(firstMarker.start);
+                                processed = true;
+                                continue;
+                            }
+                            
+                            // Handle the first marker based on its type
+                            switch (firstMarker.name) {
+                                case 'USER_MESSAGE':
+                                    const userMessageJson = buffer.substring(14, userMessageEnd); // 14 = length of '[USER_MESSAGE]'
+                                    try {
+                                        userMessageData = JSON.parse(userMessageJson);
+                                        console.log('Received user message data from server:', userMessageData);
+                                        // Update the temporary user message with the real data from server
+                                        updateUserMessageWithServerData(userMessageData);
+                                    } catch (parseError) {
+                                        console.error('Error parsing user message data:', parseError);
+                                    }
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(userMessageEnd + 18); // 18 = length of '[USER_MESSAGE_END]'
+                                    processed = true;
+                                    continue;
+                                    
+                                case 'ASSISTANT_MESSAGE_ID':
+                                    const assistantMessageJson = buffer.substring(22, assistantMessageIdEnd); // 22 = length of '[ASSISTANT_MESSAGE_ID]'
+                                    try {
+                                        const assistantData = JSON.parse(assistantMessageJson);
+                                        assistantMessageId = assistantData.assistant_message_id;
+                                        console.log('Received assistant message ID:', assistantMessageId);
+                                    } catch (parseError) {
+                                        console.error('Error parsing assistant message ID:', parseError);
+                                    }
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(assistantMessageIdEnd + 26); // 26 = length of '[ASSISTANT_MESSAGE_ID_END]'
+                                    processed = true;
+                                    continue;
+                                    
+                                case 'IMAGES':
+                                    const imagesJson = buffer.substring(8, imagesEnd); // 8 = length of '[IMAGES]'
+                                    try {
+                                        const newImages = JSON.parse(imagesJson);
+                                        imagesData = imagesData.concat(newImages);
+                                        console.log('Received images data:', imagesData);
+                                        // Update the streaming message with images immediately
+                                        updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                        
+                                        // Force scroll to show the new images
+                                        setTimeout(() => {
+                                            scrollToBottom();
+                                        }, 100);
+                                    } catch (parseError) {
+                                        console.error('Error parsing images data:', parseError);
+                                    }
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(imagesEnd + 12); // 12 = length of '[IMAGES_END]'
+                                    processed = true;
+                                    continue;
+                                    
+                                case 'USAGE_DATA':
+                                    // We don't need to do anything with usage data here
+                                    // It's handled on the server side
+                                    console.log('Received usage data, ignoring');
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(usageDataEnd + 16); // 16 = length of '[USAGE_DATA_END]'
+                                    processed = true;
+                                    continue;
+                                    
+                                case 'TITLE_UPDATE':
+                                    const titleJson = buffer.substring(14, titleUpdateEnd); // 14 = length of '[TITLE_UPDATE]'
+                                    try {
+                                        const titleData = JSON.parse(titleJson);
+                                        console.log('Received title update:', titleData);
+                                        if (titleData.title && titleData.session_id == currentSessionId) {
+                                            updateSessionTitleInUI(titleData.title);
+                                        }
+                                    } catch (parseError) {
+                                        console.error('Error parsing title update data:', parseError);
+                                    }
+                                    
+                                    // Remove processed data from buffer
+                                    buffer = buffer.substring(titleUpdateEnd + 18); // 18 = length of '[TITLE_UPDATE_END]'
+                                    processed = true;
+                                    continue;
+                            }
+                        } else if (buffer.length > 0) {
+                            // If no markers found, check if buffer contains any marker start sequences
+                            // If it does, we should wait for more data to complete the marker
+                            // Otherwise, add the entire buffer as regular content
+                            
+                            // Check if buffer contains the start of any marker
+                            const hasMarkerStart = 
+                                buffer.includes('[USER_MESSAGE') || 
+                                buffer.includes('[ASSISTANT_MESSAGE_ID') || 
+                                buffer.includes('[IMAGES') || 
+                                buffer.includes('[USAGE_DATA') || 
+                                buffer.includes('[TITLE_UPDATE');
+                            
+                            if (!hasMarkerStart) {
+                                // Safe to add the entire buffer as regular content
+                                assistantContent += buffer;
+                                console.log('Adding remaining buffer content to assistant message:', buffer);
+                                
+                                // Update the streaming message with current content
+                                if (imagesData.length > 0) {
+                                    updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
+                                } else {
+                                    updateOrAddAssistantMessage(assistantContent);
+                                }
+                                
+                                // Clear buffer
+                                buffer = '';
+                                processed = true;
+                            }
+                            // If buffer contains marker start, we wait for more data
+                            // Don't set processed = true to continue the loop
+                        }
+                        
+                        // If no content was processed, break
+                        if (!processed) {
+                            break;
                         }
                     }
                 } catch (decodeError) {
@@ -411,7 +547,6 @@ function updateSessionTitleInUI(newTitle) {
 
 // Update or add assistant message for streaming
 function updateOrAddAssistantMessage(content) {
-    console.log('updateOrAddAssistantMessage called with content length:', content.length);
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
@@ -439,18 +574,15 @@ function updateOrAddAssistantMessage(content) {
     // Update content immediately without typing effect for better streaming experience
     const contentDiv = assistantElement.querySelector('.message-content');
     if (contentDiv) {
-        console.log('Found contentDiv, updating content');
         // Render Markdown for the content
         let renderedContent;
         try {
             renderedContent = md.render(content);
-            console.log('Markdown rendered successfully');
         } catch (e) {
             console.error('Error rendering markdown:', e);
             renderedContent = md.utils.escapeHtml(content).replace(/\n/g, '<br>');
         }
         
-        console.log('Setting innerHTML with rendered content');
         contentDiv.innerHTML = renderedContent;
         
         // Apply syntax highlighting to code blocks immediately
@@ -654,7 +786,7 @@ window.addEventListener('beforeunload', function() {
  * ایجاد جلسه پیش‌فرض و ارسال پیام
  * Create default session and send message
  */
-async function createDefaultSessionAndSendMessage(messageText, filesArray) {
+async function createDefaultSessionAndSendMessage(message, files) {
     try {
         // نمایش پیام انتظار
         showTypingIndicator();
@@ -746,22 +878,8 @@ async function createDefaultSessionAndSendMessage(messageText, filesArray) {
         hideTypingIndicator();
         
         // حالا پیام را ارسال کنیم
-        // Set up message and files for sending
-        const messageInput = document.getElementById('message-input');
-        if (messageInput) {
-            messageInput.disabled = false;
-            messageInput.value = messageText;
-        }
-        
-        // Restore files if any
-        if (filesArray && filesArray.length > 0) {
-            // We need to re-add files to the file manager
-            // This is handled by the multifileupload.js
-            if (typeof window.addFilesToSelection === 'function') {
-                window.addFilesToSelection(filesArray);
-            }
-        }
-        
+        // Re-enable input before sending message
+        messageInput.disabled = false;
         // Use the improved sendMessage function
         sendMessage();
         
@@ -889,64 +1007,36 @@ function ensureMessageIds() {
     });
 }
 
-// Function to simulate typing effect
+// Function to display text immediately for streaming
 function typeText(element, text) {
+    // For streaming, we want to display text immediately as it arrives
     // Store the target element and text as data attributes
     element.dataset.targetText = text;
     
-    // If there's already a typing animation running, clear it
+    // Clear any existing timeouts
     if (element.typingTimeout) {
         clearTimeout(element.typingTimeout);
         element.typingTimeout = null;
     }
     
-    // Get the currently displayed text
-    const currentText = element.dataset.currentText || '';
-    
-    // If we're already displaying the full text, no need to type
-    if (currentText === text) {
-        return;
+    // Display the text immediately without any typing effect
+    // Convert markdown to HTML for the current text
+    let htmlContent;
+    try {
+        // For streaming, we render the partial text as-is without markdown
+        // to avoid issues with incomplete markdown tags
+        htmlContent = md.utils.escapeHtml(text);
+        // But we can still handle line breaks
+        htmlContent = htmlContent.replace(/\n/g, '<br>');
+    } catch (e) {
+        console.error('Error rendering markdown:', e);
+        htmlContent = md.utils.escapeHtml(text);
     }
     
-    // If the new text is shorter than current text, reset
-    if (text.length < currentText.length) {
-        element.dataset.currentText = '';
-        element.innerHTML = '';
-    }
+    element.innerHTML = htmlContent;
     
-    // Start typing from where we left off
-    const startIndex = element.dataset.currentText ? element.dataset.currentText.length : 0;
-    
-    // Type one character at a time
-    function typeCharacter(index) {
-        if (index <= text.length) {
-            const partialText = text.substring(0, index);
-            element.dataset.currentText = partialText;
-            
-            // Convert markdown to HTML for the current partial text
-            let htmlContent;
-            try {
-                // For streaming, we render the partial text as-is without markdown
-                // to avoid issues with incomplete markdown tags
-                htmlContent = md.utils.escapeHtml(partialText);
-                // But we can still handle line breaks
-                htmlContent = htmlContent.replace(/\n/g, '<br>');
-            } catch (e) {
-                console.error('Error rendering markdown:', e);
-                htmlContent = md.utils.escapeHtml(partialText);
-            }
-            
-            element.innerHTML = htmlContent;
-            
-            // Continue typing
-            if (index < text.length) {
-                element.typingTimeout = setTimeout(() => typeCharacter(index + 1), 20);
-            }
-        }
-    }
-    
-    // Start typing from the current position
-    typeCharacter(startIndex);
+    // Store current text
+    element.dataset.currentText = text;
 }
 
 // Function to show image generation success notification

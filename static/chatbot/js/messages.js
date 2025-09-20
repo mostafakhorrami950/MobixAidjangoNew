@@ -750,62 +750,34 @@ function updateOrAddAssistantMessage(content, messageId = null) {
 
 // Function to simulate typing effect
 function typeText(element, text) {
+    // For streaming, we want to display text immediately as it arrives
     // Store the target element and text as data attributes
     element.dataset.targetText = text;
     
-    // If there's already a typing animation running, clear it
+    // Clear any existing timeouts
     if (element.typingTimeout) {
         clearTimeout(element.typingTimeout);
         element.typingTimeout = null;
     }
     
-    // Get the currently displayed text
-    const currentText = element.dataset.currentText || '';
-    
-    // If we're already displaying the full text, no need to type
-    if (currentText === text) {
-        return;
+    // Display the text immediately without any typing effect
+    // Convert markdown to HTML for the current text
+    let htmlContent;
+    try {
+        // For streaming, we render the partial text as-is without markdown
+        // to avoid issues with incomplete markdown tags
+        htmlContent = md.utils.escapeHtml(text);
+        // But we can still handle line breaks
+        htmlContent = htmlContent.replace(/\n/g, '<br>');
+    } catch (e) {
+        console.error('Error rendering markdown:', e);
+        htmlContent = md.utils.escapeHtml(text);
     }
     
-    // If the new text is shorter than current text, reset
-    if (text.length < currentText.length) {
-        element.dataset.currentText = '';
-        element.innerHTML = '';
-    }
+    element.innerHTML = htmlContent;
     
-    // Start typing from where we left off
-    const startIndex = element.dataset.currentText ? element.dataset.currentText.length : 0;
-    
-    // Type one character at a time
-    function typeCharacter(index) {
-        if (index <= text.length) {
-            const partialText = text.substring(0, index);
-            element.dataset.currentText = partialText;
-            
-            // Convert markdown to HTML for the current partial text
-            let htmlContent;
-            try {
-                // For streaming, we render the partial text as-is without markdown
-                // to avoid issues with incomplete markdown tags
-                htmlContent = md.utils.escapeHtml(partialText);
-                // But we can still handle line breaks
-                htmlContent = htmlContent.replace(/\n/g, '<br>');
-            } catch (e) {
-                console.error('Error rendering markdown:', e);
-                htmlContent = md.utils.escapeHtml(partialText);
-            }
-            
-            element.innerHTML = htmlContent;
-            
-            // Continue typing
-            if (index < text.length) {
-                element.typingTimeout = setTimeout(() => typeCharacter(index + 1), 20);
-            }
-        }
-    }
-    
-    // Start typing from the next character
-    typeCharacter(startIndex);
+    // Store current text
+    element.dataset.currentText = text;
 }
 
 // Function to format file sizes
