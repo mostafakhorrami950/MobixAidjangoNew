@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.backends import ModelBackend
+from django.apps import apps
 from .forms import RegistrationForm, OTPVerificationForm
 from .models import User
 from otp_service.services import OTPService
@@ -26,6 +27,27 @@ def register(request):
                 name=form.cleaned_data['name'],
                 username=form.cleaned_data['phone_number']  # Using phone as username
             )
+            
+            # Assign default subscription to the new user (redundancy check)
+            try:
+                # Get the free subscription type (Basic)
+                SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
+                UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
+                default_subscription = SubscriptionType.objects.get(name='Basic')
+                
+                # Check if user already has a subscription (shouldn't happen but just in case)
+                if not hasattr(user, 'subscription'):
+                    # Create user subscription
+                    UserSubscription.objects.create(
+                        user=user,
+                        subscription_type=default_subscription,
+                        is_active=True,
+                        start_date=timezone.now()
+                    )
+            except apps.get_model('subscriptions', 'SubscriptionType').DoesNotExist:
+                # If Basic subscription doesn't exist, log this error
+                logger.error("Basic subscription type not found in database")
+                pass
             
             # Send OTP
             success, message, remaining = OTPService.create_and_send_otp(user)
@@ -71,6 +93,7 @@ def verify_otp(request):
                 return render(request, 'accounts/verify_otp.html', {'form': form})
             
             try:
+                User = apps.get_model('accounts', 'User')
                 user = User.objects.get(phone_number=phone_number)
                 is_valid, message = OTPService.verify_otp(user, otp_code)
                 
@@ -107,15 +130,16 @@ def verify_otp(request):
                     else:
                         messages.error(request, 'کد تأیید اشتباه است. لطفاً دوباره بررسی کنید.')
                     logger.warning(f'Invalid OTP for user {phone_number}: {message}')
-            except User.DoesNotExist:
+            except apps.get_model('accounts', 'User').DoesNotExist:
                 messages.error(request, 'خطای سیستمی: کاربر یافت نشد. لطفاً مجدداً ثبت نام کنید.')
                 logger.error(f'User not found for phone number: {phone_number}')
                 return redirect('register')
         else:
             # Form validation errors - display the actual error messages from forms.py
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, str(error))
+            if form.errors:
+                for field, errors in form.errors.items():
+                    for error in errors:
+                        messages.error(request, str(error))
     else:
         form = OTPVerificationForm(initial={'phone_number': phone_number})
     
@@ -142,6 +166,7 @@ def login_view(request):
             return render(request, 'accounts/login.html')
         
         try:
+            User = apps.get_model('accounts', 'User')
             user = User.objects.get(phone_number=phone_number)
             
             # Send OTP
@@ -156,7 +181,7 @@ def login_view(request):
                     messages.error(request, f'لطفاً {remaining} ثانیه صبر کنید تا بتوانید کد تأیید جدیدی درخواست کنید.')
                 else:
                     messages.error(request, f'خطا در ارسال کد تأیید: {message}')
-        except User.DoesNotExist:
+        except apps.get_model('accounts', 'User').DoesNotExist:
             messages.error(request, 'هیچ حساب کاربری با این شماره تلفن یافت نشد. ابتدا ثبت نام کنید.')
     
     return render(request, 'accounts/login.html')
