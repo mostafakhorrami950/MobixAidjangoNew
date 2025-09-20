@@ -175,9 +175,9 @@ function sendMessage() {
 
                 try {
                     const chunk = decoder.decode(value, { stream: true });
-                    console.log('Received chunk from message sending:', chunk);
+                    console.log('Raw chunk received:', chunk.substring(0, 100)); // Log first 100 chars
                     
-                    // Simple approach: handle special markers, otherwise add to content
+                    // Process images if present
                     if (chunk.includes('[IMAGES]') && chunk.includes('[IMAGES_END]')) {
                         const startIdx = chunk.indexOf('[IMAGES]') + 8;
                         const endIdx = chunk.indexOf('[IMAGES_END]');
@@ -196,17 +196,28 @@ function sendMessage() {
                         } catch (parseError) {
                             console.error('Error parsing images data:', parseError);
                         }
+                        // Continue without adding this chunk to text
+                        read();
+                        return;
                     }
-                    // Skip usage data and title updates - handle later if needed
-                    else if (chunk.includes('[USAGE_DATA]') || chunk.includes('[TITLE_UPDATE]') || chunk.includes('[USER_MESSAGE]') || chunk.includes('[ASSISTANT_MESSAGE_ID]')) {
-                        // Ignore these special markers for now to simplify streaming
-                        console.log('Ignoring special marker in chunk');
-                    }
-                    else {
-                        // Add chunk directly to assistant content
-                        assistantContent += chunk;
+                    
+                    // Remove all special markers from chunk
+                    let cleanChunk = chunk;
+                    // Remove any special markers that might be in the chunk
+                    cleanChunk = cleanChunk.replace(/\[USAGE_DATA\].*?\[USAGE_DATA_END\]/g, '');
+                    cleanChunk = cleanChunk.replace(/\[TITLE_UPDATE\].*?\[TITLE_UPDATE_END\]/g, '');
+                    cleanChunk = cleanChunk.replace(/\[USER_MESSAGE\].*?\[USER_MESSAGE_END\]/g, '');
+                    cleanChunk = cleanChunk.replace(/\[ASSISTANT_MESSAGE_ID\].*?\[ASSISTANT_MESSAGE_ID_END\]/g, '');
+                    cleanChunk = cleanChunk.replace(/\[IMAGES\].*?\[IMAGES_END\]/g, '');
+                    
+                    console.log('Clean chunk:', cleanChunk.substring(0, 100)); // Log clean chunk
+                    
+                    // Only add non-empty content
+                    if (cleanChunk && cleanChunk.trim()) {
+                        assistantContent += cleanChunk;
+                        console.log('Total assistant content length:', assistantContent.length);
                         
-                        // Update the streaming message with current content
+                        // Update the streaming message immediately
                         if (imagesData.length > 0) {
                             updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
                         } else {
@@ -399,6 +410,7 @@ function updateSessionTitleInUI(newTitle) {
 
 // Update or add assistant message for streaming
 function updateOrAddAssistantMessage(content) {
+    console.log('updateOrAddAssistantMessage called with content length:', content.length);
     const chatContainer = document.getElementById('chat-container');
     let assistantElement = document.getElementById('streaming-assistant');
     
@@ -426,15 +438,18 @@ function updateOrAddAssistantMessage(content) {
     // Update content immediately without typing effect for better streaming experience
     const contentDiv = assistantElement.querySelector('.message-content');
     if (contentDiv) {
+        console.log('Found contentDiv, updating content');
         // Render Markdown for the content
         let renderedContent;
         try {
             renderedContent = md.render(content);
+            console.log('Markdown rendered successfully');
         } catch (e) {
             console.error('Error rendering markdown:', e);
             renderedContent = md.utils.escapeHtml(content).replace(/\n/g, '<br>');
         }
         
+        console.log('Setting innerHTML with rendered content');
         contentDiv.innerHTML = renderedContent;
         
         // Apply syntax highlighting to code blocks immediately
@@ -638,7 +653,7 @@ window.addEventListener('beforeunload', function() {
  * ایجاد جلسه پیش‌فرض و ارسال پیام
  * Create default session and send message
  */
-async function createDefaultSessionAndSendMessage(message, files) {
+async function createDefaultSessionAndSendMessage(messageText, filesArray) {
     try {
         // نمایش پیام انتظار
         showTypingIndicator();
@@ -730,8 +745,22 @@ async function createDefaultSessionAndSendMessage(message, files) {
         hideTypingIndicator();
         
         // حالا پیام را ارسال کنیم
-        // Re-enable input before sending message
-        messageInput.disabled = false;
+        // Set up message and files for sending
+        const messageInput = document.getElementById('message-input');
+        if (messageInput) {
+            messageInput.disabled = false;
+            messageInput.value = messageText;
+        }
+        
+        // Restore files if any
+        if (filesArray && filesArray.length > 0) {
+            // We need to re-add files to the file manager
+            // This is handled by the multifileupload.js
+            if (typeof window.addFilesToSelection === 'function') {
+                window.addFilesToSelection(filesArray);
+            }
+        }
+        
         // Use the improved sendMessage function
         sendMessage();
         
