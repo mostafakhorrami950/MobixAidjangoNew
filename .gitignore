@@ -21,10 +21,9 @@ htmlcov/
 .pytest_cache/
 
 # Django specific
-# db.sqlite3 نیاز داری بمونه، پس حذف نمی‌کنیم
+# db.sqlite3 و ai_chatbot.sqlite3 باید بمونند، پس حذف نمی‌کنیم
 */migrations/*.py
 !*/migrations/__init__.py
-
 
 # IDE / Editor settings
 .vscode/
@@ -40,6 +39,16 @@ desktop.ini
 # Environment / secrets
 .env
 *.env
+*.ini
+*.example
 
 # Backup & misc
 *.bak
+
+# Temporary / generated files
+*.tmp
+*.swp
+*.swo
+
+# Documents for test/demo
+test_file.*

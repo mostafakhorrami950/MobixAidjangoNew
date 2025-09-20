@@ -9,7 +9,10 @@
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   padding: 0;
-  position: static;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
   z-index: 1000;
   backdrop-filter: blur(20px);
@@ -480,7 +483,7 @@
 
 /* Main content padding to prevent overlap with fixed navbar */
 main {
-  padding-top: 0; /* Changed from 80px since navbar is now static */
+  padding-top: 80px; /* Adjust based on navbar height */
 }
 
 @media (max-width: 768px) {
