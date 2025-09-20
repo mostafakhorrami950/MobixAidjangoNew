@@ -61,6 +61,20 @@ class UserUsageStatsService:
             user, subscription_type
         )
         
+        # Add usage from the old UserUsage model for backward compatibility
+        try:
+            UserUsage = apps.get_model('subscriptions', 'UserUsage')
+            user_usage_records = UserUsage.objects.filter(user=user, subscription_type=subscription_type)
+            
+            for record in user_usage_records:
+                total_paid_tokens += record.tokens_count
+                total_free_tokens += record.free_model_tokens_count
+            
+            logger.info(f"User {user.id} combined tokens - Paid: {total_paid_tokens}, Free: {total_free_tokens}")
+            
+        except Exception as e:
+            logger.error(f"Error getting UserUsage records for user {user.id} in stats: {str(e)}")
+
         # Calculate remaining tokens
         max_paid_tokens = subscription_type.max_tokens
         max_free_tokens = subscription_type.max_tokens_free

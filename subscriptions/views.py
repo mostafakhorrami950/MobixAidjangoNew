@@ -731,6 +731,20 @@ def intelligent_subscription_upgrade(request, new_subscription_id):
         # Calculate total tokens used using the new ChatSessionUsage method
         total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, current_subscription)
         
+        # Also get tokens from UserUsage for backward compatibility
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        user_usage_records = UserUsage.objects.filter(user=user, subscription_type=current_subscription)
+        
+        total_user_usage_tokens = 0
+        total_user_usage_free_tokens = 0
+        for record in user_usage_records:
+            total_user_usage_tokens += record.tokens_count
+            total_user_usage_free_tokens += record.free_model_tokens_count
+        
+        # Combine tokens from both sources
+        combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
+        combined_free_model_tokens_used = free_model_tokens_used + total_user_usage_free_tokens
+        
         # Use the subscription's max_tokens field
         total_token_limit = current_subscription.max_tokens
         
@@ -739,7 +753,7 @@ def intelligent_subscription_upgrade(request, new_subscription_id):
             total_token_limit = 1000000  # Default 1 million tokens
         
         # Calculate remaining tokens
-        remaining_tokens = max(0, total_token_limit - total_tokens_used)
+        remaining_tokens = max(0, total_token_limit - combined_total_tokens_used)
         
         # Calculate remaining days
         UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
@@ -782,7 +796,6 @@ def intelligent_subscription_upgrade(request, new_subscription_id):
         messages.error(request, 'اشتراک فعلی شما یافت نشد.')
         return redirect('purchase_subscription')
     except Exception as e:
-        logger.error(f"Error calculating intelligent upgrade: {str(e)}")
         messages.error(request, 'خطا در محاسبه ارتقاء هوشمند اشتراک.')
         return redirect('purchase_subscription')
 
