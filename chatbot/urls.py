@@ -20,6 +20,7 @@ urlpatterns = [
     path('session/<int:session_id>/update-model/', views.update_session_model, name='update_session_model'),
     path('models/', views.get_available_models_for_user, name='get_available_models_for_user'),
     path('get_sidebar_menu_items/', views.get_sidebar_menu_items, name='get_sidebar_menu_items'),
+    path('sidebar-menu-items/', views.get_sidebar_menu_items, name='sidebar_menu_items'),
     
     # Test URLs
     path('test-streaming/', views.test_streaming_view, name='test_streaming_view'),
