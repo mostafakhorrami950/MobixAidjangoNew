@@ -69,7 +69,7 @@ def chat(request):
     # Get ALL active chatbots (not just those available to user)
     all_chatbots = Chatbot.objects.filter(is_active=True)
     
-    # Add access information to each chatbot
+    # Add access information to each chatbot without modifying the original objects
     available_chatbots = []
     for chatbot in all_chatbots:
         has_access = True
@@ -77,13 +77,21 @@ def chat(request):
             if not user_subscription or not chatbot.subscription_types.filter(id=user_subscription.id).exists():
                 has_access = False
         
-        chatbot.user_has_access = has_access
-        available_chatbots.append(chatbot)
+        # Create a dictionary representation with access information
+        chatbot_data = {
+            'id': chatbot.id,
+            'name': chatbot.name,
+            'description': chatbot.description,
+            'ai_model': chatbot.ai_model,
+            'is_active': chatbot.is_active,
+            'user_has_access': has_access
+        }
+        available_chatbots.append(chatbot_data)
     
     # Get ALL active AI models (not just those available to user)
     all_models = AIModel.objects.filter(is_active=True)
     
-    # Add access information to each model
+    # Add access information to each model without modifying the original objects
     available_models = []
     for model in all_models:
         has_access = model.is_free  # Free models are always accessible
@@ -92,8 +100,17 @@ def chat(request):
             if model.subscriptions.filter(subscription_types=user_subscription).exists():
                 has_access = True
         
-        model.user_has_access = has_access
-        available_models.append(model)
+        # Create a dictionary representation with access information
+        model_data = {
+            'model_id': model.model_id,
+            'name': model.name,
+            'description': model.description,
+            'is_free': model.is_free,
+            'model_type': model.model_type,
+            'is_active': model.is_active,
+            'user_has_access': has_access
+        }
+        available_models.append(model_data)
     
     # Get user's chat sessions
     chat_sessions = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
