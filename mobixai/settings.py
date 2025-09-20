@@ -247,3 +247,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # CSRF settings
 CSRF_COOKIE_AGE = 86400 * 7  # 7 days
+
+# Streaming settings
+STREAMING_RESPONSE_BUFFER_SIZE = 0  # Disable buffering
+DATA_UPLOAD_MAX_MEMORY_SIZE = None  # Allow streaming

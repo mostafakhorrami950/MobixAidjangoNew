@@ -1129,19 +1129,34 @@ def test_stream(request):
         message = data.get('message', '')
         
         def generate_response():
-            response_text = f"این یک پاسخ تستی برای پیام شما است: {message}. "
-            response_text += "این متن به صورت تدریجی نمایش داده می‌شود. "
-            response_text += "هر کلمه با تأخیر کوتاهی ارسال می‌شود تا استریمینگ را تست کنیم."
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            # Simple ASCII test first
+            response_text = f"This is a streaming test response for your message: {message}. "
+            response_text += "Each word will be sent with a delay to test streaming functionality. "
+            response_text += "We can see if the buffering issue is with Unicode or server config."
             
             words = response_text.split(' ')
+            logger.info(f"Starting streaming with {len(words)} words")
             
             for i, word in enumerate(words):
+                logger.info(f"Sending word {i+1}/{len(words)}: {word}")
                 if i > 0:
                     yield ' '
-                yield word
-                time.sleep(0.1)  # 100ms delay between words
+                chunk_data = word + '\n'
+                yield chunk_data
+                
+                # Force flush at system level
+                import sys
+                sys.stdout.flush()
+                time.sleep(0.5)  # 500ms delay
         
-        return StreamingHttpResponse(generate_response(), content_type='text/plain')
+        response = StreamingHttpResponse(generate_response(), content_type='text/plain; charset=utf-8')
+        response['Cache-Control'] = 'no-cache'
+        response['Connection'] = 'keep-alive'
+        response['X-Accel-Buffering'] = 'no'  # For nginx
+        return response
     
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
