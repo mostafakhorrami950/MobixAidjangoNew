@@ -9,8 +9,9 @@ class CustomUserManager(UserManager):
         if not name:
             raise ValueError('The Name must be set')
         
+        # For compatibility with Django's UserManager, we need to pass username and email
+        extra_fields.setdefault('username', phone_number)
         user = self.model(phone_number=phone_number, name=name, **extra_fields)
-        user.username = phone_number  # Set username to phone number
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -25,6 +26,8 @@ class CustomUserManager(UserManager):
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
         
+        # For compatibility with Django's UserManager, we need to pass username and email
+        extra_fields.setdefault('username', phone_number)
         return self.create_user(phone_number, name, password, **extra_fields)
 
 class User(AbstractUser):
@@ -50,8 +53,8 @@ class User(AbstractUser):
         if is_new:
             from subscriptions.models import SubscriptionType, UserSubscription
             try:
-                # Get the free subscription type (Basic)
-                free_subscription = SubscriptionType.objects.get(name='Basic')
+                # Get the free subscription type (Free)
+                free_subscription = SubscriptionType.objects.get(name='Free')
                 # Create user subscription
                 UserSubscription.objects.create(
                     user=self,
@@ -60,7 +63,7 @@ class User(AbstractUser):
                     start_date=timezone.now()
                 )
             except SubscriptionType.DoesNotExist:
-                # If Basic subscription doesn't exist, we'll handle this when the subscription is accessed
+                # If Free subscription doesn't exist, we'll handle this when the subscription is accessed
                 pass
     
     def get_subscription_type(self):

@@ -30,10 +30,10 @@ def register(request):
             
             # Assign default subscription to the new user (redundancy check)
             try:
-                # Get the free subscription type (Basic)
+                # Get the free subscription type (Free)
                 SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
                 UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
-                default_subscription = SubscriptionType.objects.get(name='Basic')
+                default_subscription = SubscriptionType.objects.get(name='Free')
                 
                 # Check if user already has a subscription (shouldn't happen but just in case)
                 if not hasattr(user, 'subscription'):
@@ -45,9 +45,25 @@ def register(request):
                         start_date=timezone.now()
                     )
             except apps.get_model('subscriptions', 'SubscriptionType').DoesNotExist:
-                # If Basic subscription doesn't exist, log this error
-                logger.error("Basic subscription type not found in database")
-                pass
+                # If Free subscription doesn't exist, try Basic as fallback
+                try:
+                    SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
+                    UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
+                    default_subscription = SubscriptionType.objects.get(name='Basic')
+                    
+                    # Check if user already has a subscription (shouldn't happen but just in case)
+                    if not hasattr(user, 'subscription'):
+                        # Create user subscription
+                        UserSubscription.objects.create(
+                            user=user,
+                            subscription_type=default_subscription,
+                            is_active=True,
+                            start_date=timezone.now()
+                        )
+                except apps.get_model('subscriptions', 'SubscriptionType').DoesNotExist:
+                    # If neither Free nor Basic subscription exists, log this error
+                    logger.error("Neither Free nor Basic subscription type found in database")
+                    pass
             
             # Send OTP
             success, message, remaining = OTPService.create_and_send_otp(user)
