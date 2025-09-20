@@ -509,103 +509,237 @@ class UsageService:
                     logger.info(f"Max free tokens limit exceeded: {message}")
                     return False, message
             
-            # Check all time-based usage limits for free models (independent of max_tokens_free)
-            # Get current time
-            now = timezone.now()
-            logger.debug(f"Current time for time-based checks: {now}")
+        
+        # 3. Check all time-based usage limits (for all models)
+        # Get current time
+        now = timezone.now()
+        logger.debug(f"Current time for time-based checks: {now}")
+        
+        # Hourly limits (for all models)
+        if subscription_type.hourly_max_tokens > 0:
+            logger.debug(f"Checking hourly limit: {subscription_type.hourly_max_tokens}")
+            hourly_start = now - timedelta(hours=1)
             
-            # Hourly limits for free models
-            if subscription_type.hourly_max_tokens > 0:
-                logger.debug(f"Checking hourly limit: {subscription_type.hourly_max_tokens}")
-                hourly_start = now - timedelta(hours=1)
+            if is_free_model:
                 hourly_messages, hourly_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, hourly_start, now
                 )
                 logger.debug(f"Hourly free model usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
-                
-                if hourly_tokens >= subscription_type.hourly_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"Hourly free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                hourly_messages, hourly_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, hourly_start, now
+                )
+                logger.debug(f"Hourly total usage - Messages: {hourly_messages}, Tokens: {hourly_tokens}")
             
-            # 3-hour limits for free models
-            if subscription_type.three_hours_max_tokens > 0:
-                logger.debug(f"Checking 3-hour limit: {subscription_type.three_hours_max_tokens}")
-                three_hours_start = now - timedelta(hours=3)
+            if hourly_tokens >= subscription_type.hourly_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های ساعتی ({subscription_type.hourly_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"Hourly token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - hourly
+        if subscription_type.hourly_max_messages > 0:
+            logger.debug(f"Checking hourly message limit: {subscription_type.hourly_max_messages}")
+            
+            if is_free_model:
+                hourly_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, hourly_start, now
+                )
+            else:
+                hourly_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, hourly_start, now
+                )
+            
+            if hourly_messages >= subscription_type.hourly_max_messages:
+                message = f"شما به حد مجاز پیام‌های ساعتی ({subscription_type.hourly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Hourly message limit exceeded: {message}")
+                return False, message
+        
+        # 3-hour limits (for all models)
+        if subscription_type.three_hours_max_tokens > 0:
+            logger.debug(f"Checking 3-hour limit: {subscription_type.three_hours_max_tokens}")
+            three_hours_start = now - timedelta(hours=3)
+            
+            if is_free_model:
                 three_hours_messages, three_hours_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, three_hours_start, now
                 )
-                logger.debug(f"3-hour free model usage - Messages: {three_hours_messages}, Tokens: {three_hours_tokens}")
-                
-                if three_hours_tokens >= subscription_type.three_hours_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"3-hour free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                three_hours_messages, three_hours_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, three_hours_start, now
+                )
             
-            # 12-hour limits for free models
-            if subscription_type.twelve_hours_max_tokens > 0:
-                logger.debug(f"Checking 12-hour limit: {subscription_type.twelve_hours_max_tokens}")
-                twelve_hours_start = now - timedelta(hours=12)
+            if three_hours_tokens >= subscription_type.three_hours_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های ۳ ساعتی ({subscription_type.three_hours_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"3-hour token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - 3 hours
+        if subscription_type.three_hours_max_messages > 0:
+            if is_free_model:
+                three_hours_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, three_hours_start, now
+                )
+            else:
+                three_hours_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, three_hours_start, now
+                )
+            
+            if three_hours_messages >= subscription_type.three_hours_max_messages:
+                message = f"شما به حد مجاز پیام‌های ۳ ساعتی ({subscription_type.three_hours_max_messages} عدد) رسیده‌اید"
+                logger.info(f"3-hour message limit exceeded: {message}")
+                return False, message
+        
+        # 12-hour limits (for all models)
+        if subscription_type.twelve_hours_max_tokens > 0:
+            logger.debug(f"Checking 12-hour limit: {subscription_type.twelve_hours_max_tokens}")
+            twelve_hours_start = now - timedelta(hours=12)
+            
+            if is_free_model:
                 twelve_hours_messages, twelve_hours_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, twelve_hours_start, now
                 )
-                logger.debug(f"12-hour free model usage - Messages: {twelve_hours_messages}, Tokens: {twelve_hours_tokens}")
-                
-                if twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"12-hour free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                twelve_hours_messages, twelve_hours_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, twelve_hours_start, now
+                )
             
-            # Daily limits for free models
-            if subscription_type.daily_max_tokens > 0:
-                logger.debug(f"Checking daily limit: {subscription_type.daily_max_tokens}")
-                daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-                daily_end = daily_start + timedelta(days=1)
-                
+            if twelve_hours_tokens >= subscription_type.twelve_hours_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"12-hour token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - 12 hours
+        if subscription_type.twelve_hours_max_messages > 0:
+            if is_free_model:
+                twelve_hours_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, twelve_hours_start, now
+                )
+            else:
+                twelve_hours_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, twelve_hours_start, now
+                )
+            
+            if twelve_hours_messages >= subscription_type.twelve_hours_max_messages:
+                message = f"شما به حد مجاز پیام‌های ۱۲ ساعتی ({subscription_type.twelve_hours_max_messages} عدد) رسیده‌اید"
+                logger.info(f"12-hour message limit exceeded: {message}")
+                return False, message
+        
+        # Daily limits (for all models)
+        if subscription_type.daily_max_tokens > 0:
+            logger.debug(f"Checking daily limit: {subscription_type.daily_max_tokens}")
+            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            daily_end = daily_start + timedelta(days=1)
+            
+            if is_free_model:
                 daily_messages, daily_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, daily_start, daily_end
                 )
-                logger.debug(f"Daily free model usage - Messages: {daily_messages}, Tokens: {daily_tokens}")
-                
-                if daily_tokens >= subscription_type.daily_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"Daily free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                daily_messages, daily_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, daily_start, daily_end
+                )
             
-            # Weekly limits for free models
-            if subscription_type.weekly_max_tokens > 0:
-                logger.debug(f"Checking weekly limit: {subscription_type.weekly_max_tokens}")
-                weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-                weekly_end = weekly_start + timedelta(weeks=1)
-                
+            if daily_tokens >= subscription_type.daily_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های روزانه ({subscription_type.daily_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"Daily token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - daily
+        if subscription_type.daily_max_messages > 0:
+            if is_free_model:
+                daily_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, daily_start, daily_end
+                )
+            else:
+                daily_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, daily_start, daily_end
+                )
+            
+            if daily_messages >= subscription_type.daily_max_messages:
+                message = f"شما به حد مجاز پیام‌های روزانه ({subscription_type.daily_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Daily message limit exceeded: {message}")
+                return False, message
+        
+        # Weekly limits (for all models)
+        if subscription_type.weekly_max_tokens > 0:
+            logger.debug(f"Checking weekly limit: {subscription_type.weekly_max_tokens}")
+            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            weekly_end = weekly_start + timedelta(weeks=1)
+            
+            if is_free_model:
                 weekly_messages, weekly_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, weekly_start, weekly_end
                 )
-                logger.debug(f"Weekly free model usage - Messages: {weekly_messages}, Tokens: {weekly_tokens}")
-                
-                if weekly_tokens >= subscription_type.weekly_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"Weekly free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                weekly_messages, weekly_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, weekly_start, weekly_end
+                )
             
-            # Monthly limits for free models
-            if subscription_type.monthly_max_tokens > 0:
-                logger.debug(f"Checking monthly limit: {subscription_type.monthly_max_tokens}")
-                monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                if now.month == 12:
-                    monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-                else:
-                    monthly_end = monthly_start.replace(month=monthly_start.month + 1)
-                
+            if weekly_tokens >= subscription_type.weekly_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های هفتگی ({subscription_type.weekly_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"Weekly token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - weekly
+        if subscription_type.weekly_max_messages > 0:
+            if is_free_model:
+                weekly_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, weekly_start, weekly_end
+                )
+            else:
+                weekly_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, weekly_start, weekly_end
+                )
+            
+            if weekly_messages >= subscription_type.weekly_max_messages:
+                message = f"شما به حد مجاز پیام‌های هفتگی ({subscription_type.weekly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Weekly message limit exceeded: {message}")
+                return False, message
+        
+        # Monthly limits (for all models)
+        if subscription_type.monthly_max_tokens > 0:
+            logger.debug(f"Checking monthly limit: {subscription_type.monthly_max_tokens}")
+            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            if now.month == 12:
+                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+            else:
+                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+            
+            if is_free_model:
                 monthly_messages, monthly_tokens = UsageService.get_user_free_model_usage_for_period(
                     user, subscription_type, monthly_start, monthly_end
                 )
-                logger.debug(f"Monthly free model usage - Messages: {monthly_messages}, Tokens: {monthly_tokens}")
-                
-                if monthly_tokens >= subscription_type.monthly_max_tokens:
-                    message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید"
-                    logger.info(f"Monthly free model token limit exceeded: {message}")
-                    return False, message
+            else:
+                monthly_messages, monthly_tokens = UsageService.get_user_usage_for_period(
+                    user, subscription_type, monthly_start, monthly_end
+                )
+            
+            if monthly_tokens >= subscription_type.monthly_max_tokens:
+                model_type = "رایگان" if is_free_model else "پولی"
+                message = f"شما به حد مجاز توکن‌های ماهانه ({subscription_type.monthly_max_tokens} عدد) رسیده‌اید (مدل {model_type})"
+                logger.info(f"Monthly token limit exceeded: {message}")
+                return False, message
+        
+        # Message limits - monthly
+        if subscription_type.monthly_max_messages > 0:
+            if is_free_model:
+                monthly_messages, _ = UsageService.get_user_free_model_usage_for_period(
+                    user, subscription_type, monthly_start, monthly_end
+                )
+            else:
+                monthly_messages, _ = UsageService.get_user_usage_for_period(
+                    user, subscription_type, monthly_start, monthly_end
+                )
+            
+            if monthly_messages >= subscription_type.monthly_max_messages:
+                message = f"شما به حد مجاز پیام‌های ماهانه ({subscription_type.monthly_max_messages} عدد) رسیده‌اید"
+                logger.info(f"Monthly message limit exceeded: {message}")
+                return False, message
             
             # Check free model message limits
             if subscription_type.monthly_free_model_messages > 0 or subscription_type.monthly_free_model_tokens > 0:
