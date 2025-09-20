@@ -274,8 +274,6 @@ class UsageService:
         Get total tokens used by user across all chat sessions for a subscription type
         Returns (total_tokens, free_model_tokens)
         """
-        logger.info(f"Getting total tokens from chat sessions for user {user.id}")
-        
         ChatSessionUsage = apps.get_model('chatbot', 'ChatSessionUsage')
         chat_session_usages = ChatSessionUsage.objects.filter(
             user=user,
@@ -288,7 +286,6 @@ class UsageService:
             total_tokens += usage.tokens_count
             free_model_tokens += usage.free_model_tokens_count
         
-        logger.info(f"Total tokens from chat sessions - Total: {total_tokens}, Free model: {free_model_tokens}")
         return total_tokens, free_model_tokens
     
     @staticmethod
@@ -809,12 +806,9 @@ class UsageService:
         """
         Get comprehensive usage statistics for a user across all time periods and models
         """
-        logger.info(f"Getting comprehensive usage statistics for user {user.id}")
-        
         # Get user's current subscription
         subscription_type = user.get_subscription_type()
         if not subscription_type:
-            logger.warning(f"No active subscription found for user {user.id}")
             return {}
         
         stats = {
@@ -825,18 +819,14 @@ class UsageService:
         }
         
         # Calculate token statistics
-        logger.info("Calculating token statistics")
         stats['tokens_summary'] = UsageService._calculate_token_statistics(user, subscription_type)
         
         # Calculate message statistics for different time periods
-        logger.info("Calculating message statistics for different time periods")
         stats['messages_summary'] = UsageService._calculate_message_statistics(user, subscription_type)
         
         # Calculate image generation statistics
-        logger.info("Calculating image generation statistics")
         stats['images_summary'] = UsageService._calculate_image_statistics(user, subscription_type)
         
-        logger.info(f"Generated comprehensive stats for user {user.id}")
         return stats
     
     @staticmethod

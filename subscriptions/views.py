@@ -622,19 +622,13 @@ def calculate_remaining_subscription_value(request):
     """
     try:
         user = request.user
-        logger.info(f"Calculating remaining subscription value for user {user.id}")
-        
         user_subscription = user.get_subscription_type()
         
         if not user_subscription:
-            logger.warning(f"No active subscription found for user {user.id}")
             return JsonResponse({'error': 'No active subscription found'}, status=400)
-        
-        logger.info(f"User {user.id} has subscription: {user_subscription.name}")
         
         # Calculate total tokens used using the new ChatSessionUsage method
         total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
-        logger.info(f"User {user.id} tokens used: {total_tokens_used}, free model tokens: {free_model_tokens_used}")
         
         # Also get tokens from UserUsage for backward compatibility
         UserUsage = apps.get_model('subscriptions', 'UserUsage')
@@ -650,8 +644,6 @@ def calculate_remaining_subscription_value(request):
         combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
         combined_free_model_tokens_used = free_model_tokens_used + total_user_usage_free_tokens
         
-        logger.info(f"User {user.id} combined tokens used: {combined_total_tokens_used}, free model tokens: {combined_free_model_tokens_used}")
-        
         # Use the subscription's max_tokens field for total limit
         total_token_limit = user_subscription.max_tokens
         
@@ -661,23 +653,19 @@ def calculate_remaining_subscription_value(request):
         
         # Calculate remaining tokens (total)
         remaining_tokens = max(0, total_token_limit - combined_total_tokens_used)
-        logger.info(f"User {user.id} token limit: {total_token_limit}, remaining tokens: {remaining_tokens}")
         
         # Calculate remaining days
         UserSubscriptionModel = apps.get_model('subscriptions', 'UserSubscription')
         try:
             user_subscription_record = UserSubscriptionModel.objects.get(user=user, subscription_type=user_subscription)
-            logger.info(f"User {user.id} subscription record found")
             if user_subscription_record.end_date:
                 remaining_days = (user_subscription_record.end_date - timezone.now()).days
                 if remaining_days < 0:
                     remaining_days = 0
             else:
                 remaining_days = user_subscription.duration_days  # Assume full duration if no end date
-            logger.info(f"User {user.id} remaining days: {remaining_days}")
         except apps.get_model('subscriptions', 'UserSubscription').DoesNotExist:
             # If no subscription record exists, use the subscription's default duration
-            logger.warning(f"UserSubscription record not found for user {user.id}")
             remaining_days = user_subscription.duration_days
         
         # New calculation formula:
@@ -688,22 +676,17 @@ def calculate_remaining_subscription_value(request):
         total_days = user_subscription.duration_days
         total_tokens = total_token_limit
         
-        logger.info(f"User {user.id} subscription days: {total_days}, tokens: {total_tokens}, price: {user_subscription.price}")
-        
         if total_days > 0 and total_tokens > 0:
             value_per_unit = user_subscription.price / (Decimal(total_days) * Decimal(total_tokens))
             total_remaining_value_tomans = Decimal(remaining_days) * Decimal(remaining_tokens) * value_per_unit
-            logger.info(f"User {user.id} value per unit: {value_per_unit}, remaining value: {total_remaining_value_tomans}")
         else:
             total_remaining_value_tomans = Decimal('0')
-            logger.info(f"User {user.id} zero days or tokens, remaining value set to 0")
         
         # Get the subscription price in Tomans
         subscription_price_tomans = user_subscription.price
         
         # Calculate the amount to pay (subscription price minus remaining value)
         amount_to_pay = max(Decimal('0'), subscription_price_tomans - total_remaining_value_tomans)
-        logger.info(f"User {user.id} subscription price: {subscription_price_tomans}, amount to pay: {amount_to_pay}")
         
         # Return the calculation details (all values in Tomans)
         response_data = {
@@ -719,14 +702,11 @@ def calculate_remaining_subscription_value(request):
             'user_has_remaining_value': total_remaining_value_tomans > 0
         }
         
-        logger.info(f"User {user.id} calculation complete")
         return JsonResponse(response_data)
         
     except apps.get_model('subscriptions', 'UserSubscription').DoesNotExist:
-        logger.error(f"UserSubscription.DoesNotExist for user {request.user.id}")
         return JsonResponse({'error': 'No active subscription found'}, status=400)
     except Exception as e:
-        logger.error(f"Error calculating remaining subscription value for user {request.user.id}: {str(e)}", exc_info=True)
         return JsonResponse({'error': f'Error calculating remaining subscription value: {str(e)}'}, status=500)
 
 
@@ -835,14 +815,11 @@ def test_subscription_calculation(request):
     """
     try:
         user = request.user
-        logger.info(f"Testing subscription calculation for user {user.id}")
         
         # Test 1: Check if user has a subscription
         try:
             user_subscription = user.get_subscription_type()
-            logger.info(f"User subscription: {user_subscription}")
         except Exception as e:
-            logger.error(f"Error getting user subscription: {e}")
             return JsonResponse({'error': f'Error getting user subscription: {e}'})
         
         if not user_subscription:
@@ -852,20 +829,15 @@ def test_subscription_calculation(request):
         try:
             UserSubscriptionModel = apps.get_model('subscriptions', 'UserSubscription')
             user_subscription_record = UserSubscriptionModel.objects.get(user=user, subscription_type=user_subscription)
-            logger.info(f"User subscription record: {user_subscription_record}")
         except apps.get_model('subscriptions', 'UserSubscription').DoesNotExist:
-            logger.error("UserSubscription record not found")
             return JsonResponse({'error': 'UserSubscription record not found'})
         except Exception as e:
-            logger.error(f"Error accessing UserSubscription record: {e}")
             return JsonResponse({'error': f'Error accessing UserSubscription record: {e}'})
         
         # Test 3: Check token usage calculation
         try:
             total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
-            logger.info(f"Token usage - Total: {total_tokens_used}, Free: {free_model_tokens_used}")
         except Exception as e:
-            logger.error(f"Error calculating token usage: {e}")
             return JsonResponse({'error': f'Error calculating token usage: {e}'})
         
         # If all tests pass, return success
@@ -877,5 +849,4 @@ def test_subscription_calculation(request):
         })
         
     except Exception as e:
-        logger.error(f"Unexpected error in test view: {e}", exc_info=True)
         return JsonResponse({'error': f'Unexpected error: {e}'})

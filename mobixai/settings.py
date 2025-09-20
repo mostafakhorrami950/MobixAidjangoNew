@@ -151,13 +151,13 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'INFO',
+            'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'django.log'),
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'INFO',
+            'level': 'WARNING',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -168,22 +168,22 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
         'subscriptions': {
             'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
         'chatbot': {
             'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
         'accounts': {
             'handlers': ['file', 'console'],
-            'level': 'INFO',
+            'level': 'WARNING',
             'propagate': False,
         },
     },
