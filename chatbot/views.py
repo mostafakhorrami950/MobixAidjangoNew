@@ -1113,6 +1113,39 @@ def delete_session(request, session_id):
     return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
 @login_required
+def test_streaming_view(request):
+    """Simple test view for streaming"""
+    return render(request, 'chatbot/chat_simple_test.html')
+
+@login_required
+def test_stream(request):
+    """Simple test endpoint for streaming"""
+    if request.method == 'POST':
+        import json
+        import time
+        from django.http import StreamingHttpResponse
+        
+        data = json.loads(request.body)
+        message = data.get('message', '')
+        
+        def generate_response():
+            response_text = f"این یک پاسخ تستی برای پیام شما است: {message}. "
+            response_text += "این متن به صورت تدریجی نمایش داده می‌شود. "
+            response_text += "هر کلمه با تأخیر کوتاهی ارسال می‌شود تا استریمینگ را تست کنیم."
+            
+            words = response_text.split(' ')
+            
+            for i, word in enumerate(words):
+                if i > 0:
+                    yield ' '
+                yield word
+                time.sleep(0.1)  # 100ms delay between words
+        
+        return StreamingHttpResponse(generate_response(), content_type='text/plain')
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@login_required
 def update_session_title(request, session_id):
     if request.method == 'POST':
         try:

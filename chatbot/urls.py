@@ -19,7 +19,11 @@ urlpatterns = [
     path('session/<int:session_id>/image-generation-access/', views.check_image_generation_access, name='check_image_generation_access'),
     path('session/<int:session_id>/update-model/', views.update_session_model, name='update_session_model'),
     path('models/', views.get_available_models_for_user, name='get_available_models_for_user'),
-    path('sidebar-menu-items/', views.get_sidebar_menu_items, name='get_sidebar_menu_items'),
+    path('get_sidebar_menu_items/', views.get_sidebar_menu_items, name='get_sidebar_menu_items'),
+    
+    # Test URLs
+    path('test-streaming/', views.test_streaming_view, name='test_streaming_view'),
+    path('test-stream/', views.test_stream, name='test_stream'),
     path('session/<int:session_id>/message/<uuid:message_id>/edit/', views.edit_message, name='edit_message'),
     path('api/global-settings/', views.get_global_settings, name='get_global_settings'),
 ]
