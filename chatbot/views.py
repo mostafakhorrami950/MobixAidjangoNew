@@ -82,7 +82,6 @@ def chat(request):
             'id': chatbot.id,
             'name': chatbot.name,
             'description': chatbot.description,
-            'ai_model': chatbot.ai_model,
             'is_active': chatbot.is_active,
             'user_has_access': has_access
         }
