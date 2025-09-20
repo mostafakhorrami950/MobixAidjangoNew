@@ -188,7 +188,7 @@
                                         <option value="" selected>انتخاب چت‌بات...</option>
                                         {% for chatbot in available_chatbots %}
                                             <option value="{{ chatbot.id }}" 
-                                                    data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}" 
+                                                    data-has-model="true" 
                                                     {% if not chatbot.user_has_access %}disabled{% endif %}>
                                                 {{ chatbot.name }}
                                                 {% if not chatbot.user_has_access %}

@@ -155,11 +155,8 @@
                                 <select class="form-select" id="modal-chatbot-select">
                                     <option value="">-- چت‌باتی را انتخاب کنید --</option>
                                     {% for chatbot in available_chatbots %}
-                                        <option value="{{ chatbot.id }}" data-has-model="{% if chatbot.ai_model %}true{% else %}false{% endif %}">
+                                        <option value="{{ chatbot.id }}" data-has-model="true">
                                             {{ chatbot.name }}
-                                            {% if not chatbot.ai_model %}
-                                                <span class="badge bg-warning">نیاز به انتخاب مدل</span>
-                                            {% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>

@@ -556,9 +556,11 @@ class UsageService:
                 return False, message
         
         # 3-hour limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        three_hours_start = now - timedelta(hours=3)
+        
         if subscription_type.three_hours_max_tokens > 0:
             logger.debug(f"Checking 3-hour limit: {subscription_type.three_hours_max_tokens}")
-            three_hours_start = now - timedelta(hours=3)
             
             if is_free_model:
                 three_hours_messages, three_hours_tokens = UsageService.get_user_free_model_usage_for_period(
@@ -592,9 +594,11 @@ class UsageService:
                 return False, message
         
         # 12-hour limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        twelve_hours_start = now - timedelta(hours=12)
+        
         if subscription_type.twelve_hours_max_tokens > 0:
             logger.debug(f"Checking 12-hour limit: {subscription_type.twelve_hours_max_tokens}")
-            twelve_hours_start = now - timedelta(hours=12)
             
             if is_free_model:
                 twelve_hours_messages, twelve_hours_tokens = UsageService.get_user_free_model_usage_for_period(
@@ -628,10 +632,12 @@ class UsageService:
                 return False, message
         
         # Daily limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_end = daily_start + timedelta(days=1)
+        
         if subscription_type.daily_max_tokens > 0:
             logger.debug(f"Checking daily limit: {subscription_type.daily_max_tokens}")
-            daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            daily_end = daily_start + timedelta(days=1)
             
             if is_free_model:
                 daily_messages, daily_tokens = UsageService.get_user_free_model_usage_for_period(
@@ -665,10 +671,12 @@ class UsageService:
                 return False, message
         
         # Weekly limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        weekly_end = weekly_start + timedelta(weeks=1)
+        
         if subscription_type.weekly_max_tokens > 0:
             logger.debug(f"Checking weekly limit: {subscription_type.weekly_max_tokens}")
-            weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            weekly_end = weekly_start + timedelta(weeks=1)
             
             if is_free_model:
                 weekly_messages, weekly_tokens = UsageService.get_user_free_model_usage_for_period(
@@ -702,13 +710,15 @@ class UsageService:
                 return False, message
         
         # Monthly limits (for all models)
+        # Define time variables first to avoid UnboundLocalError
+        monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if now.month == 12:
+            monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
+        else:
+            monthly_end = monthly_start.replace(month=monthly_start.month + 1)
+        
         if subscription_type.monthly_max_tokens > 0:
             logger.debug(f"Checking monthly limit: {subscription_type.monthly_max_tokens}")
-            monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            if now.month == 12:
-                monthly_end = monthly_start.replace(year=monthly_start.year + 1, month=1)
-            else:
-                monthly_end = monthly_start.replace(month=monthly_start.month + 1)
             
             if is_free_model:
                 monthly_messages, monthly_tokens = UsageService.get_user_free_model_usage_for_period(
