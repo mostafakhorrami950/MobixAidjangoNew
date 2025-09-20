@@ -285,38 +285,38 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('{% url "calculate_remaining_value" %}')
     .then(response => response.json())
     .then(data => {
-                        const resultDiv = document.getElementById('remaining-value-result');
-                        if (data.error) {
-                            resultDiv.innerHTML = `<div class="calculator-result error"><small>${data.error}</small></div>`;
-                        } else {
-                            // Calculate remaining tokens with proper display
-                            const remainingTokens = data.remaining_tokens;
-                            const totalTokenLimit = data.total_token_limit;
-                            const tokensUsed = data.total_tokens_used;
-                            
-                            resultDiv.innerHTML = `
-                                <div class="calculator-result">
-                                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                                        <i class="fas fa-info-circle"></i>
-                                        اطلاعات اشتراک فعلی
-                                    </h4>
-                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 14px;">
-                                        <div><strong>نوع اشتراک:</strong> ${data.subscription_name}</div>
-                                        <div><strong>قیمت اشتراک:</strong> ${data.subscription_price_tomans.toFixed(0)} تومان</div>
-                                        <div><strong>توکن مصرفی:</strong> ${tokensUsed}</div>
-                                        <div><strong>حداکثر توکن:</strong> ${totalTokenLimit}</div>
-                                        <div><strong>توکن باقیمانده:</strong> ${remainingTokens}</div>
-                                        <div><strong>روز باقیمانده:</strong> ${data.remaining_days}</div>
-                                    </div>
-                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
-                                        <strong style="font-size: 18px;">
-                                            <i class="fas fa-coins"></i>
-                                            ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان
-                                        </strong>
-                                    </div>
-                                </div>
-                            `;
+        const resultDiv = document.getElementById('remaining-value-result');
+        if (data.error) {
+            resultDiv.innerHTML = `<div class="calculator-result error"><small>${data.error}</small></div>`;
+        } else {
+            // Calculate remaining tokens with proper display
+            const remainingTokens = data.remaining_tokens;
+            const totalTokenLimit = data.total_token_limit;
+            const tokensUsed = data.total_tokens_used;
             
+            resultDiv.innerHTML = `
+                <div class="calculator-result">
+                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-info-circle"></i>
+                        اطلاعات اشتراک فعلی
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 14px;">
+                        <div><strong>نوع اشتراک:</strong> ${data.subscription_name}</div>
+                        <div><strong>قیمت اشتراک:</strong> ${data.subscription_price_tomans.toFixed(0)} تومان</div>
+                        <div><strong>توکن مصرفی:</strong> ${tokensUsed}</div>
+                        <div><strong>حداکثر توکن:</strong> ${totalTokenLimit}</div>
+                        <div><strong>توکن باقیمانده:</strong> ${remainingTokens}</div>
+                        <div><strong>روز باقیمانده:</strong> ${data.remaining_days}</div>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
+                        <strong style="font-size: 18px;">
+                            <i class="fas fa-coins"></i>
+                            ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان
+                        </strong>
+                    </div>
+                </div>
+            `;
+
             // Update all subscription prices with the calculated remaining value ONLY if no discount has been applied
             document.querySelectorAll('[class^="final-price-"]').forEach(element => {
                 // Extract subscription ID from class name
@@ -326,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const subscriptionId = finalPriceClass.split('-')[2];
                     const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
                     const discountResultElement = document.getElementById(`discount-result-${subscriptionId}`);
+                    const purchaseButton = element.closest('.plan-footer').querySelector('.purchase-btn');
                     
                     // Only update if no discount has been applied (discount result is empty)
                     if (originalPriceElement && (!discountResultElement || !discountResultElement.innerHTML.trim())) {
@@ -337,6 +338,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
                         if (discountCodeInput) {
                             discountCodeInput.setAttribute('data-final-price', finalPrice.toFixed(0));
+                        }
+                        
+                        // Disable payment button if remaining value is greater than original price
+                        if (data.total_remaining_value_tomans > originalPrice) {
+                            purchaseButton.disabled = true;
+                            purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                            purchaseButton.style.opacity = '0.7';
+                            purchaseButton.style.cursor = 'not-allowed';
                         }
                     }
                 }
@@ -385,6 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
                 const finalPriceSpan = document.querySelector(`.final-price-${subscriptionId}`);
                 const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                const purchaseButton = finalPriceSpan.closest('.plan-footer').querySelector('.purchase-btn');
                 
                 if (data.success) {
                     // Update UI with discount information
@@ -400,6 +410,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     finalPriceSpan.textContent = data.final_price.toFixed(0);
                     discountCodeInput.value = data.discount_code;
+                    
+                    // Disable payment button if final price is 0 or negative
+                    if (data.final_price <= 0) {
+                        purchaseButton.disabled = true;
+                        purchaseButton.innerHTML = '<i class="fas fa-gift"></i> پرداخت رایگان - نیازی به پرداخت نیست';
+                        purchaseButton.style.opacity = '0.7';
+                        purchaseButton.style.cursor = 'not-allowed';
+                    } else {
+                        // Re-enable button if it was previously disabled
+                        purchaseButton.disabled = false;
+                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${data.final_price.toFixed(0)} تومان`;
+                        purchaseButton.style.opacity = '1';
+                        purchaseButton.style.cursor = 'pointer';
+                        
+                        // Check again if remaining value is greater than the final price after discount
+                        if (data.total_remaining_value_tomans > data.final_price) {
+                            purchaseButton.disabled = true;
+                            purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                            purchaseButton.style.opacity = '0.7';
+                            purchaseButton.style.cursor = 'not-allowed';
+                        }
+                    }
                 } else {
                     resultDiv.innerHTML = `
                         <div class="discount-result error">
@@ -420,6 +452,28 @@ document.addEventListener('DOMContentLoaded', function() {
                             const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
                             finalPriceSpan.textContent = finalPrice.toFixed(0);
                             
+                            // Check if we should disable the button based on remaining value
+                            if (remainingValue > parseFloat(originalPrice)) {
+                                purchaseButton.disabled = true;
+                                purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                                purchaseButton.style.opacity = '0.7';
+                                purchaseButton.style.cursor = 'not-allowed';
+                            } else {
+                                // Re-enable button if it was previously disabled due to remaining value
+                                purchaseButton.disabled = false;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${finalPrice.toFixed(0)} تومان`;
+                                purchaseButton.style.opacity = '1';
+                                purchaseButton.style.cursor = 'pointer';
+                                
+                                // Check again if remaining value is greater than the final price
+                                if (remainingValue > finalPrice) {
+                                    purchaseButton.disabled = true;
+                                    purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                                    purchaseButton.style.opacity = '0.7';
+                                    purchaseButton.style.cursor = 'not-allowed';
+                                }
+                            }
+                            
                             // If final price is 0, show a special message
                             if (finalPrice === 0) {
                                 resultDiv.innerHTML = `
@@ -431,12 +485,28 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div>ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.</div>
                                     </div>
                                 `;
+                            } else if (remainingValue > parseFloat(originalPrice)) {
+                                // Check if remaining value is greater than original price
+                                purchaseButton.disabled = true;
+                                purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                                purchaseButton.style.opacity = '0.7';
+                                purchaseButton.style.cursor = 'not-allowed';
                             }
                         } else {
                             finalPriceSpan.textContent = originalPrice;
+                            // Re-enable button with original price
+                            purchaseButton.disabled = false;
+                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                            purchaseButton.style.opacity = '1';
+                            purchaseButton.style.cursor = 'pointer';
                         }
                     } else {
                         finalPriceSpan.textContent = originalPrice;
+                        // Re-enable button with original price
+                        purchaseButton.disabled = false;
+                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                        purchaseButton.style.opacity = '1';
+                        purchaseButton.style.cursor = 'pointer';
                     }
                     discountCodeInput.value = '';
                 }

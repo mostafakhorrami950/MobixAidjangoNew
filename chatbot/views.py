@@ -779,8 +779,9 @@ def send_message(request, session_id):
             )
             
             # رابطه چند-به-چند بین پیام و فایل‌ها - Many-to-many relationship between message and files
+            MessageFileModel = apps.get_model('chatbot', 'MessageFile')
             for file_order, uploaded_file_record in enumerate(uploaded_file_records):
-                MessageFile.objects.create(
+                MessageFileModel.objects.create(
                     message=user_message,
                     uploaded_file=uploaded_file_record,
                     file_order=file_order
@@ -967,7 +968,7 @@ def send_message(request, session_id):
                                     
                                     UsageService.increment_usage(
                                         request.user, subscription_type,
-                                        messages_count=2,  # User message + assistant message
+                                        messages_count=1,  # Only count one message interaction
                                         tokens_count=total_tokens_used,
                                         is_free_model=is_free_model
                                     )
@@ -984,7 +985,7 @@ def send_message(request, session_id):
                                     
                                     UsageService.increment_usage(
                                         request.user, subscription_type,
-                                        messages_count=2,  # User message + assistant message
+                                        messages_count=1,  # Only count one message interaction
                                         tokens_count=total_tokens_used,
                                         is_free_model=is_free_model
                                     )
