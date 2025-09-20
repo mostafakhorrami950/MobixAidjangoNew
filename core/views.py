@@ -73,10 +73,10 @@ def dashboard(request):
     user_tokens_used = 0
     if user_subscription:
         # Calculate total tokens used using the new ChatSessionUsage method
-        total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(
+        total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(
             request.user, user_subscription.subscription_type
         )
-        user_tokens_used = total_paid_tokens + total_free_tokens
+        user_tokens_used = total_tokens_used
     
     context = {
         'user_subscription': user_subscription,
@@ -122,7 +122,6 @@ def terms_and_conditions(request):
     """
     Display terms and conditions
     """
-    TermsAndConditions = apps.get_model('core', 'TermsAndConditions')
     terms = TermsAndConditions.get_active_terms()
     if not terms:
         # Create default terms if none exist

@@ -228,14 +228,13 @@ def initiate_payment(request, subscription_id):
 
         if user_subscription:
             # Consistent remaining value calculation
-            total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
-            total_tokens_from_chat_sessions = total_paid_tokens + total_free_tokens
+            total_tokens_used, _ = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
             
             UserUsage = apps.get_model('subscriptions', 'UserUsage')
             user_usage_records = UserUsage.objects.filter(user=user, subscription_type=user_subscription)
             
             total_user_usage_tokens = sum(record.tokens_count for record in user_usage_records)
-            combined_total_tokens_used = total_tokens_from_chat_sessions + total_user_usage_tokens
+            combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
 
             total_token_limit = user_subscription.max_tokens or 1000000
             remaining_tokens = max(0, total_token_limit - combined_total_tokens_used)
@@ -625,9 +624,6 @@ def calculate_remaining_subscription_value(request):
         user = request.user
         logger.info(f"Calculating remaining subscription value for user {user.id}")
         
-        # Debug: Check if user object is valid
-        logger.info(f"User object: id={user.id}, username={getattr(user, 'username', 'N/A')}, is_authenticated={getattr(user, 'is_authenticated', 'N/A')}")
-        
         user_subscription = user.get_subscription_type()
         
         if not user_subscription:
@@ -637,32 +633,24 @@ def calculate_remaining_subscription_value(request):
         logger.info(f"User {user.id} has subscription: {user_subscription.name}")
         
         # Calculate total tokens used using the new ChatSessionUsage method
-        try:
-            total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
-            logger.info(f"User {user.id} tokens used: {total_tokens_used}, free model tokens: {free_model_tokens_used}")
-        except Exception as e:
-            logger.error(f"Error getting token usage for user {user.id}: {str(e)}", exc_info=True)
-            return JsonResponse({'error': f'Error getting token usage: {str(e)}'}, status=500)
+        total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, user_subscription)
+        logger.info(f"User {user.id} tokens used: {total_tokens_used}, free model tokens: {free_model_tokens_used}")
         
         # Also get tokens from UserUsage for backward compatibility
-        try:
-            UserUsage = apps.get_model('subscriptions', 'UserUsage')
-            user_usage_records = UserUsage.objects.filter(user=user, subscription_type=user_subscription)
-            
-            total_user_usage_tokens = 0
-            total_user_usage_free_tokens = 0
-            for record in user_usage_records:
-                total_user_usage_tokens += record.tokens_count
-                total_user_usage_free_tokens += record.free_model_tokens_count
-            
-            # Combine tokens from both sources
-            combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
-            combined_free_model_tokens_used = free_model_tokens_used + total_user_usage_free_tokens
-            
-            logger.info(f"User {user.id} combined tokens used: {combined_total_tokens_used}, free model tokens: {combined_free_model_tokens_used}")
-        except Exception as e:
-            logger.error(f"Error getting UserUsage records for user {user.id}: {str(e)}", exc_info=True)
-            return JsonResponse({'error': f'Error getting usage records: {str(e)}'}, status=500)
+        UserUsage = apps.get_model('subscriptions', 'UserUsage')
+        user_usage_records = UserUsage.objects.filter(user=user, subscription_type=user_subscription)
+        
+        total_user_usage_tokens = 0
+        total_user_usage_free_tokens = 0
+        for record in user_usage_records:
+            total_user_usage_tokens += record.tokens_count
+            total_user_usage_free_tokens += record.free_model_tokens_count
+        
+        # Combine tokens from both sources
+        combined_total_tokens_used = total_tokens_used + total_user_usage_tokens
+        combined_free_model_tokens_used = free_model_tokens_used + total_user_usage_free_tokens
+        
+        logger.info(f"User {user.id} combined tokens used: {combined_total_tokens_used}, free model tokens: {combined_free_model_tokens_used}")
         
         # Use the subscription's max_tokens field for total limit
         total_token_limit = user_subscription.max_tokens
@@ -676,8 +664,8 @@ def calculate_remaining_subscription_value(request):
         logger.info(f"User {user.id} token limit: {total_token_limit}, remaining tokens: {remaining_tokens}")
         
         # Calculate remaining days
+        UserSubscriptionModel = apps.get_model('subscriptions', 'UserSubscription')
         try:
-            UserSubscriptionModel = apps.get_model('subscriptions', 'UserSubscription')
             user_subscription_record = UserSubscriptionModel.objects.get(user=user, subscription_type=user_subscription)
             logger.info(f"User {user.id} subscription record found")
             if user_subscription_record.end_date:
@@ -691,9 +679,6 @@ def calculate_remaining_subscription_value(request):
             # If no subscription record exists, use the subscription's default duration
             logger.warning(f"UserSubscription record not found for user {user.id}")
             remaining_days = user_subscription.duration_days
-        except Exception as e:
-            logger.error(f"Error getting UserSubscription record for user {user.id}: {str(e)}", exc_info=True)
-            return JsonResponse({'error': f'Error getting subscription record: {str(e)}'}, status=500)
         
         # New calculation formula:
         # Value per unit = Total Price / (Days * Tokens)
@@ -734,9 +719,12 @@ def calculate_remaining_subscription_value(request):
             'user_has_remaining_value': total_remaining_value_tomans > 0
         }
         
-        logger.info(f"User {user.id} calculation complete, returning data: {response_data}")
+        logger.info(f"User {user.id} calculation complete")
         return JsonResponse(response_data)
         
+    except apps.get_model('subscriptions', 'UserSubscription').DoesNotExist:
+        logger.error(f"UserSubscription.DoesNotExist for user {request.user.id}")
+        return JsonResponse({'error': 'No active subscription found'}, status=400)
     except Exception as e:
         logger.error(f"Error calculating remaining subscription value for user {request.user.id}: {str(e)}", exc_info=True)
         return JsonResponse({'error': f'Error calculating remaining subscription value: {str(e)}'}, status=500)
@@ -761,8 +749,7 @@ def intelligent_subscription_upgrade(request, new_subscription_id):
     # Calculate remaining value from current subscription using the new method
     try:
         # Calculate total tokens used using the new ChatSessionUsage method
-        total_paid_tokens, total_free_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, current_subscription)
-        total_tokens_used = total_paid_tokens + total_free_tokens
+        total_tokens_used, free_model_tokens_used = UsageService.get_user_total_tokens_from_chat_sessions(user, current_subscription)
         
         # Use the subscription's max_tokens field
         total_token_limit = current_subscription.max_tokens

@@ -219,7 +219,7 @@ class UsageService:
     def get_user_usage_for_period(user, subscription_type, start_time, end_time):
         """
         Get user's message and token usage for a specific period
-        Returns (messages_count, total_tokens)
+        Returns (messages_count, tokens_count)
         """
         logger.debug(f"Getting user usage for period: {start_time} to {end_time}")
         
@@ -237,12 +237,9 @@ class UsageService:
         )
         
         total_messages = usage_data['total_messages'] or 0
-        total_paid_tokens = usage_data['total_tokens'] or 0
-        total_free_tokens = usage_data['total_free_tokens'] or 0
-        # For backward compatibility, we still return total_tokens as the sum
-        total_tokens = total_paid_tokens + total_free_tokens
+        total_tokens = (usage_data['total_tokens'] or 0) + (usage_data['total_free_tokens'] or 0)
         
-        logger.debug(f"Period usage data - Messages: {total_messages}, Paid Tokens: {total_paid_tokens}, Free Tokens: {total_free_tokens}")
+        logger.debug(f"Period usage data - Messages: {total_messages}, Tokens: {total_tokens}")
         return total_messages, total_tokens
     
     @staticmethod
@@ -275,9 +272,9 @@ class UsageService:
     def get_user_total_tokens_from_chat_sessions(user, subscription_type):
         """
         Get total tokens used by user across all chat sessions for a subscription type
-        Returns (total_paid_tokens, total_free_tokens)
+        Returns (total_tokens, free_model_tokens)
         """
-        logger.debug(f"Getting total tokens from chat sessions for user {user.id}")
+        logger.info(f"Getting total tokens from chat sessions for user {user.id}")
         
         ChatSessionUsage = apps.get_model('chatbot', 'ChatSessionUsage')
         chat_session_usages = ChatSessionUsage.objects.filter(
@@ -285,16 +282,14 @@ class UsageService:
             subscription_type=subscription_type
         )
         
-        total_paid_tokens = 0
-        total_free_tokens = 0
+        total_tokens = 0
+        free_model_tokens = 0
         for usage in chat_session_usages:
-            if usage.is_free_model:
-                total_free_tokens += usage.free_model_tokens_count
-            else:
-                total_paid_tokens += usage.tokens_count
+            total_tokens += usage.tokens_count
+            free_model_tokens += usage.free_model_tokens_count
         
-        logger.debug(f"Total tokens from chat sessions - Paid: {total_paid_tokens}, Free: {total_free_tokens}")
-        return total_paid_tokens, total_free_tokens
+        logger.info(f"Total tokens from chat sessions - Total: {total_tokens}, Free model: {free_model_tokens}")
+        return total_tokens, free_model_tokens
     
     @staticmethod
     def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
@@ -522,6 +517,7 @@ class UsageService:
         
         # Hourly limits (for all models)
         # Define time variables first to avoid UnboundLocalError
+        now = timezone.now()
         hourly_start = now - timedelta(hours=1)
         
         if subscription_type.hourly_max_tokens > 0:
@@ -807,7 +803,120 @@ class UsageService:
         
         logger.info("Comprehensive check passed - all limits are within acceptable range")
         return True, ""
-
+    
+    @staticmethod
+    def get_user_usage_statistics(user):
+        """
+        Get comprehensive usage statistics for a user across all time periods and models
+        """
+        logger.info(f"Getting comprehensive usage statistics for user {user.id}")
+        
+        # Get user's current subscription
+        subscription_type = user.get_subscription_type()
+        if not subscription_type:
+            logger.warning(f"No active subscription found for user {user.id}")
+            return {}
+        
+        stats = {
+            'subscription_type': subscription_type,
+            'tokens_summary': {},
+            'messages_summary': {},
+            'images_summary': {},
+        }
+        
+        # Calculate token statistics
+        logger.info("Calculating token statistics")
+        stats['tokens_summary'] = UsageService._calculate_token_statistics(user, subscription_type)
+        
+        # Calculate message statistics for different time periods
+        logger.info("Calculating message statistics for different time periods")
+        stats['messages_summary'] = UsageService._calculate_message_statistics(user, subscription_type)
+        
+        # Calculate image generation statistics
+        logger.info("Calculating image generation statistics")
+        stats['images_summary'] = UsageService._calculate_image_statistics(user, subscription_type)
+        
+        logger.info(f"Generated comprehensive stats for user {user.id}")
+        return stats
+    
+    @staticmethod
+    def _calculate_token_statistics(user, subscription_type):
+        """
+        Helper method to calculate token statistics
+        """
+        logger.debug("Calculating token statistics")
+        
+        # Get total tokens used across all time periods
+        total_tokens, free_model_tokens = UsageService.get_user_total_tokens_from_chat_sessions(user, subscription_type)
+        token_stats = {
+            'total_tokens': total_tokens,
+            'free_model_tokens': free_model_tokens,
+            'paid_model_tokens': total_tokens - free_model_tokens,
+        }
+        
+        logger.debug(f"Token statistics: {token_stats}")
+        return token_stats
+    
+    @staticmethod
+    def _calculate_message_statistics(user, subscription_type):
+        """
+        Helper method to calculate message statistics for different time periods
+        """
+        logger.debug("Calculating message statistics for different time periods")
+        
+        now = timezone.now()
+        
+        # Calculate messages for each time period
+        message_stats = {
+            'hourly': UsageService.get_user_usage_for_period(user, subscription_type, now - timedelta(hours=1), now)[0],
+            'three_hours': UsageService.get_user_usage_for_period(user, subscription_type, now - timedelta(hours=3), now)[0],
+            'twelve_hours': UsageService.get_user_usage_for_period(user, subscription_type, now - timedelta(hours=12), now)[0],
+            'daily': UsageService.get_user_usage_for_period(user, subscription_type, now.replace(hour=0, minute=0, second=0, microsecond=0), now)[0],
+            'weekly': UsageService.get_user_usage_for_period(user, subscription_type, (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0), now)[0],
+            'monthly': UsageService.get_user_usage_for_period(user, subscription_type, now.replace(day=1, hour=0, minute=0, second=0, microsecond=0), now)[0],
+        }
+        
+        logger.debug(f"Message statistics: {message_stats}")
+        return message_stats
+    
+    @staticmethod
+    def _calculate_image_statistics(user, subscription_type):
+        """
+        Helper method to calculate image generation statistics
+        """
+        logger.debug("Calculating image generation statistics")
+        
+        now = timezone.now()
+        
+        # Get or create image generation usage record
+        daily_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        weekly_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        monthly_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        ImageGenerationUsage = apps.get_model('chatbot', 'ImageGenerationUsage')
+        image_usage, created = ImageGenerationUsage.objects.get_or_create(
+            user=user,
+            subscription_type=subscription_type,
+            defaults={
+                'daily_images_count': 0,
+                'weekly_images_count': 0,
+                'monthly_images_count': 0,
+                'daily_period_start': daily_start,
+                'weekly_period_start': weekly_start,
+                'monthly_period_start': monthly_start,
+            }
+        )
+        
+        # Calculate image statistics for each time period
+        image_stats = {
+            'daily': image_usage.daily_images_count,
+            'weekly': image_usage.weekly_images_count,
+            'monthly': image_usage.monthly_images_count,
+        }
+        
+        logger.debug(f"Image statistics: {image_stats}")
+        return image_stats
+    
     @staticmethod
     def reset_chat_session_usage(user, subscription_type):
         """
