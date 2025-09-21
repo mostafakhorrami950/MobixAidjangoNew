@@ -106,6 +106,11 @@ def chat(request):
             if model.subscriptions.filter(subscription_types=user_subscription).exists():
                 has_access = True
         
+        # Get image URL if image exists
+        image_url = None
+        if model.image:
+            image_url = model.image.url
+        
         # Create a dictionary representation with access information
         model_data = {
             'model_id': model.model_id,
@@ -114,7 +119,8 @@ def chat(request):
             'is_free': model.is_free,
             'model_type': model.model_type,
             'is_active': model.is_active,
-            'user_has_access': has_access
+            'user_has_access': has_access,
+            'image_url': image_url
         }
         available_models.append(model_data)
     
@@ -155,13 +161,19 @@ def get_available_models_for_user(request):
                 if model.subscriptions.filter(subscription_types=user_subscription).exists():
                     has_access = True
             
+            # Get image URL if image exists
+            image_url = None
+            if model.image:
+                image_url = model.image.url
+            
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
                 'model_type': model.model_type,
                 'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
-                'user_has_access': has_access
+                'user_has_access': has_access,
+                'image_url': image_url
             })
         
         return JsonResponse({
@@ -208,13 +220,19 @@ def get_available_models_for_chatbot(request, chatbot_id):
                 if model.subscriptions.filter(subscription_types=user_subscription).exists():
                     has_access = True
             
+            # Get image URL if image exists
+            image_url = None
+            if model.image:
+                image_url = model.image.url
+            
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
                 'is_free': model.is_free,
                 'model_type': model.model_type,
                 'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
-                'user_has_access': has_access
+                'user_has_access': has_access,
+                'image_url': image_url
             })
         
         return JsonResponse({

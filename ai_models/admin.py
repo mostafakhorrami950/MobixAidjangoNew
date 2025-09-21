@@ -13,6 +13,10 @@ class AIModelAdmin(admin.ModelAdmin):
     list_editable = ('is_active', 'is_free', 'token_cost_multiplier')
     inlines = [ModelSubscriptionInline]
     
+    # Add image field to the admin form
+    fields = ('name', 'model_id', 'description', 'model_type', 'is_active', 'is_free', 'token_cost_multiplier', 'image')
+    
+    @admin.display(description='Access Type')
     def access_type(self, obj):
         if obj.is_free:
             return "Free"
@@ -21,7 +25,6 @@ class AIModelAdmin(admin.ModelAdmin):
             return ", ".join(subscription_types) if subscription_types else "Premium Only"
         else:
             return "Not Available"
-    access_type.short_description = 'Access Type'
 
 @admin.register(WebSearchSettings)
 class WebSearchSettingsAdmin(admin.ModelAdmin):
@@ -30,11 +33,7 @@ class WebSearchSettingsAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     filter_horizontal = ('enabled_subscription_types',)
     
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        # Filter to only show text generation models
-        form.base_fields['web_search_model'].queryset = AIModel.objects.filter(
-            model_type='text', 
-            is_active=True
-        )
-        return form
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "web_search_model":
+            kwargs["queryset"] = AIModel.objects.filter(model_type='text', is_active=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)

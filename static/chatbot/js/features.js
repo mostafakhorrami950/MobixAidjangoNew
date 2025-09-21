@@ -258,31 +258,6 @@ function loadModelsForChatbot(chatbotId) {
                     }
                 }
             }
-            
-            // Show/hide image generation button based on chatbot type
-            const imageGenBtn = document.getElementById('image-generation-btn');
-            const webSearchBtn = document.getElementById('web-search-btn');
-            if (data.chatbot_type === 'image_editing') {
-                // For image editing chatbots:
-                // 1. Hide the image generation button (it's automatic)
-                imageGenBtn.style.display = 'none';
-                // 2. Enable image generation by default
-                sessionStorage.setItem(`imageGen_${currentSessionId}`, 'true');
-                // 3. Hide the web search button
-                webSearchBtn.style.display = 'none';
-            } else {
-                // For other chatbots:
-                // 1. Show the image generation button
-                imageGenBtn.style.display = 'inline-block';
-                // 2. Restore web search button visibility
-                webSearchBtn.style.display = 'inline-block';
-                // Also disable image generation if it was enabled
-                imageGenBtn.classList.remove('btn-primary');
-                imageGenBtn.classList.add('btn-outline-primary');
-                imageGenBtn.innerHTML = '<i class="fas fa-image"></i> تولید تصویر';
-                imageGenBtn.title = 'فعال کردن تولید تصویر';
-                sessionStorage.setItem(`imageGen_${currentSessionId}`, 'false');
-            }
         })
         .catch(error => console.error('Error loading models:', error));
 }

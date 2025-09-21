@@ -593,10 +593,10 @@ function populateFloatingModelGrid(models) {
         }
         
         // Set default image if none provided
-        const modelImage = model.image_url || '/static/images/default-model.png';
+        const modelImage = model.image_url || '/static/images/default-model.PNG';
         
         modelCard.innerHTML = `
-            <img src="${modelImage}" alt="${model.name}" onerror="this.src='/static/images/default-model.png'">
+            <img src="${modelImage}" alt="${model.name}" onerror="this.src='/static/images/default-model.PNG'">
             <div class="model-name">${model.name}</div>
             <span class="model-access ${accessClass}">${accessText}</span>
         `;

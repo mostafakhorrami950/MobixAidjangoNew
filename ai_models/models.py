@@ -22,6 +22,14 @@ class AIModel(models.Model):
         help_text="Cost multiplier for this model. Example: 2.0 means double the cost."
     )
     
+    # Add image field for model
+    image = models.ImageField(
+        upload_to='model_images/', 
+        blank=True, 
+        null=True,
+        help_text="Image for this AI model"
+    )
+    
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     
