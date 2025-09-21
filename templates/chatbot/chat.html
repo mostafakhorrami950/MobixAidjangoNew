@@ -25,8 +25,8 @@
                 </div>
             </div>
             
-            <!-- Sidebar menu items - Added to display menu items in sidebar -->
-            <div class="sidebar-menu-items" id="sidebar-menu-items">
+            <!-- Move all navigation menu information to sidebar -->
+            <div class="sidebar-nav-menu" id="sidebar-nav-menu">
                 <!-- Menu items will be loaded here dynamically -->
             </div>
         </div>
@@ -154,13 +154,13 @@
 <!-- Overlay for mobile sidebar -->
 <div class="overlay d-md-none" id="sidebar-overlay"></div>
 
-<!-- Floating New Chat Button for Mobile -->
+<!-- Floating new conversation button for mobile -->
 <div class="floating-new-chat-btn d-md-none" id="floating-new-chat-btn" title="چت جدید">
     <i class="fas fa-plus"></i>
 </div>
 
-<!-- Floating Model Selection for Mobile -->
-<div class="floating-model-selection d-md-none" id="floating-model-selection" style="display: none;">
+<!-- Floating model selection list -->
+<div class="floating-model-selection" id="floating-model-selection" style="display: none;">
     <div class="model-selection-header">
         <h6>انتخاب مدل هوش مصنوعی</h6>
         <button class="close-model-selection" id="close-model-selection">
@@ -168,7 +168,7 @@
         </button>
     </div>
     <div class="model-list" id="model-list">
-        <!-- Model items will be loaded here -->
+        <!-- Models will be loaded here dynamically -->
     </div>
 </div>
 
@@ -594,21 +594,16 @@ option:disabled {
     line-height: 1;
 }
 
-/* Sidebar menu items styles */
-.sidebar-menu-items {
-    padding: 12px;
-    border-top: 1px solid var(--border);
-}
-
-.sidebar-menu-items .nav-item {
+/* Mobile nav menu styles */
+.mobile-nav-menu .nav-item {
     border-bottom: 1px solid #e9ecef;
 }
 
-.sidebar-menu-items .nav-item:last-child {
+.mobile-nav-menu .nav-item:last-child {
     border-bottom: none;
 }
 
-.sidebar-menu-items .nav-link {
+.mobile-nav-menu .nav-link {
     padding: 12px 15px;
     display: flex;
     align-items: center;
@@ -616,12 +611,12 @@ option:disabled {
     text-decoration: none;
 }
 
-.sidebar-menu-items .nav-link:hover {
+.mobile-nav-menu .nav-link:hover {
     background-color: #f8f9fa;
     color: #007bff;
 }
 
-.sidebar-menu-items .nav-link i {
+.mobile-nav-menu .nav-link i {
     margin-left: 10px;
     width: 20px;
     text-align: center;
@@ -668,53 +663,64 @@ option:disabled {
     color: #856404;
 }
 
-/* Floating New Chat Button for Mobile */
+/* Floating new conversation button for mobile */
 .floating-new-chat-btn {
     position: fixed;
-    top: 20px;
+    top: 90px;
     left: 20px;
     z-index: 1000;
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: var(--primary-blue);
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
     cursor: pointer;
     transition: all 0.3s ease;
-}
-
-.floating-new-chat-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-.floating-new-chat-btn i {
     font-size: 20px;
 }
 
-/* Floating Model Selection for Mobile */
+.floating-new-chat-btn:hover {
+    transform: translateY(-3px) scale(1.1);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+}
+
+/* Floating model selection styles */
 .floating-model-selection {
     position: fixed;
-    top: 50%;
+    top: 20px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1001;
-    width: 90%;
-    max-width: 400px;
+    transform: translateX(-50%);
+    z-index: 1002;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
     overflow: hidden;
+    display: none;
+    animation: fadeInDown 0.3s ease;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
 }
 
 .model-selection-header {
-    background: var(--primary-blue);
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
     color: white;
-    padding: 16px;
+    padding: var(--gap-lg);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -722,104 +728,116 @@ option:disabled {
 
 .model-selection-header h6 {
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .close-model-selection {
-    background: none;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0;
     width: 30px;
     height: 30px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: background 0.3s ease;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .close-model-selection:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
 }
 
 .model-list {
-    max-height: 70vh;
+    padding: var(--gap-lg);
+    max-height: 60vh;
     overflow-y: auto;
-    padding: 16px;
 }
 
 .model-item {
     display: flex;
     align-items: center;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    padding: var(--gap-lg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--gap-sm);
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid #e9ecef;
 }
 
 .model-item:hover {
-    background: #f8f9fa;
-    border-color: var(--primary-blue);
-    transform: translateY(-2px);
-}
-
-.model-item.active {
     background: var(--light-blue);
     border-color: var(--primary-blue);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
 }
 
-.model-item img {
+.model-item:last-child {
+    margin-bottom: 0;
+}
+
+.model-icon {
     width: 40px;
     height: 40px;
-    border-radius: 8px;
-    margin-left: 12px;
-    object-fit: cover;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-left: var(--gap);
+    font-size: 16px;
 }
 
-.model-item-info {
+.model-info {
     flex: 1;
 }
 
-.model-item-name {
+.model-name {
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
-.model-item-description {
+.model-type {
     font-size: 12px;
-    color: #666;
-    margin: 0;
+    color: var(--text-muted);
 }
 
-.model-item-badge {
+.model-badge {
     font-size: 10px;
     padding: 4px 8px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
 }
 
-.model-item-badge.free {
-    background: #d4edda;
-    color: #155724;
+.model-badge.free {
+    background: var(--success);
+    color: white;
 }
 
-.model-item-badge.premium {
-    background: #cce5ff;
-    color: #004085;
+.model-badge.premium {
+    background: var(--warning);
+    color: var(--text-primary);
 }
 
-/* Overlay for floating model selection */
-.overlay.show {
-    display: block;
-    opacity: 1;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .floating-model-selection {
+        width: 95%;
+        top: 10px;
+    }
+    
+    .model-list {
+        padding: var(--gap);
+    }
+    
+    .model-item {
+        padding: var(--gap);
+    }
 }
-
 </style>
 
 <!-- JavaScript فایل‌های مجزا -->

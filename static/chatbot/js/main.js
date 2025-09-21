@@ -260,32 +260,166 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add edit button to user messages after a short delay
     setTimeout(addEditButtonToUserMessages, 1000);
     
+    // Initialize new UI components
+    initializeNewUIComponents();
+});
+
+// Function to initialize new UI components
+function initializeNewUIComponents() {
     // Add event listener for floating new chat button
     const floatingNewChatBtn = document.getElementById('floating-new-chat-btn');
     if (floatingNewChatBtn) {
         floatingNewChatBtn.addEventListener('click', function() {
-            // Show floating model selection
+            // Trigger the existing new chat button
+            const newChatBtn = document.getElementById('new-chat-btn');
+            if (newChatBtn) {
+                newChatBtn.click();
+            }
+        });
+    }
+    
+    // Add event listener for model selection wrapper to show floating model selection
+    const modelSelectionWrapper = document.querySelector('.model-selection-wrapper');
+    if (modelSelectionWrapper) {
+        modelSelectionWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
             showFloatingModelSelection();
         });
     }
     
-    // Add event listener for closing floating model selection
+    // Add event listener for closing model selection
     const closeModelSelection = document.getElementById('close-model-selection');
     if (closeModelSelection) {
-        closeModelSelection.addEventListener('click', hideFloatingModelSelection);
-    }
-    
-    // Close floating model selection when clicking on overlay
-    const overlay = document.getElementById('sidebar-overlay');
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            // Only close if clicking on the overlay itself, not its children
-            if (e.target === overlay) {
-                hideFloatingModelSelection();
-            }
+        closeModelSelection.addEventListener('click', function() {
+            hideFloatingModelSelection();
         });
     }
-});
+    
+    // Close floating model selection when clicking outside
+    document.addEventListener('click', function(e) {
+        const modelSelection = document.getElementById('floating-model-selection');
+        if (modelSelection && modelSelection.style.display === 'block' && 
+            !modelSelection.contains(e.target) && 
+            !e.target.closest('.model-selection-wrapper')) {
+            hideFloatingModelSelection();
+        }
+    });
+}
+
+// Function to show floating model selection
+function showFloatingModelSelection() {
+    const modelSelection = document.getElementById('floating-model-selection');
+    if (modelSelection) {
+        modelSelection.style.display = 'block';
+        // Load models if not already loaded
+        loadFloatingModelList();
+    }
+}
+
+// Function to hide floating model selection
+function hideFloatingModelSelection() {
+    const modelSelection = document.getElementById('floating-model-selection');
+    if (modelSelection) {
+        modelSelection.style.display = 'none';
+    }
+}
+
+// Function to load models in floating selection
+function loadFloatingModelList() {
+    // Fetch available models from the server
+    fetch('/chat/models/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading models:', data.error);
+                return;
+            }
+            
+            const modelList = document.getElementById('model-list');
+            if (!modelList) return;
+            
+            // Clear loading state
+            modelList.innerHTML = '';
+            
+            // Add models to the floating list
+            data.models.forEach(model => {
+                const modelItem = document.createElement('div');
+                modelItem.className = 'model-item';
+                modelItem.dataset.modelId = model.model_id;
+                
+                // Determine model type for styling
+                let modelType = 'free';
+                let modelBadge = 'رایگان';
+                if (!model.is_free) {
+                    if (model.user_has_access) {
+                        modelType = 'premium';
+                        modelBadge = 'ویژه';
+                    } else {
+                        modelType = 'disabled';
+                        modelBadge = 'نیاز به اشتراک';
+                    }
+                }
+                
+                modelItem.innerHTML = `
+                    <div class="model-icon">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div class="model-info">
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-type">${model.description || 'مدل هوش مصنوعی'}</div>
+                    </div>
+                    <div class="model-badge ${modelType}">${modelBadge}</div>
+                `;
+                
+                // Add click event if user has access
+                if (model.user_has_access) {
+                    modelItem.addEventListener('click', function() {
+                        // Update the current session model
+                        if (currentSessionId) {
+                            updateSessionModel(currentSessionId, model.model_id);
+                            // Hide the floating selection
+                            hideFloatingModelSelection();
+                            
+                            // Show confirmation message
+                            const confirmation = document.createElement('div');
+                            confirmation.className = 'alert alert-success alert-dismissible fade show';
+                            confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+                            confirmation.innerHTML = `
+                                <strong>موفقیت!</strong> مدل به ${model.name} تغییر یافت.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            document.body.appendChild(confirmation);
+                            
+                            // Auto remove after 3 seconds
+                            setTimeout(() => {
+                                if (confirmation.parentNode) {
+                                    confirmation.parentNode.removeChild(confirmation);
+                                }
+                            }, 3000);
+                        }
+                    });
+                } else {
+                    // Add disabled styling
+                    modelItem.classList.add('disabled');
+                    modelItem.title = 'برای دسترسی به این مدل نیاز به اشتراک دارید';
+                }
+                
+                modelList.appendChild(modelItem);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading models:', error);
+            const modelList = document.getElementById('model-list');
+            if (modelList) {
+                modelList.innerHTML = `
+                    <div class="text-center text-danger p-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p class="mt-2 mb-0">خطا در بارگذاری مدل‌ها</p>
+                    </div>
+                `;
+            }
+        });
+}
 
 // Load available models for user
 function loadAvailableModelsForUser() {
@@ -421,83 +555,4 @@ function hideModalCostWarning() {
     if (warningElement) {
         warningElement.style.display = 'none';
     }
-}
-
-// Create default session with selected model
-function createDefaultSessionWithModel(modelId) {
-    // Create session with selected model
-    fetch('/chat/session/create-default/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({
-            ai_model_id: modelId
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            // Show error message
-            const errorAlert = document.createElement('div');
-            errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-            errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-            errorAlert.innerHTML = `
-                <strong>خطا!</strong> ${data.error}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(errorAlert);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (errorAlert.parentNode) {
-                    errorAlert.parentNode.removeChild(errorAlert);
-                }
-            }, 5000);
-            return;
-        }
-        
-        // Load the new session
-        loadSession(data.session_id);
-        
-        // Update URL without page reload
-        history.pushState({sessionId: data.session_id}, '', `/chat/session/${data.session_id}/`);
-    })
-    .catch(error => {
-        console.error('Error creating session:', error);
-        // Show error message
-        const errorAlert = document.createElement('div');
-        errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-        errorAlert.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-        errorAlert.innerHTML = `
-            <strong>خطا!</strong> مشکلی در ایجاد جلسه رخ داده است.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(errorAlert);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (errorAlert.parentNode) {
-                errorAlert.parentNode.removeChild(errorAlert);
-            }
-        }, 5000);
-    });
-}
-
-// Helper function to get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 }
