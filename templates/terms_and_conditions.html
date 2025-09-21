@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ terms.title }} - MobixAI{% endblock %}
+
+{% block extra_css %}
+<style>
+.terms-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.terms-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.terms-title {
+    color: #1f2937;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.terms-content {
+    color: #374151;
+    font-size: 16px;
+    line-height: 1.8;
+    text-align: justify;
+    white-space: pre-line;
+}
+
+.terms-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+}
+
+.terms-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1001;
+    display: none;
+}
+
+.terms-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.terms-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.terms-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.terms-modal-close:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.terms-modal-body {
+    padding: 1.5rem;
+    color: #374151;
+    line-height: 1.7;
+    white-space: pre-line;
+    text-align: justify;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-top: 2rem;
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .terms-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .terms-title {
+        font-size: 1.5rem;
+    }
+    
+    .terms-modal {
+        width: 95%;
+        margin: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="terms-container">
+    <div class="terms-header">
+        <h1 class="terms-title">{{ terms.title }}</h1>
+    </div>
+    
+    <div class="terms-content">
+        {{ terms.content }}
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="javascript:history.back()" class="back-button">
+            <i class="fas fa-arrow-right"></i>
+            بازگشت
+        </a>
+    </div>
+</div>
+
+<!-- Modal HTML (for JavaScript usage) -->
+<div class="terms-modal-overlay" id="termsModalOverlay">
+    <div class="terms-modal" id="termsModal">
+        <div class="terms-modal-header">
+            <h2 class="terms-modal-title">{{ terms.title }}</h2>
+            <button class="terms-modal-close" id="termsModalClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="terms-modal-body">
+            {{ terms.content }}
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functionality
+function showTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'block';
+    document.getElementById('termsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'none';
+    document.getElementById('termsModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Event listeners
+document.getElementById('termsModalClose').addEventListener('click', hideTermsModal);
+document.getElementById('termsModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideTermsModal();
+    }
+});
+
+// Expose to global scope
+window.showTermsModal = showTermsModal;
+window.hideTermsModal = hideTermsModal;
+
+// ESC key to close modal
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideTermsModal();
+    }
+});
+</script>
+{% endblock %}

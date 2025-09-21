@@ -1,0 +1,724 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}خرید اشتراک - MobixAI{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/purchase.css' %}">
+
+<div class="purchase-page">
+    <div class="purchase-container">
+        <!-- Page Header -->
+        <div class="purchase-header">
+            <span class="purchase-badge">
+                <i class="fas fa-crown"></i> برنامه‌های اشتراک
+            </span>
+            <h1 class="purchase-title">انتخاب بهترین برنامه برای شما</h1>
+            <p class="purchase-subtitle">
+                با اشتراک MobixAI از قدرت کامل هوش مصنوعی برای رشد و موفقیت خود استفاده کنید
+            </p>
+        </div>
+        
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="margin-bottom: 2rem;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Smart Calculator Section -->
+        <div class="smart-calculator">
+            <div class="calculator-header">
+                <div class="calculator-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div>
+                    <h3 class="calculator-title">محاسبه‌گر هوشمند پرداخت</h3>
+                    <p class="calculator-description">سیستم ما ارزش باقیمانده اشتراک فعلی شما را محاسبه کرده و از قیمت جدید کسر می‌کند</p>
+                </div>
+            </div>
+            <div id="remaining-value-result"></div>
+        </div>
+        
+        <!-- Current Usage Overview -->
+        {% if usage_summary %}
+        <div class="usage-overview">
+            <div class="usage-header">
+                <div class="usage-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div>
+                    <h3 class="usage-title">وضعیت فعلی مصرف شما</h3>
+                    <p class="usage-description">قبل از خرید، مصرف فعلی خود را بررسی کنید</p>
+                </div>
+            </div>
+            <div class="usage-stats-grid">
+                <div class="usage-stat">
+                    <div class="usage-stat-icon tokens-paid">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>توکن‌های پولی</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.tokens_summary.paid_used }}</span>
+                            {% if usage_summary.tokens_summary.paid_limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.tokens_summary.paid_limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.tokens_summary.paid_remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.paid_remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon tokens-free">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>توکن‌های رایگان</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.tokens_summary.free_used }}</span>
+                            {% if usage_summary.tokens_summary.free_limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.tokens_summary.free_limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.tokens_summary.free_remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.free_remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon messages">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>پیام‌های امروز</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.messages_today.used }}</span>
+                            {% if usage_summary.messages_today.limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.messages_today.limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.messages_today.remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.messages_today.remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="usage-stat">
+                    <div class="usage-stat-icon images">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div class="usage-stat-content">
+                        <h4>تصاویر امروز</h4>
+                        <div class="usage-numbers">
+                            <span class="used">{{ usage_summary.images_today.used }}</span>
+                            {% if usage_summary.images_today.limit %}
+                                <span class="separator">/</span>
+                                <span class="limit">{{ usage_summary.images_today.limit }}</span>
+                            {% endif %}
+                        </div>
+                        {% if usage_summary.images_today.remaining %}
+                            <div class="remaining">باقیمانده: {{ usage_summary.images_today.remaining }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Subscription Plans -->
+        {% if subscriptions %}
+        <div class="plans-grid">
+            {% for subscription in subscriptions %}
+            <div class="plan-card{% if forloop.counter == 2 %} featured{% endif %}">
+                <!-- Plan Header -->
+                <div class="plan-header">
+                    <h2 class="plan-name">{{ subscription.name }}</h2>
+                    <div class="plan-price">
+                        <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span>
+                        <span class="plan-currency">تومان</span>
+                        <span class="original-price-{{ subscription.id }}" style="display: none;">{{ subscription.price|floatformat:0 }}</span>
+                    </div>
+                </div>
+                
+                <!-- Plan Body -->
+                <div class="plan-body">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--gap-lg); text-align: center; line-height: 1.6;">{{ subscription.description }}</p>
+                    
+                    <!-- Plan Features -->
+                    <ul class="plan-features">
+                        <li>
+                            <i class="fas fa-clock"></i>
+                            <span class="feature-label">مدت اشتراک</span>
+                            <span class="feature-value">{{ subscription.duration_days }} روز</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-coins"></i>
+                            <span class="feature-label">حداکثر توکن</span>
+                            <span class="feature-value">{{ subscription.max_tokens|default:"نامحدود" }}</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-tag"></i>
+                            <span class="feature-label">کد محصول</span>
+                            <span class="feature-value">{{ subscription.sku }}</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-headset"></i>
+                            <span class="feature-label">پشتیبانی</span>
+                            <span class="feature-value">24/7</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-shield-alt"></i>
+                            <span class="feature-label">ضمانت کیفیت</span>
+                            <span class="feature-value">کامل</span>
+                        </li>
+                    </ul>
+                    
+                    <!-- Discount Section -->
+                    <div class="discount-section">
+                        <div class="discount-header">
+                            <i class="fas fa-percent discount-icon"></i>
+                            <h4 class="discount-title">کد تخفیف دارید؟</h4>
+                        </div>
+                        <div class="discount-input-group">
+                            <input type="text" class="discount-input discount-code-input" 
+                                   placeholder="کد تخفیف خود را وارد کنید" 
+                                   data-subscription-id="{{ subscription.id }}">
+                            <button type="button" class="discount-btn apply-discount-btn" 
+                                    data-subscription-id="{{ subscription.id }}">
+                                <i class="fas fa-check"></i> اعمال
+                            </button>
+                        </div>
+                        <div class="discount-result" id="discount-result-{{ subscription.id }}"></div>
+                    </div>
+                </div>
+                
+                <!-- Plan Footer -->
+                <div class="plan-footer">
+                    <form method="post" action="{% url 'initiate_payment' subscription.id %}" class="payment-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
+                        <button type="submit" class="purchase-btn">
+                            <i class="fas fa-shopping-cart"></i>
+                            خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h2 class="empty-title">اشتراکی موجود نیست</h2>
+            <p class="empty-description">
+                در حال حاضر هیچ برنامه اشتراکی برای خرید فعال نیست. لطفاً بعداً مراجعه کنید.
+            </p>
+        </div>
+        {% endif %}
+        
+        <!-- Purchase Guide Sidebar -->
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; margin-top: 3rem;">
+            <div></div>
+            <div class="purchase-guide">
+                <h3 class="guide-title">
+                    <i class="fas fa-info-circle"></i>
+                    راهنمای خرید
+                </h3>
+                <ul class="guide-items">
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-calculator"></i>
+                            محاسبه هوشمند
+                        </div>
+                        <div class="guide-item-description">
+                            ارزش باقیمانده اشتراک فعلی شما به طور خودکار محاسبه و از قیمت جدید کسر می‌شود
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-percent"></i>
+                            کدهای تخفیف
+                        </div>
+                        <div class="guide-item-description">
+                            اگر کد تخفیف دارید، از تخفیف‌های ویژه بهره‌مند شوید
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-shield-alt"></i>
+                            پرداخت ایمن
+                        </div>
+                        <div class="guide-item-description">
+                            پرداخت شما با بالاترین استانداردهای امنیتی محافظت می‌شود
+                        </div>
+                    </li>
+                    <li class="guide-item">
+                        <div class="guide-item-title">
+                            <i class="fas fa-headset"></i>
+                            پشتیبانی 24/7
+                        </div>
+                        <div class="guide-item-description">
+                            تیم پشتیبانی ما آماده کمک به شما است
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate remaining value automatically on page load
+    fetch('{% url "calculate_remaining_value" %}')
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('remaining-value-result');
+        if (!resultDiv) {
+            console.error('Result div not found');
+            return;
+        }
+        
+        if (data.error) {
+            resultDiv.innerHTML = `<div class="calculator-result error"><small>${data.error}</small></div>`;
+        } else {
+            // Calculate remaining tokens with proper display
+            const remainingTokens = data.remaining_tokens;
+            const totalTokenLimit = data.total_token_limit;
+            const tokensUsed = data.total_tokens_used;
+            
+            resultDiv.innerHTML = `
+                <div class="calculator-result">
+                    <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-info-circle"></i>
+                        اطلاعات اشتراک فعلی
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 14px;">
+                        <div><strong>نوع اشتراک:</strong> ${data.subscription_name}</div>
+                        <div><strong>قیمت اشتراک:</strong> ${data.subscription_price_tomans.toFixed(0)} تومان</div>
+                        <div><strong>توکن مصرفی:</strong> ${tokensUsed}</div>
+                        <div><strong>حداکثر توکن:</strong> ${totalTokenLimit}</div>
+                        <div><strong>توکن باقیمانده:</strong> ${remainingTokens}</div>
+                        <div><strong>روز باقیمانده:</strong> ${data.remaining_days}</div>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2); text-align: center;">
+                        <strong style="font-size: 18px;">
+                            <i class="fas fa-coins"></i>
+                            ارزش کل باقیمانده: ${data.total_remaining_value_tomans.toFixed(0)} تومان
+                        </strong>
+                    </div>
+                </div>
+            `;
+
+            // Update all subscription prices with the calculated remaining value ONLY if no discount has been applied
+            document.querySelectorAll('[class^="final-price-"]').forEach(element => {
+                // Extract subscription ID from class name
+                const classList = element.className.split(' ');
+                const finalPriceClass = classList.find(cls => cls.startsWith('final-price-'));
+                if (finalPriceClass) {
+                    const subscriptionId = finalPriceClass.split('-')[2];
+                    const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
+                    const discountResultElement = document.getElementById(`discount-result-${subscriptionId}`);
+                    const planFooter = element.closest('.plan-footer');
+                    const purchaseButton = planFooter ? planFooter.querySelector('.purchase-btn') : null;
+                    
+                    // Only update if no discount has been applied (discount result is empty)
+                    if (originalPriceElement && (!discountResultElement || !discountResultElement.innerHTML.trim())) {
+                        const originalPrice = parseFloat(originalPriceElement.textContent);
+                        const finalPrice = Math.max(0, originalPrice - data.total_remaining_value_tomans);
+                        element.textContent = finalPrice.toFixed(0);
+                        
+                        // Also update the hidden discount code input with the final price
+                        const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                        if (discountCodeInput) {
+                            discountCodeInput.setAttribute('data-final-price', finalPrice.toFixed(0));
+                        }
+                        
+                        // Disable payment button if remaining value is greater than original price
+                        if (purchaseButton && data.total_remaining_value_tomans > originalPrice) {
+                            purchaseButton.disabled = true;
+                            purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                            purchaseButton.style.opacity = '0.7';
+                            purchaseButton.style.cursor = 'not-allowed';
+                        }
+                    }
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const resultDiv = document.getElementById('remaining-value-result');
+        if (resultDiv) {
+            resultDiv.innerHTML = `
+                <div class="calculator-result error">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>خطا در محاسبه</strong>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 14px;">
+                        امکان محاسبه مقدار باقیمانده وجود ندارد. لطفاً بعداً دوباره تلاش کنید.
+                        <br><small>جزئیات خطا: ${error.message || 'Unknown error'}</small>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    // Apply discount code functionality
+    document.querySelectorAll('.apply-discount-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const subscriptionId = this.getAttribute('data-subscription-id');
+            const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
+            const code = codeInput ? codeInput.value.trim() : '';
+            
+            if (!code) {
+                alert('لطفاً کد تخفیف را وارد کنید');
+                return;
+            }
+            
+            // Get CSRF token
+            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfTokenElement) {
+                alert('خطا در ارسال درخواست. لطفاً صفحه را دوباره بارگذاری کنید.');
+                return;
+            }
+            
+            // Send AJAX request to apply discount
+            fetch('{% url "apply_discount_code" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfTokenElement.value
+                },
+                body: `code=${encodeURIComponent(code)}&subscription_id=${subscriptionId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
+                const finalPriceSpan = document.querySelector(`.final-price-${subscriptionId}`);
+                const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                const planFooter = finalPriceSpan ? finalPriceSpan.closest('.plan-footer') : null;
+                const purchaseButton = planFooter ? planFooter.querySelector('.purchase-btn') : null;
+                
+                if (data.success) {
+                    // Update UI with discount information
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <div class="discount-result success">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                    <strong>کد تخفیف با موفقیت اعمال شد!</strong>
+                                </div>
+                                <div>میزان تخفیف: <strong>${data.discount_amount.toFixed(0)} تومان</strong></div>
+                                <div>قیمت نهایی: <strong>${data.final_price.toFixed(0)} تومان</strong></div>
+                            </div>
+                        `;
+                    }
+                    if (finalPriceSpan) {
+                        finalPriceSpan.textContent = data.final_price.toFixed(0);
+                    }
+                    if (discountCodeInput) {
+                        discountCodeInput.value = data.discount_code;
+                    }
+                    
+                    // Disable payment button if final price is 0 or negative
+                    if (purchaseButton && data.final_price <= 0) {
+                        purchaseButton.disabled = true;
+                        purchaseButton.innerHTML = '<i class="fas fa-gift"></i> پرداخت رایگان - نیازی به پرداخت نیست';
+                        purchaseButton.style.opacity = '0.7';
+                        purchaseButton.style.cursor = 'not-allowed';
+                    } else if (purchaseButton) {
+                        // Re-enable button if it was previously disabled
+                        purchaseButton.disabled = false;
+                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${data.final_price.toFixed(0)} تومان`;
+                        purchaseButton.style.opacity = '1';
+                        purchaseButton.style.cursor = 'pointer';
+                        
+                        // Check again if remaining value is greater than the final price after discount
+                        if (data.total_remaining_value_tomans > data.final_price) {
+                            purchaseButton.disabled = true;
+                            purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                            purchaseButton.style.opacity = '0.7';
+                            purchaseButton.style.cursor = 'not-allowed';
+                        }
+                    }
+                } else {
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <div class="discount-result error">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    ${data.error}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    // Reset to original price minus remaining value
+                    const originalPriceElement = document.querySelector(`.original-price-${subscriptionId}`);
+                    const remainingValueResult = document.getElementById('remaining-value-result');
+                    if (originalPriceElement && remainingValueResult && remainingValueResult.textContent) {
+                        // Try to extract remaining value from the result
+                        const remainingValueMatch = remainingValueResult.textContent.match(/ارزش کل باقیمانده: ([\d,]+)/);
+                        const originalPrice = originalPriceElement.textContent;
+                        if (remainingValueMatch && finalPriceSpan) {
+                            const remainingValue = parseFloat(remainingValueMatch[1].replace(/,/g, ''));
+                            const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
+                            finalPriceSpan.textContent = finalPrice.toFixed(0);
+                            
+                            // Check if we should disable the button based on remaining value
+                            if (purchaseButton && remainingValue > parseFloat(originalPrice)) {
+                                purchaseButton.disabled = true;
+                                purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                                purchaseButton.style.opacity = '0.7';
+                                purchaseButton.style.cursor = 'not-allowed';
+                            } else if (purchaseButton) {
+                                // Re-enable button if it was previously disabled due to remaining value
+                                purchaseButton.disabled = false;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${finalPrice.toFixed(0)} تومان`;
+                                purchaseButton.style.opacity = '1';
+                                purchaseButton.style.cursor = 'pointer';
+                                
+                                // Check again if remaining value is greater than the final price
+                                if (remainingValue > finalPrice) {
+                                    purchaseButton.disabled = true;
+                                    purchaseButton.innerHTML = '<i class="fas fa-lock"></i> پرداخت غیرفعال - ارزش باقیمانده بیشتر از قیمت اشتراک';
+                                    purchaseButton.style.opacity = '0.7';
+                                    purchaseButton.style.cursor = 'not-allowed';
+                                }
+                            }
+                            
+                            // If final price is 0, show a special message
+                            if (finalPrice === 0) {
+                                if (resultDiv) {
+                                    resultDiv.innerHTML = `
+                                        <div class="discount-result success">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                                <i class="fas fa-gift"></i>
+                                                <strong>عالی! پرداخت رایگان!</strong>
+                                            </div>
+                                            <div>ارزش باقیمانده شما برابر با قیمت اشتراک است. نیازی به پرداخت نیست.</div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        } else if (finalPriceSpan) {
+                            finalPriceSpan.textContent = originalPrice;
+                            // Re-enable button with original price
+                            if (purchaseButton) {
+                                purchaseButton.disabled = false;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                                purchaseButton.style.opacity = '1';
+                                purchaseButton.style.cursor = 'pointer';
+                            }
+                        }
+                    } else if (originalPriceElement && finalPriceSpan) {
+                        finalPriceSpan.textContent = originalPriceElement.textContent;
+                        // Re-enable button with original price
+                        if (purchaseButton) {
+                            purchaseButton.disabled = false;
+                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPriceElement.textContent} تومان`;
+                            purchaseButton.style.opacity = '1';
+                            purchaseButton.style.cursor = 'pointer';
+                        }
+                    }
+                    if (discountCodeInput) {
+                        discountCodeInput.value = '';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
+                if (resultDiv) {
+                    resultDiv.innerHTML = `
+                        <div class="discount-result error">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                خطا در اعمال کد تخفیف. لطفاً دوباره تلاش کنید.
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        });
+    });
+    
+    // Clear discount when form is submitted without a code
+    document.querySelectorAll('.payment-form').forEach(form => {
+        form.addEventListener('submit', function() {
+            const applyButton = this.querySelector('.apply-discount-btn');
+            if (applyButton) {
+                const subscriptionId = applyButton.getAttribute('data-subscription-id');
+                const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
+                const codeInput = document.querySelector(`.discount-code-input[data-subscription-id="${subscriptionId}"]`);
+                
+                if (codeInput && !codeInput.value.trim() && discountCodeInput) {
+                    discountCodeInput.value = '';
+                }
+            }
+        });
+    });
+});
+</script>
+
+<style>
+/* Usage Overview Styles */
+.usage-overview {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    color: white;
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+}
+
+.usage-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.usage-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.usage-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.usage-description {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.usage-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.usage-stat {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.usage-stat:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.usage-stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.usage-stat-icon.tokens-paid {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+}
+
+.usage-stat-icon.tokens-free {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.usage-stat-icon.messages {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.usage-stat-icon.images {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+}
+
+.usage-stat-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    opacity: 0.9;
+}
+
+.usage-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.usage-numbers .used {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.usage-numbers .separator {
+    opacity: 0.7;
+}
+
+.usage-numbers .limit {
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+.usage-stat .remaining {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .usage-overview {
+        padding: 1.5rem;
+    }
+    
+    .usage-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .usage-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .usage-stat {
+        padding: 1rem;
+    }
+}
+</style>
+
+{% endblock %}

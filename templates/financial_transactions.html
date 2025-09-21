@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}MobixAI - تراکنش‌های مالی{% endblock %}
+
+{% block content %}
+<div class="chatgpt-container">
+    <div class="chatgpt-layout">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="chat-header">
+                <h5 id="current-session-title">
+                    <i class="fas fa-credit-card"></i> تراکنش‌های مالی
+                </h5>
+                <div class="chat-header-actions">
+                    <a href="{% url 'dashboard' %}" class="btn btn-sm">
+                        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+                    </a>
+                </div>
+            </div>
+            
+            <div class="chat-messages-container">
+                <div class="chat-messages">
+                    {% if user.is_authenticated %}
+                        <div class="card" style="border: 1px solid #E6EEF6; border-radius: 12px; box-shadow: 0 6px 18px rgba(11,18,32,0.06);">
+                            <div class="card-body">
+                                {% if transactions %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>تاریخ</th>
+                                                    <th>نوع اشتراک</th>
+                                                    <th>نوع تراکنش</th>
+                                                    <th>مبلغ اصلی (تومان)</th>
+                                                    <th>تخفیف (تومان)</th>
+                                                    <th>مبلغ پرداختی (تومان)</th>
+                                                    <th>کد تخفیف</th>
+                                                    <th>وضعیت</th>
+                                                    <th>کد مرجع</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for transaction in transactions %}
+                                                <tr>
+                                                    <td>{{ transaction.created_at|date:"d M Y H:i" }}</td>
+                                                    <td>
+                                                        {% if transaction.subscription_type %}
+                                                            {{ transaction.subscription_type.name }}
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ transaction.get_transaction_type_display }}</td>
+                                                    <td>
+                                                        {% if transaction.original_amount %}
+                                                            {{ transaction.original_amount|floatformat:0 }}
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ transaction.discount_amount|floatformat:0 }}</td>
+                                                    <td>{{ transaction.amount|floatformat:0 }}</td>
+                                                    <td>
+                                                        {% if transaction.discount_code %}
+                                                            {{ transaction.discount_code.code }}
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if transaction.status == 'completed' %}
+                                                            <span class="badge bg-success">تکمیل شده</span>
+                                                        {% elif transaction.status == 'pending' %}
+                                                            <span class="badge bg-warning">در انتظار</span>
+                                                        {% elif transaction.status == 'failed' %}
+                                                            <span class="badge bg-danger">ناموفق</span>
+                                                        {% elif transaction.status == 'refunded' %}
+                                                            <span class="badge bg-info">برگشت داده شده</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ transaction.reference_id|truncatechars:15 }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Pagination -->
+                                    {% if transactions.has_other_pages %}
+                                    <nav aria-label="Pagination">
+                                        <ul class="pagination justify-content-center">
+                                            {% if transactions.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page=1" aria-label="First">
+                                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                                    </a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ transactions.previous_page_number }}" aria-label="Previous">
+                                                        <span aria-hidden="true">&laquo;</span>
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                            
+                                            {% for num in transactions.paginator.page_range %}
+                                                {% if transactions.number == num %}
+                                                    <li class="page-item active">
+                                                        <span class="page-link">{{ num }}</span>
+                                                    </li>
+                                                {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                    </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                            
+                                            {% if transactions.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ transactions.next_page_number }}" aria-label="Next">
+                                                        <span aria-hidden="true">&raquo;</span>
+                                                    </a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ transactions.paginator.num_pages }}" aria-label="Last">
+                                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-credit-card fa-3x mb-3" style="color: #CBD5E1;"></i>
+                                        <h5 class="mb-3">تراکنش مالی یافت نشد</h5>
+                                        <p class="text-muted mb-4">شما هنوز هیچ تراکنش مالی انجام نداده‌اید.</p>
+                                        <a href="{% url 'purchase_subscription' %}" class="btn btn-primary">
+                                            <i class="fas fa-shopping-cart"></i> خرید اشتراک
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center" style="padding: 40px 20px;">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-4" style="color: #F59E0B;"></i>
+                            <h4 class="mb-3">دسترسی غیرمجاز</h4>
+                            <p class="mb-4">برای مشاهده تراکنش‌های مالی باید وارد حساب کاربری خود شوید.</p>
+                            <a href="{% url 'login' %}" class="btn btn-primary">ورود به حساب</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h5>راهنمای تراکنش‌ها</h5>
+            </div>
+            <div class="sessions-container">
+                <div class="session-item">
+                    <div>
+                        <strong>تراکنش‌های موفق</strong>
+                        <div class="small">تراکنش‌هایی که با موفقیت انجام شده‌اند.</div>
+                    </div>
+                </div>
+                <div class="session-item">
+                    <div>
+                        <strong>تراکنش‌های ناموفق</strong>
+                        <div class="small">تراکنش‌هایی که به هر دلیلی ناموفق بوده‌اند.</div>
+                    </div>
+                </div>
+                <div class="session-item">
+                    <div>
+                        <strong>در انتظار تأیید</strong>
+                        <div class="small">تراکنش‌هایی که هنوز در انتظار تأیید هستند.</div>
+                    </div>
+                </div>
+                <div class="session-item">
+                    <div>
+                        <strong>برگشت داده شده</strong>
+                        <div class="small">تراکنش‌هایی که وجه آن‌ها به حساب شما برگشت داده شده است.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

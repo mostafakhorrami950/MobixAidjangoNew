@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ثبت نام - MobixAI{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2 class="auth-title">عضویت در MobixAI</h2>
+            <p class="auth-subtitle">به جمع کاربران هوش مصنوعی بپیوندید</p>
+        </div>
+        
+        <div class="auth-body">
+            <!-- Error Messages -->
+            {% if form.non_field_errors %}
+                <div class="error-messages">
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <form method="post" id="registerForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                        <i class="fas fa-user"></i> نام و نام خانوادگی
+                    </label>
+                    <div class="input-with-icon">
+                        <input 
+                            type="text" 
+                            class="form-control {{ form.name.errors|yesno:'error,' }}" 
+                            id="{{ form.name.id_for_label }}" 
+                            name="{{ form.name.name }}" 
+                            value="{{ form.name.value|default:'' }}"
+                            placeholder="مثال: علی احمدی"
+                            required
+                        >
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    {% if form.name.errors %}
+                        {% for error in form.name.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                        <i class="fas fa-phone"></i> شماره تلفن همراه
+                    </label>
+                    <div class="input-with-icon">
+                        <input 
+                            type="tel" 
+                            class="form-control {{ form.phone_number.errors|yesno:'error,' }}" 
+                            id="{{ form.phone_number.id_for_label }}" 
+                            name="{{ form.phone_number.name }}" 
+                            value="{{ form.phone_number.value|default:'' }}"
+                            placeholder="مثال: 09123456789"
+                            pattern="09[0-9]{9}"
+                            maxlength="11"
+                            required
+                        >
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    {% if form.phone_number.errors %}
+                        {% for error in form.phone_number.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                    <span class="field-error" id="phone-error" style="display: none;">شماره تلفن نامعتبر است</span>
+                </div>
+                
+                <div class="form-check">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="{{ form.terms_accepted.id_for_label }}" 
+                        name="{{ form.terms_accepted.name }}"
+                        {% if form.terms_accepted.value %}checked{% endif %}
+                        required
+                    >
+                    <label class="form-check-label" for="{{ form.terms_accepted.id_for_label }}">
+                        من <a href="#" onclick="showTermsModal(); return false;">شرایط و قوانین استفاده</a> را مطالعه و قبول می‌کنم
+                    </label>
+                    {% if form.terms_accepted.errors %}
+                        {% for error in form.terms_accepted.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="auth-submit-btn" id="submitBtn">
+                    <i class="fas fa-user-plus"></i>
+                    ایجاد حساب کاربری
+                </button>
+            </form>
+        </div>
+        
+        <div class="auth-footer">
+            <p>
+                قبلاً ثبت نام کرده‌اید؟ 
+                <a href="{% url 'login' %}">وارد شوید</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is already authenticated and redirect
+    if (document.body.dataset.authenticated === 'true') {
+        window.location.href = '{% url "dashboard" %}';
+        return;
+    }
+    const form = document.getElementById('registerForm');
+    const nameInput = document.getElementById('id_name');
+    const phoneInput = document.getElementById('id_phone_number');
+    const phoneError = document.getElementById('phone-error');
+    const termsCheckbox = document.getElementById('id_terms_accepted');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Name validation
+    nameInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^\u0600-\u06FF\u0020]/g, ''); // Allow only Persian chars and space
+        if (this.value.trim().length < 2) {
+            this.classList.add('error');
+        } else {
+            this.classList.remove('error');
+        }
+    });
+    
+    // Phone number validation and formatting
+    phoneInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, ''); // Remove non-digits
+        
+        // Format phone number as user types
+        if (value.length > 0) {
+            if (!value.startsWith('09')) {
+                value = '09' + value.substring(2);
+            }
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+        }
+        
+        this.value = value;
+        
+        // Validate phone number
+        if (value.length === 11 && /^09[0-9]{9}$/.test(value)) {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
+        } else if (value.length > 0) {
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'شماره تلفن باید 11 رقم و با 09 شروع شود';
+            this.classList.add('error');
+        } else {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validate name
+        if (nameInput.value.trim().length < 2) {
+            isValid = false;
+            nameInput.classList.add('error');
+        }
+        
+        // Validate phone
+        const phoneValue = phoneInput.value;
+        if (!/^09[0-9]{9}$/.test(phoneValue)) {
+            isValid = false;
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'لطفاً شماره تلفن معتبر وارد کنید';
+            phoneInput.classList.add('error');
+        }
+        
+        // Validate terms
+        if (!termsCheckbox.checked) {
+            isValid = false;
+            alert('لطفاً شرایط و قوانین را قبول کنید');
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            return;
+        }
+        
+        // Add loading state
+        submitBtn.classList.add('loading');
+        submitBtn.textContent = 'در حال ایجاد حساب...';
+        submitBtn.disabled = true;
+    });
+});
+</script>
+
+<!-- Terms and Conditions Modal -->
+<div class="terms-modal-overlay" id="termsModalOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none;">
+    <div class="terms-modal" id="termsModal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; z-index: 1001; display: none;">
+        <div class="terms-modal-header" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="terms-modal-title" style="font-size: 1.5rem; font-weight: 700; color: #1f2937; margin: 0;">شرایط و قوانین استفاده</h2>
+            <button class="terms-modal-close" id="termsModalClose" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s ease;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="terms-modal-body" id="termsModalBody" style="padding: 1.5rem; color: #374151; line-height: 1.7; white-space: pre-line; text-align: justify;">
+            در حال بارگذاری...
+        </div>
+    </div>
+</div>
+
+<script>
+// Terms Modal functionality
+function showTermsModal() {
+    // Load terms content via AJAX
+    fetch('{% url "terms_and_conditions" %}')
+        .then(response => response.text())
+        .then(html => {
+            // Extract content from the response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const termsContent = doc.querySelector('.terms-content');
+            
+            if (termsContent) {
+                document.getElementById('termsModalBody').innerHTML = termsContent.innerHTML;
+            } else {
+                document.getElementById('termsModalBody').innerHTML = 'شرایط و قوانین در حال حاضر در دسترس نیست.';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading terms:', error);
+            document.getElementById('termsModalBody').innerHTML = 'خطا در بارگذاری شرایط و قوانین.';
+        });
+    
+    document.getElementById('termsModalOverlay').style.display = 'block';
+    document.getElementById('termsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'none';
+    document.getElementById('termsModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Modal event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('termsModalClose').addEventListener('click', hideTermsModal);
+    document.getElementById('termsModalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideTermsModal();
+        }
+    });
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideTermsModal();
+        }
+    });
+});
+</script>
+{% endblock %}

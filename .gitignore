@@ -1,0 +1,58 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Logs
+*.log
+
+# Test / Coverage
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.cache/
+.pytest_cache/
+
+# Django specific
+# همه فایل‌های مایگریشن برن توی گیت
+# فقط pyc ها ایگنور بشن
+*/migrations/__pycache__/
+
+
+# IDE / Editor settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS / System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment / secrets
+.env
+*.env
+*.ini
+*.example
+
+# Backup & misc
+*.bak
+
+# Temporary / generated files
+*.tmp
+*.swp
+*.swo
+
+# Documents for test/demo
+test_file.*
+
+# Django collected static files
+/staticfiles/

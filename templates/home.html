@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پلتفرم هوش مصنوعی MobixAI{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>
+                    آینده هوش مصنوعی 
+                    <span class="highlight">از امروز شروع می‌شود</span>
+                </h1>
+                <p class="hero-subtitle">
+                    با MobixAI به دنیای بی‌نهایت هوش مصنوعی قدم بگذارید. از مکالمات هوشمند تا تولید محتوا، هر آنچه نیاز دارید در یک پلتفرم.
+                </p>
+                
+                <!-- Stats -->
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">50K+</span>
+                        <span class="stat-label">کاربر فعال</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">1M+</span>
+                        <span class="stat-label">پرسش پاسخ داده شده</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">24/7</span>
+                        <span class="stat-label">پشتیبانی</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="hero-buttons">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'chat' %}" class="btn-hero-primary">
+                            <i class="fas fa-comments"></i>
+                            شروع چت
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn-hero-secondary">
+                            <i class="fas fa-tachometer-alt"></i>
+                            داشبورد
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn-hero-primary">
+                            <i class="fas fa-rocket"></i>
+                            شروع رایگان
+                        </a>
+                        <a href="{% url 'register' %}" class="btn-hero-secondary">
+                            <i class="fas fa-user-plus"></i>
+                            عضویت رایگان
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Hero Visual -->
+            <div class="hero-visual">
+                <div class="hero-card">
+                    <div class="hero-card-header">
+                        <div class="hero-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <div class="hero-card-title">MobixAI اسیستان</div>
+                            <div class="hero-card-subtitle">آنلاین است</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-message">
+                        سلام! من می‌تونم در زمینه‌های مختلف بهت کمک کنم. چه کاری برات انجام بدم؟
+                    </div>
+                    
+                    <div class="hero-typing">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        در حال نوشتن...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="features-container">
+        <div class="features-header">
+            <span class="features-badge">قابلیت‌های پیشرفته</span>
+            <h2 class="features-title">هر آنچه برای کار با هوش مصنوعی نیاز دارید</h2>
+            <p class="features-description">
+                MobixAI مجموعه‌ای کامل از ابزارهای هوش مصنوعی را برای افراد و کسب و کارها فراهم می‌کند.
+            </p>
+        </div>
+        
+        <div class="features-grid">
+            <!-- Feature 1 -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3 class="feature-title">مکالمه هوشمند</h3>
+                <p class="feature-description">
+                    با مدل‌های پیشرفته زبان طبیعی مکالمه کنید و پاسخ‌های دقیق و جامع دریافت کنید.
+                </p>
+                <a href="{% url 'chat' %}" class="feature-link">
+                    شروع چت <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3 class="feature-title">تولید محتوا</h3>
+                <p class="feature-description">
+                    از نوشتن مقاله تا ایجاد کپشن‌های جذاب برای شبکه‌های اجتماعی، هر نوع محتوای ی را تولید کنید.
+                </p>
+                <a href="#" class="feature-link">
+                    بیشتر بدانید <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-language"></i>
+                </div>
+                <h3 class="feature-title">ترجمع قدرتمند</h3>
+                <p class="feature-description">
+                    متن‌های خود را به ده‌ها زبان مختلف با کیفیت حرفه‌ای ترجمه کنید.
+                </p>
+                <a href="#" class="feature-link">
+                    آزمایش کنید <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="cta-container">
+        <h2 class="cta-title">آماده برای شروع هستید؟</h2>
+        <p class="cta-description">
+            به هزاران کاربر دیگر بپیوندید که روزانه از قدرت MobixAI برای بهبود کار و زندگی‌شان استفاده می‌کنند.
+        </p>
+        
+        <div class="cta-buttons">
+            {% if user.is_authenticated %}
+                <a href="{% url 'chat' %}" class="btn-cta-white">
+                    <i class="fas fa-comments"></i>
+                    شروع چت
+                </a>
+                <a href="{% url 'purchase_subscription' %}" class="btn-cta-outline">
+                    <i class="fas fa-crown"></i>
+                    ارتقای حساب
+                </a>
+            {% else %}
+                <a href="{% url 'register' %}" class="btn-cta-white">
+                    <i class="fas fa-rocket"></i>
+                    شروع رایگان
+                </a>
+                <a href="{% url 'login' %}" class="btn-cta-outline">
+                    <i class="fas fa-sign-in-alt"></i>
+                    ورود به حساب
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

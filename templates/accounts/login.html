@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ورود - MobixAI{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
+
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-robot"></i>
+            </div>
+            <h2 class="auth-title">ورود به MobixAI</h2>
+            <p class="auth-subtitle">به دنیای هوش مصنوعی خوش آمدید</p>
+        </div>
+        
+        <div class="auth-body">
+            <!-- Error Messages -->
+            {% if messages %}
+                <div class="error-messages">
+                    <ul>
+                        {% for message in messages %}
+                            {% if message.tags == 'error' %}
+                                <li>{{ message }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <!-- Success Messages -->
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="success-messages">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <form method="post" id="loginForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="phone_number" class="form-label">
+                        <i class="fas fa-phone"></i> شماره تلفن همراه
+                    </label>
+                    <div class="input-with-icon">
+                        <input 
+                            type="tel" 
+                            class="form-control" 
+                            id="phone_number" 
+                            name="phone_number" 
+                            placeholder="مثال: 09123456789"
+                            pattern="09[0-9]{9}"
+                            maxlength="11"
+                            required
+                        >
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <span class="field-error" id="phone-error" style="display: none;">شماره تلفن نامعتبر است</span>
+                </div>
+                
+                <button type="submit" class="auth-submit-btn" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    ارسال کد تأیید
+                </button>
+            </form>
+        </div>
+        
+        <div class="auth-footer">
+            <p>
+                حساب کاربری ندارید؟ 
+                <a href="{% url 'register' %}">همین حالا ثبت نام کنید</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is already authenticated and redirect
+    if (document.body.dataset.authenticated === 'true') {
+        window.location.href = '{% url "dashboard" %}';
+        return;
+    }
+    const form = document.getElementById('loginForm');
+    const phoneInput = document.getElementById('phone_number');
+    const phoneError = document.getElementById('phone-error');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Phone number validation
+    phoneInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, ''); // Remove non-digits
+        
+        // Format phone number as user types
+        if (value.length > 0) {
+            if (!value.startsWith('09')) {
+                value = '09' + value.substring(2);
+            }
+            if (value.length > 11) {
+                value = value.substring(0, 11);
+            }
+        }
+        
+        this.value = value;
+        
+        // Validate phone number
+        if (value.length === 11 && /^09[0-9]{9}$/.test(value)) {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
+        } else if (value.length > 0) {
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'شماره تلفن باید 11 رقم و با 09 شروع شود';
+            this.classList.add('error');
+        } else {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        const phoneValue = phoneInput.value;
+        
+        if (!/^09[0-9]{9}$/.test(phoneValue)) {
+            e.preventDefault();
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'لطفاً شماره تلفن معتبر وارد کنید';
+            phoneInput.classList.add('error');
+            return;
+        }
+        
+        // Add loading state
+        submitBtn.classList.add('loading');
+        submitBtn.textContent = 'در حال ارسال...';
+        submitBtn.disabled = true;
+    });
+});
+</script>
+{% endblock %}
