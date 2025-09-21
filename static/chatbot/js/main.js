@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load available models for user
     loadAvailableModelsForUser();
     
+    // Load sidebar menu items
+    loadSidebarMenuItems();
+    
     // Clicking on message input opens new chat modal if no session is selected
     document.getElementById('message-input').addEventListener('click', function() {
         if (!currentSessionId) {
@@ -315,4 +318,69 @@ function hideModalCostWarning() {
     if (warningElement) {
         warningElement.style.display = 'none';
     }
+}
+
+// Load sidebar menu items dynamically
+function loadSidebarMenuItems() {
+    const mobileNavMenu = document.getElementById('mobile-nav-menu');
+    if (!mobileNavMenu) {
+        return;
+    }
+    
+    // Fetch menu items from the server
+    fetch(CHAT_URLS.getSidebarMenuItems)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading menu items:', data.error);
+                return;
+            }
+            
+            // Clear existing menu items
+            mobileNavMenu.innerHTML = '';
+            
+            // Add menu items
+            if (data.menu_items && data.menu_items.length > 0) {
+                data.menu_items.forEach(item => {
+                    const navItem = document.createElement('div');
+                    navItem.className = 'nav-item';
+                    navItem.innerHTML = `
+                        <a class="nav-link" href="${item.url}">
+                            <i class="${item.icon_class}"></i> ${item.name}
+                        </a>
+                    `;
+                    mobileNavMenu.appendChild(navItem);
+                });
+            } else {
+                // Show default menu items if none are configured
+                mobileNavMenu.innerHTML = `
+                    <div class="nav-item">
+                        <a class="nav-link" href="/chat/">
+                            <i class="fas fa-comments"></i> چت
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="/accounts/profile/">
+                            <i class="fas fa-user"></i> پروفایل
+                        </a>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading menu items:', error);
+            // Show default menu items if there's an error
+            mobileNavMenu.innerHTML = `
+                <div class="nav-item">
+                    <a class="nav-link" href="/chat/">
+                        <i class="fas fa-comments"></i> چت
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a class="nav-link" href="/accounts/profile/">
+                        <i class="fas fa-user"></i> پروفایل
+                    </a>
+                </div>
+            `;
+        });
 }

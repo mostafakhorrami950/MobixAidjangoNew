@@ -36,11 +36,6 @@ function checkSidebarSelections() {
 
 // Load sidebar menu items dynamically
 function loadSidebarMenuItems() {
-    // Only load for mobile view
-    if (window.innerWidth >= 768) {
-        return;
-    }
-    
     const mobileNavMenu = document.getElementById('mobile-nav-menu');
     if (!mobileNavMenu) {
         return;

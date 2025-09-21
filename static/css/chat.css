@@ -162,9 +162,9 @@ html, body {
   z-index: 100;
 }
 
-/* Hide sidebar completely as per UX/UI team requirements */
+/* Sidebar is now visible to display Nav menu options */
 .sidebar {
-  display: none !important;
+  display: flex !important;
 }
 
 .sidebar:hover {
