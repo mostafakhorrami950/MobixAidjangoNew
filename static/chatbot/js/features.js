@@ -276,60 +276,8 @@ function loadModelsForChatbot(chatbotId) {
 
 // Load models for the message input area dropdown
 function loadMessageInputModels(chatbotId) {
-    const modelSelect = document.getElementById('model-select');
-    
-    // Clear current options
-    modelSelect.innerHTML = '<option value="">انتخاب مدل...</option>';
-    
-    // Load models for this chatbot
-    fetch(`/chat/chatbot/${chatbotId}/models/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error('Error loading models:', data.error);
-                return;
-            }
-            
-            // Get current session data to determine the current model
-            let currentModelId = null;
-            if (currentSessionId) {
-                const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                // Find the model ID based on the model name
-                const models = data.models;
-                for (let i = 0; i < models.length; i++) {
-                    if (models[i].name === sessionData.ai_model_name) {
-                        currentModelId = models[i].model_id;
-                        break;
-                    }
-                }
-            }
-            
-            // Populate model select
-            data.models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.model_id;
-                option.textContent = model.name;
-                option.dataset.tokenCostMultiplier = model.token_cost_multiplier; // Store cost multiplier
-                
-                // Set as selected if this is the current model
-                if (model.model_id === currentModelId) {
-                    option.selected = true;
-                }
-                
-                // Add badge for free/premium models
-                if (model.is_free) {
-                    option.innerHTML += ' <span class="badge badge-free">رایگان</span>';
-                } else {
-                    option.innerHTML += ' <span class="badge badge-premium">ویژه</span>';
-                }
-                
-                modelSelect.appendChild(option);
-            });
-            
-            // Show the model selection dropdown
-            modelSelect.style.display = 'inline-block';
-        })
-        .catch(error => console.error('Error loading models:', error));
+    // This function is intentionally left empty as we no longer use the model-select dropdown
+    // Model selection is now handled through the floating model selection component
 }
 
 // Update session model
@@ -386,40 +334,7 @@ function updateModelInfoInMessages(sessionId, modelName) {
 //     // This function is intentionally left empty as we no longer show session files in a separate section
 // }
 
-// Add event listener for model selection in message input area
-document.getElementById('model-select').addEventListener('change', function() {
-    if (currentSessionId && this.value) {
-        // Check if the selected model has a cost multiplier > 1 and show warning
-        const selectedOption = this.options[this.selectedIndex];
-        const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
-        
-        if (costMultiplier > 1) {
-            // Show warning message
-            showModelChangeCostWarning(costMultiplier);
-        }
-        
-        // Update the session model
-        updateSessionModel(currentSessionId, this.value);
-        
-        // Show a confirmation message
-        const originalText = this.options[this.selectedIndex].text;
-        const confirmation = document.createElement('div');
-        confirmation.className = 'alert alert-success alert-dismissible fade show';
-        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-        confirmation.innerHTML = `
-            <strong>موفقیت!</strong> مدل به ${originalText.split(' <')[0]} تغییر یافت.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(confirmation);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            if (confirmation.parentNode) {
-                confirmation.parentNode.removeChild(confirmation);
-            }
-        }, 3000);
-    }
-});
+
 
 // Function to show cost multiplier warning when changing models
 function showModelChangeCostWarning(multiplier) {
@@ -436,9 +351,9 @@ function showModelChangeCostWarning(multiplier) {
             <span id="model-change-warning-text"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-        // Insert after the model selection dropdown
-        const modelSelect = document.getElementById('model-select');
-        modelSelect.parentNode.insertBefore(warningElement, modelSelect.nextSibling);
+        // Insert after the web search button
+        const webSearchBtn = document.getElementById('web-search-btn');
+        webSearchBtn.parentNode.insertBefore(warningElement, webSearchBtn.nextSibling);
     }
     
     // Update warning text

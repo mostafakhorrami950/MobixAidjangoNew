@@ -36,51 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Input event listener is now handled by MultiFileUploadManager
     // This prevents conflicts between multiple event listeners
     
-    // Add event listener for model selection in message input area
-    document.getElementById('model-select').addEventListener('change', function() {
-        if (currentSessionId && this.value) {
-            // Update the session model
-            updateSessionModel(currentSessionId, this.value);
-            
-            // Show a confirmation message
-            const originalText = this.options[this.selectedIndex].text;
-            const confirmation = document.createElement('div');
-            confirmation.className = 'alert alert-success alert-dismissible fade show';
-            confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-            confirmation.innerHTML = `
-                <strong>موفقیت!</strong> مدل به ${originalText.split(' <')[0]} تغییر یافت.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(confirmation);
-            
-            // Auto remove after 3 seconds
-            setTimeout(() => {
-                if (confirmation.parentNode) {
-                    confirmation.parentNode.removeChild(confirmation);
-                }
-            }, 3000);
-        }
-    });
+
     
-    // Add event listener for model selection in welcome area
-    document.getElementById('welcome-model-select').addEventListener('change', function() {
-        selectedModelForNewSession = this.value;
-        
-        // Check if the selected model has a cost multiplier > 1 and show warning
-        if (selectedModelForNewSession) {
-            const selectedModel = availableModelsData.find(model => model.model_id === selectedModelForNewSession);
-            if (selectedModel && selectedModel.token_cost_multiplier > 1) {
-                // Show warning message
-                showCostMultiplierWarning(selectedModel);
-            } else {
-                // Hide any existing warning
-                hideCostMultiplierWarning();
-            }
-        } else {
-            // Hide warning when no model is selected
-            hideCostMultiplierWarning();
-        }
-    });
+
     
     // Add event listener for web search toggle in welcome area
     document.getElementById('welcome-web-search-btn').addEventListener('click', function() {
@@ -218,20 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-robot fa-3x mb-3"></i>
                     <h4>به چت‌بات MobixAI خوش آمدید</h4>
                     <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
-                    <div class="model-selection-container mt-4 p-3 bg-light rounded" id="welcome-model-selection" style="display: none;">
-                        <h5 class="mb-3">
-                            <i class="fas fa-microchip"></i> انتخاب مدل هوش مصنوعی
-                        </h5>
-                        <div class="mb-3">
-                            <select class="form-select form-select-lg" id="welcome-model-select">
-                                <option value="">-- مدلی را انتخاب کنید --</option>
-                            </select>
-                        </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            مدل انتخابی برای چت جدید شما استفاده خواهد شد. بعد از ایجاد چت می‌توانید مدل را تغییر دهید.
-                        </div>
-                    </div>
                     <div class="web-search-toggle-container mt-3" id="welcome-web-search-container" style="display: none;">
                         <button class="btn btn-outline-secondary" id="welcome-web-search-btn" type="button">
                             <i class="fas fa-search"></i> جستجو وب
@@ -292,53 +236,7 @@ function loadAvailableModelsForUser() {
             // Store model data for later use
             availableModelsData = data.models;
             
-            const modelSelect = document.getElementById('welcome-model-select');
-            const modelSelectionContainer = document.getElementById('welcome-model-selection');
             const webSearchContainer = document.getElementById('welcome-web-search-container');
-            
-            // Check if elements exist before manipulating them
-            if (!modelSelect || !modelSelectionContainer) {
-                console.warn('Model selection elements not found, skipping model loading');
-                return;
-            }
-            
-            // Clear current options
-            modelSelect.innerHTML = '<option value="">-- مدلی را انتخاب کنید --</option>';
-            
-            // Populate model select
-            data.models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.model_id;
-                
-                // Add access information to the text
-                if (model.is_free) {
-                    option.textContent = `${model.name} (رایگان)`;
-                    option.className = 'model-option-free';
-                } else {
-                    if (model.user_has_access) {
-                        option.textContent = `${model.name} (ویژه)`;
-                        option.className = 'model-option-premium';
-                    } else {
-                        option.textContent = `${model.name} (نیاز به اشتراک)`;
-                        option.className = 'model-option-disabled';
-                        option.disabled = true;
-                    }
-                }
-                
-                // Disable option if user doesn't have access
-                if (!model.user_has_access) {
-                    option.disabled = true;
-                }
-                
-                modelSelect.appendChild(option);
-            });
-            
-            // Show the model selection container if there are models
-            if (data.models.length > 0) {
-                modelSelectionContainer.style.display = 'block';
-                // Check web search access for welcome area
-                checkWebSearchAccessForWelcome();
-            }
             
             // Populate floating model selection grid
             populateFloatingModelGrid(data.models);
@@ -516,9 +414,9 @@ function showCostMultiplierWarning(model) {
             <span id="warning-text"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-        // Insert after the model selection container
-        const modelSelectionContainer = document.getElementById('welcome-model-selection');
-        modelSelectionContainer.parentNode.insertBefore(warningElement, modelSelectionContainer.nextSibling);
+        // Append to the welcome message container
+        const welcomeMessage = document.getElementById('welcome-message');
+        welcomeMessage.appendChild(warningElement);
     }
     
     // Update warning text
