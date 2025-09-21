@@ -17,57 +17,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize multiple file upload functionality
     initializeMultiFileUpload();
-    
+
     // Load available models for user
     loadAvailableModelsForUser();
-    
+
     // Load sidebar menu items
     loadSidebarMenuItems();
-    
-    // When clicking the message input, create a new session if one doesn't exist
-    document.getElementById('message-input').addEventListener('click', function() {
-        // Do nothing if a session is already active or being created
-        if (currentSessionId || this.dataset.creatingSession === 'true') {
-            return;
-        }
 
-        // Set a flag to prevent multiple requests
-        this.dataset.creatingSession = 'true';
-        
-        // Show a loading state to the user
-        showSessionCreationLoading();
+    // Input event listener is now handled by MultiFileUploadManager
+    // This prevents conflicts between multiple event listeners
 
-        // Call the function from sessions.js to create a new default session
-        createDefaultSession()
-            .then(sessionData => {
-                if (sessionData && sessionData.session_id) {
-                    // Session created successfully, load it
-                    // loadSession will handle UI updates, including enabling inputs
-                    loadSession(sessionData.session_id);
-
-                    // Update the URL to reflect the new session without reloading the page
-                    const newUrl = `/chat/session/${sessionData.session_id}/`;
-                    history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
-
-                } else {
-                    // Handle cases where the server returns an error in the JSON response
-                    console.error('Failed to create session:', sessionData.error || 'No session ID returned');
-                    alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
-                    hideSessionCreationLoading(false); // Hide loading and restore welcome message
-                }
-            })
-            .catch(error => {
-                // Handle network or other unexpected errors
-                console.error('Error creating default session:', error);
-                alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
-                hideSessionCreationLoading(false); // Hide loading and restore welcome message
-            })
-            .finally(() => {
-                // Remove the flag
-                this.dataset.creatingSession = 'false';
-            });
-    });
-    
     // Add event listener for web search toggle in welcome area
     document.getElementById('welcome-web-search-btn').addEventListener('click', function() {
         const isWebSearchActive = this.classList.contains('btn-success');
@@ -86,6 +45,135 @@ document.addEventListener('DOMContentLoaded', function() {
             isWebSearchEnabledForNewSession = true;
         }
     });
+
+    // Add event listeners for automatic session creation
+    // Message input box
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('focus', function() {
+            // Only create a session if there's no current session
+            if (!currentSessionId) {
+                // Show a loading state to the user
+                showSessionCreationLoading();
+
+                // Call the function from sessions.js to create a new default session
+                createDefaultSession()
+                    .then(sessionData => {
+                        if (sessionData && sessionData.session_id) {
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                        } else {
+                            // Handle cases where the server returns an error in the JSON response
+                            console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+                            alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+                            hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                        }
+                    })
+                    .catch(error => {
+                        // Handle network or other unexpected errors
+                        console.error('Error creating default session:', error);
+                        alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
+                        hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                    });
+            }
+        });
+    }
+
+    // File upload button
+    const uploadBtn = document.getElementById('upload-btn');
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', function() {
+            // Only create a session if there's no current session
+            if (!currentSessionId) {
+                // Show a loading state to the user
+                showSessionCreationLoading();
+
+                // Call the function from sessions.js to create a new default session
+                createDefaultSession()
+                    .then(sessionData => {
+                        if (sessionData && sessionData.session_id) {
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                            // After session is created, trigger the file input
+                            setTimeout(() => {
+                                document.getElementById('file-input').click();
+                            }, 100);
+
+                        } else {
+                            // Handle cases where the server returns an error in the JSON response
+                            console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+                            alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+                            hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                        }
+                    })
+                    .catch(error => {
+                        // Handle network or other unexpected errors
+                        console.error('Error creating default session:', error);
+                        alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
+                        hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                    });
+            }
+        });
+    }
+
+    // Model selection button
+    const modelSelectionButton = document.getElementById('model-selection-button');
+    if (modelSelectionButton) {
+        modelSelectionButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Only create a session if there's no current session
+            if (!currentSessionId) {
+                // Show a loading state to the user
+                showSessionCreationLoading();
+
+                // Call the function from sessions.js to create a new default session
+                createDefaultSession()
+                    .then(sessionData => {
+                        if (sessionData && sessionData.session_id) {
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                            // After session is created, show the model selection
+                            setTimeout(() => {
+                                showFloatingModelSelection();
+                            }, 100);
+
+                        } else {
+                            // Handle cases where the server returns an error in the JSON response
+                            console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+                            alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+                            hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                        }
+                    })
+                    .catch(error => {
+                        // Handle network or other unexpected errors
+                        console.error('Error creating default session:', error);
+                        alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
+                        hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                    });
+            } else {
+                // If there's already a session, just show the model selection
+                showFloatingModelSelection();
+            }
+        });
+    }
     
     // New chat button opens modal
     document.getElementById('new-chat-btn').addEventListener('click', function() {
