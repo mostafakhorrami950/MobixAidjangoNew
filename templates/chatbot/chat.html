@@ -106,13 +106,9 @@
                     <button class="btn btn-sm btn-outline-primary" id="image-generation-btn" style="display: none;" title="تولید تصویر">
                         <i class="fas fa-image"></i> تولید تصویر
                     </button>
-                    <!-- Add model selection dropdown -->
-                    <div class="model-selection-wrapper">
-                        <label for="model-select" class="model-select-label">مدل:</label>
-                        <select class="form-select model-select" id="model-select" style="display: none;">
-                            <option value="">انتخاب مدل...</option>
-                        </select>
-                    </div>
+                    <select class="form-select model-select" id="model-select" style="display: none;">
+                        <option value="">انتخاب مدل...</option>
+                    </select>
                 </div>
                 <form id="chat-form" class="d-flex">
                     <div class="input-group">
@@ -162,6 +158,13 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Model Selection Wrapper as Floating Button -->
+<div class="model-selection-wrapper" id="model-selection-button">
+    <span class="model-select-label">مدل: </span>
+    <span id="current-model-name">انتخاب مدل</span>
+    <i class="fas fa-chevron-down ms-1"></i>
 </div>
 
 <!-- Overlay for mobile sidebar -->
@@ -366,14 +369,6 @@
     border-color: #80bdff;
     outline: 0;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.model-selection-wrapper {
-    display: inline-flex;
-    align-items: center;
-    margin-left: 5px;
-    position: relative;
-    cursor: pointer;
 }
 
 .model-select-label {
@@ -681,7 +676,7 @@ option:disabled {
         createSession: '{% url "create_session" %}',
         createDefaultSession: '{% url "create_default_session" %}',
         generateChatTitle: '{% url "generate_chat_title" %}',
-        getSidebarMenuItems: '{% url "get_sidebarMenu_items" %}'
+        getSidebarMenuItems: '{% url "get_sidebar_menu_items" %}'
     };
 </script>
 <script src="{% static 'chatbot/js/multifileupload.js' %}"></script>

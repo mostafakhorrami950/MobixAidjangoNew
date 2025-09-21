@@ -1010,10 +1010,10 @@ html, body {
 /* Floating Model Selection Component */
 .floating-model-selection {
   position: fixed;
-  top: 20px;
+  top: 70px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 999;
+  z-index: 1000;
   background: var(--surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -1026,6 +1026,67 @@ html, body {
 
 .floating-model-selection.show {
   display: block;
+}
+
+/* Model Selection Wrapper as Floating Button */
+.model-selection-wrapper {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  transition: var(--transition);
+  box-shadow: var(--shadow-lg);
+}
+
+.model-selection-wrapper:hover {
+  background: var(--primary-blue);
+  color: var(--white);
+  border-color: var(--primary-blue);
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: var(--shadow-xl);
+}
+
+.model-selection-wrapper .model-select-label {
+  margin: 0;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.model-selection-wrapper .model-select {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-width: auto;
+}
+
+.model-selection-wrapper .model-select:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Adjust for mobile */
+@media (max-width: 767.98px) {
+  .model-selection-wrapper {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .model-selection-wrapper:hover {
+    transform: translateX(-50%) scale(1.05);
+  }
 }
 
 .model-selection-header {

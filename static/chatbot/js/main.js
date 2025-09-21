@@ -117,7 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modal-chatbot-select').value = '';
             document.getElementById('modal-model-select').value = '';
             document.getElementById('create-chat-btn').disabled = true;
-            const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
+            const modalElement = document.getElementById('newChatModal');
+            const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
             modal.show();
         });
     }
@@ -348,9 +349,9 @@ function loadAvailableModelsForUser() {
 // Initialize floating model selection functionality
 function initializeFloatingModelSelection() {
     // Add click event to model selection wrapper to show floating model selection
-    const modelSelectionWrapper = document.querySelector('.model-selection-wrapper');
-    if (modelSelectionWrapper) {
-        modelSelectionWrapper.addEventListener('click', function(e) {
+    const modelSelectionButton = document.getElementById('model-selection-button');
+    if (modelSelectionButton) {
+        modelSelectionButton.addEventListener('click', function(e) {
             e.stopPropagation();
             showFloatingModelSelection();
         });
@@ -369,7 +370,7 @@ function initializeFloatingModelSelection() {
         const floatingModelSelection = document.getElementById('floating-model-selection');
         if (floatingModelSelection && floatingModelSelection.classList.contains('show') && 
             !floatingModelSelection.contains(e.target) && 
-            !e.target.closest('.model-selection-wrapper')) {
+            !e.target.closest('#model-selection-button')) {
             hideFloatingModelSelection();
         }
     });
@@ -411,6 +412,11 @@ function populateFloatingModelGrid(models) {
             if (sessionData.ai_model_name === model.name) {
                 modelCard.classList.add('selected');
                 currentSelectedModel = model.model_id;
+                // Update the current model name in the button
+                const currentModelName = document.getElementById('current-model-name');
+                if (currentModelName) {
+                    currentModelName.textContent = model.name;
+                }
             }
         }
         
@@ -467,6 +473,12 @@ function selectModel(modelId, modelName) {
     
     // Update current selected model
     currentSelectedModel = modelId;
+    
+    // Update the current model name in the button
+    const currentModelName = document.getElementById('current-model-name');
+    if (currentModelName) {
+        currentModelName.textContent = modelName;
+    }
     
     // Show confirmation message
     const confirmation = document.createElement('div');
