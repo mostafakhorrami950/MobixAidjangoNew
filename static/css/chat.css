@@ -1,3 +1,8 @@
+/* ===========================================================
+   MobixAI Chat - Modern Professional Design
+   Colors: White, Gray, Blue | Mobile Optimized
+   =========================================================== */
+
 /* Root variables - Modern Blue-Gray Palette */
 :root {
   /* Main Colors */
@@ -127,18 +132,6 @@ html, body {
   min-height: calc(100vh - 48px);
 }
 
-/* Update main content to take full width since sidebar is hidden */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-lg);
-  min-width: 0;
-  order: 1;
-  background: transparent;
-  width: 100% !important;
-}
-
 /* ---------------------------
    SIDEBAR - Modern Design
    --------------------------- */
@@ -160,11 +153,6 @@ html, body {
   backdrop-filter: blur(8px);
   transition: var(--transition-slow);
   z-index: 100;
-}
-
-/* Sidebar is now visible to display Nav menu options */
-.sidebar {
-  display: flex !important;
 }
 
 .sidebar:hover {
@@ -345,6 +333,16 @@ html, body {
 /* ---------------------------
    MAIN CONTENT AREA
    --------------------------- */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  min-width: 0;
+  order: 1;
+  background: transparent;
+}
+
 /* Chat Header - Modern Design */
 .chat-header {
   background: var(--surface);
@@ -1150,13 +1148,121 @@ html, body {
   display: none;
 }
 
+/* web search / small action buttons */
+.web-search-container .btn,
+.chat-header-actions .btn,
+.sidebar .btn {
+  transition: all .12s ease;
+  border-radius: 8px;
+}
+
+/* small helper text */
+.input-hint {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* modal styles */
+.modal-content {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(11,18,32,0.12);
+}
+.modal-header {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.chatbot-selection-card, .model-selection-card {
+  background: #FBFDFF;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+}
+
+/* small utilities */
+.text-muted { color: var(--muted); }
+.rounded-sm { border-radius:8px; }
+.small { font-size: 13px; color: var(--muted); }
+
+/* ---------------------------
+   RESPONSIVE DESIGN - Mobile First
+   --------------------------- */
+
+/* Tablet Breakpoint */
+@media (max-width: 1024px) {
+  .chatgpt-layout { 
+    gap: var(--gap); 
+    padding: var(--gap-sm); 
+  }
+  
+  .sidebar { 
+    width: 280px; 
+    min-width: 240px; 
+  }
+  
+  .chat-messages { 
+    padding: var(--gap-lg); 
+  }
+  
+  .chat-header {
+    padding: var(--gap) var(--gap-lg);
+  }
+  
+  .message-user, .message-assistant {
+    max-width: 85%;
+  }
+}
+
 /* Mobile Breakpoint */
 @media (max-width: 768px) {
   .chatgpt-layout { 
-    flex-direction: column; 
+    flex-direction: column-reverse; 
     gap: var(--gap-sm); 
     max-width: 100%; 
     padding: var(--gap-sm); 
+  }
+  
+  /* Mobile Sidebar - Slide from Right */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 85%;
+    max-width: 320px;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.2);
+    border-left: 1px solid var(--border-light);
+    border-radius: 0;
+    backdrop-filter: blur(12px);
+  }
+  
+  .sidebar.show { 
+    transform: translateX(0); 
+  }
+  
+  /* Mobile Overlay */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+  
+  .overlay.show {
+    display: block;
+  }
+  
+  /* Mobile Navigation */
+  .mobile-nav-menu { 
+    display: block; 
   }
   
   /* Chat Header - Mobile */
@@ -1211,6 +1317,27 @@ html, body {
     min-width: 60px;
     padding: var(--gap-sm) var(--gap);
   }
+  
+  /* Hamburger Menu */
+  .hamburger-menu { 
+    display: block; 
+    position: fixed; 
+    top: var(--gap); 
+    right: var(--gap); 
+    z-index: 1001; 
+    background: var(--surface); 
+    border: 1px solid var(--border-light); 
+    border-radius: var(--radius-lg); 
+    padding: var(--gap-sm); 
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+  }
+  
+  .hamburger-menu:hover {
+    background: var(--primary-blue);
+    color: var(--white);
+    border-color: var(--primary-blue);
+  }
 }
 
 /* Small Mobile Breakpoint */
@@ -1234,5 +1361,121 @@ html, body {
   
   .send-button {
     min-width: 50px;
+  }
+}
+
+/* extra small */
+@media (max-width: 420px) {
+  .sidebar { max-width: 100%; }
+  .chatgpt-container { padding: 12px; }
+  .session-item { padding: 10px; }
+  .send-button { padding: 8px 12px; font-size:14px; }
+}
+
+/* Accessibility & focus */
+:focus { outline: 3px solid rgba(79,70,229,0.12); outline-offset: 2px; border-radius: 8px; }
+
+/* ---------------------------
+   IMAGE STYLES
+   --------------------------- */
+.image-container {
+  margin: 12px 0;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(79,70,229,0.03);
+  border: 1px solid rgba(79,70,229,0.08);
+  box-shadow: 0 4px 16px rgba(79,70,229,0.06);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79,70,229,0.08);
+}
+
+.image-container img {
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  transition: all 0.3s ease;
+}
+
+.image-container img:hover {
+  transform: scale(1.02);
+}
+
+/* END OF FILE */
+.mobile-nav-menu.d-md-none {
+  display: block; /* ensure visible on mobile */
+  padding: 10px 6px;     /* slightly reduced outer padding for compactness */
+  border-top: 1px solid var(--border);
+  background: transparent;
+}
+
+/* each nav item spacing (slightly smaller gaps between items) */
+.mobile-nav-menu.d-md-none .nav-item {
+  margin-bottom: 6px;    /* reduced margin between items */
+}
+
+/* style links: larger text, comfortable touch padding, RTL icon spacing */
+.mobile-nav-menu.d-md-none .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;    /* comfortable touch area */
+  min-height: 44px;      /* recommended touch target */
+  font-size: 15px;       /* larger & readable */
+  color: var(--text);
+  background: #FFFFFF;   /* surface for clear contrast (you can change) */
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background .12s ease, transform .08s ease;
+}
+
+/* icon in RTL: keep icon to left side, label on right */
+.mobile-nav-menu.d-md-none .nav-link i {
+  margin-left: 8px;   /* icon separation from text in RTL */
+  margin-right: 0;
+  width: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* hover / active feedback for links */
+.mobile-nav-menu.d-md-none .nav-link:hover {
+  background: linear-gradient(90deg, #FBFDFF, #F6F9FF);
+  transform: translateY(-1px);
+  border-color: rgba(79,70,229,0.12);
+}
+.mobile-nav-menu.d-md-none .nav-link:active {
+  transform: translateY(0);
+}
+
+/* smaller badge / text inside nav-item adjustments */
+.mobile-nav-menu.d-md-none .nav-link .badge {
+  margin-left: 6px;
+  margin-right: 0;
+  font-size: 12px;
+}
+@media (max-width: 768px) {
+  /* make base paddings slightly larger for readability on small screens */
+  .chatgpt-container { padding: 14px; }
+  .chat-header { padding: 12px; }
+  .chat-messages { padding: 16px; }
+  .input-container { padding: 10px; }
+
+  /* ensure session items in sidebar are not cramped */
+  .session-item { padding: 10px; margin-bottom: 8px; }
+
+  /* make nav links a bit more prominent on narrow screens */
+  .mobile-nav-menu.d-md-none .nav-link {
+    font-size: 16px;
+    padding: 14px 12px;
+    min-height: 48px;
   }
 }

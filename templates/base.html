@@ -35,15 +35,10 @@
             margin: 0;
             padding: 0;
         }
-        
-        /* Hide mobile menu toggle on chat page */
-        body[data-page="chat"] .hamburger-menu {
-            display: none !important;
-        }
     </style>
 </head>
-<body {% if user.is_authenticated %}data-authenticated="true" data-user-name="{{ user.name }}"{% endif %} data-page="{% if request.resolver_match.url_name == 'chat' %}chat{% endif %}">
-    <!-- Hamburger menu for mobile - Hidden on chat page -->
+<body {% if user.is_authenticated %}data-authenticated="true" data-user-name="{{ user.name }}"{% endif %}>
+    <!-- Hamburger menu for mobile -->
     <button class="hamburger-menu d-md-none" id="mobile-menu-toggle">
         <i class="fas fa-bars"></i>
     </button>

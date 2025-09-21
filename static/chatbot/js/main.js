@@ -99,6 +99,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // New chat button opens modal
+    document.getElementById('new-chat-btn').addEventListener('click', function() {
+        document.getElementById('modal-chatbot-select').value = '';
+        document.getElementById('modal-model-select').value = '';
+        document.getElementById('create-chat-btn').disabled = true;
+        const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
+        modal.show();
+    });
+    
+    // Toggle sessions list
+    document.getElementById('toggle-sessions').addEventListener('click', toggleSessionsList);
+    
+    // Modal selection change listeners
+    document.getElementById('modal-chatbot-select').addEventListener('change', function() {
+        checkModalSelections();
+        // Load models based on chatbot type
+        const chatbotId = this.value;
+        if (chatbotId) {
+            loadModelsForChatbot(chatbotId);
+        }
+    });
+
+    document.getElementById('modal-model-select').addEventListener('change', function() {
+        checkModalSelections();
+        
+        // Check if the selected model has a cost multiplier > 1 and show warning
+        const selectedOption = this.options[this.selectedIndex];
+        const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+        
+        if (costMultiplier > 1) {
+            // Show warning message in modal
+            showModalCostWarning(costMultiplier);
+        } else {
+            // Hide any existing warning
+            hideModalCostWarning();
+        }
+    });
+
+    // Modal create button
+    document.getElementById('create-chat-btn').addEventListener('click', createNewChat);
+    
     // Send message form submission
     document.getElementById('chat-form').addEventListener('submit', function(event) {
         event.preventDefault();
@@ -127,6 +168,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Image generation button
     document.getElementById('image-generation-btn').addEventListener('click', toggleImageGeneration);
+    
+    // Mobile sidebar toggle - moved from base.html to here where sidebar exists
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
+            toggleSidebar();
+        });
+    }
+    
+    // Mobile sidebar toggle button in sidebar
+    if (document.getElementById('toggle-sidebar')) {
+        document.getElementById('toggle-sidebar').addEventListener('click', toggleSidebar);
+    }
+    
+    // Overlay click to close sidebar
+    if (document.getElementById('sidebar-overlay')) {
+        document.getElementById('sidebar-overlay').addEventListener('click', toggleSidebar);
+    }
     
     // Handle browser back/forward buttons
     window.addEventListener('popstate', function(event) {
@@ -177,6 +237,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Reload available models for user
             loadAvailableModelsForUser();
+            
+            // Reload sidebar menu items
+            loadSidebarMenuItems();
+        }
+    });
+    
+    // Reload sidebar menu items on window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+            // On desktop, clear mobile menu
+            const mobileNavMenu = document.getElementById('mobile-nav-menu');
+            if (mobileNavMenu) {
+                mobileNavMenu.innerHTML = '';
+            }
+        } else {
+            // On mobile, reload menu items
+            loadSidebarMenuItems();
         }
     });
     
@@ -318,69 +395,4 @@ function hideModalCostWarning() {
     if (warningElement) {
         warningElement.style.display = 'none';
     }
-}
-
-// Load sidebar menu items dynamically
-function loadSidebarMenuItems() {
-    const mobileNavMenu = document.getElementById('mobile-nav-menu');
-    if (!mobileNavMenu) {
-        return;
-    }
-    
-    // Fetch menu items from the server
-    fetch(CHAT_URLS.getSidebarMenuItems)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                console.error('Error loading menu items:', data.error);
-                return;
-            }
-            
-            // Clear existing menu items
-            mobileNavMenu.innerHTML = '';
-            
-            // Add menu items
-            if (data.menu_items && data.menu_items.length > 0) {
-                data.menu_items.forEach(item => {
-                    const navItem = document.createElement('div');
-                    navItem.className = 'nav-item';
-                    navItem.innerHTML = `
-                        <a class="nav-link" href="${item.url}">
-                            <i class="${item.icon_class}"></i> ${item.name}
-                        </a>
-                    `;
-                    mobileNavMenu.appendChild(navItem);
-                });
-            } else {
-                // Show default menu items if none are configured
-                mobileNavMenu.innerHTML = `
-                    <div class="nav-item">
-                        <a class="nav-link" href="/chat/">
-                            <i class="fas fa-comments"></i> چت
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="/accounts/profile/">
-                            <i class="fas fa-user"></i> پروفایل
-                        </a>
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading menu items:', error);
-            // Show default menu items if there's an error
-            mobileNavMenu.innerHTML = `
-                <div class="nav-item">
-                    <a class="nav-link" href="/chat/">
-                        <i class="fas fa-comments"></i> چت
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a class="nav-link" href="/accounts/profile/">
-                        <i class="fas fa-user"></i> پروفایل
-                    </a>
-                </div>
-            `;
-        });
 }
