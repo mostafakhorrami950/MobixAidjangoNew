@@ -70,8 +70,8 @@ function checkSidebarSelections() {
 
 // Load sidebar menu items dynamically
 function loadSidebarMenuItems() {
-    const mobileNavMenu = document.getElementById('mobile-nav-menu');
-    if (!mobileNavMenu) {
+    const sidebarMenuItems = document.getElementById('sidebar-menu-items');
+    if (!sidebarMenuItems) {
         return;
     }
     
@@ -85,7 +85,7 @@ function loadSidebarMenuItems() {
             }
             
             // Clear existing menu items
-            mobileNavMenu.innerHTML = '';
+            sidebarMenuItems.innerHTML = '';
             
             // Add menu items
             if (data.menu_items && data.menu_items.length > 0) {
@@ -97,38 +97,133 @@ function loadSidebarMenuItems() {
                             <i class="${item.icon_class}"></i> ${item.name}
                         </a>
                     `;
-                    mobileNavMenu.appendChild(navItem);
+                    sidebarMenuItems.appendChild(navItem);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading menu items:', error);
+        });
+}
+
+// Show floating model selection
+function showFloatingModelSelection() {
+    const floatingModelSelection = document.getElementById('floating-model-selection');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (floatingModelSelection) {
+        floatingModelSelection.style.display = 'block';
+    }
+    if (overlay) {
+        overlay.classList.add('show');
+    }
+    
+    // Load available models
+    loadAvailableModelsForFloatingSelection();
+}
+
+// Hide floating model selection
+function hideFloatingModelSelection() {
+    const floatingModelSelection = document.getElementById('floating-model-selection');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (floatingModelSelection) {
+        floatingModelSelection.style.display = 'none';
+    }
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+// Load available models for floating selection
+function loadAvailableModelsForFloatingSelection() {
+    const modelList = document.getElementById('model-list');
+    if (!modelList) {
+        return;
+    }
+    
+    // Show loading state
+    modelList.innerHTML = `
+        <div class="text-center p-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">در حال بارگذاری...</span>
+            </div>
+            <p class="mt-2">در حال بارگذاری مدل‌ها...</p>
+        </div>
+    `;
+    
+    // Fetch available models from the server
+    fetch('/chat/models/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading models:', data.error);
+                modelList.innerHTML = `
+                    <div class="alert alert-danger">
+                        خطا در بارگذاری مدل‌ها
+                    </div>
+                `;
+                return;
+            }
+            
+            // Clear current content
+            modelList.innerHTML = '';
+            
+            // Populate model list
+            if (data.models && data.models.length > 0) {
+                data.models.forEach(model => {
+                    // Only show models that user has access to
+                    if (model.user_has_access) {
+                        const modelItem = document.createElement('div');
+                        modelItem.className = 'model-item';
+                        modelItem.dataset.modelId = model.model_id;
+                        
+                        // Determine badge class and text
+                        let badgeClass = model.is_free ? 'free' : 'premium';
+                        let badgeText = model.is_free ? 'رایگان' : 'ویژه';
+                        
+                        modelItem.innerHTML = `
+                            <div class="model-item-info">
+                                <div class="model-item-name">${model.name}</div>
+                                <p class="model-item-description">${model.description || 'بدون توضیح'}</p>
+                            </div>
+                            <div class="model-item-badge ${badgeClass}">${badgeText}</div>
+                        `;
+                        
+                        // Add click event to select model
+                        modelItem.addEventListener('click', function() {
+                            selectModelForNewSession(model.model_id);
+                        });
+                        
+                        modelList.appendChild(modelItem);
+                    }
                 });
             } else {
-                // Show default menu items if none are configured
-                mobileNavMenu.innerHTML = `
-                    <div class="nav-item">
-                        <a class="nav-link" href="/chat/">
-                            <i class="fas fa-comments"></i> چت
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="/accounts/profile/">
-                            <i class="fas fa-user"></i> پروفایل
-                        </a>
+                modelList.innerHTML = `
+                    <div class="alert alert-info">
+                        هیچ مدلی در دسترس نیست
                     </div>
                 `;
             }
         })
         .catch(error => {
-            console.error('Error loading menu items:', error);
-            // Show default menu items if there's an error
-            mobileNavMenu.innerHTML = `
-                <div class="nav-item">
-                    <a class="nav-link" href="/chat/">
-                        <i class="fas fa-comments"></i> چت
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a class="nav-link" href="/accounts/profile/">
-                        <i class="fas fa-user"></i> پروفایل
-                    </a>
+            console.error('Error loading models:', error);
+            modelList.innerHTML = `
+                <div class="alert alert-danger">
+                    خطا در بارگذاری مدل‌ها
                 </div>
             `;
         });
+}
+
+// Select model for new session
+function selectModelForNewSession(modelId) {
+    // Store selected model
+    selectedModelForNewSession = modelId;
+    
+    // Hide floating model selection
+    hideFloatingModelSelection();
+    
+    // Create new session with selected model
+    createDefaultSessionWithModel(modelId);
 }
