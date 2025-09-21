@@ -544,7 +544,7 @@ function updateModelSelectionState(models) {
 // Select a model and update the session
 function selectModel(modelId, modelName) {
     console.log('Selecting model:', modelId, modelName);
-    
+
     // Update UI to show selected model regardless of session
     const modelCards = document.querySelectorAll('.model-card');
     modelCards.forEach(card => {
@@ -554,30 +554,30 @@ function selectModel(modelId, modelName) {
             card.classList.remove('selected');
         }
     });
-    
+
     // Update current selected model
     currentSelectedModel = modelId;
-    
+
     // Update the current model name in the button
     const currentModelName = document.getElementById('current-model-name');
     if (currentModelName) {
         currentModelName.textContent = modelName;
     }
-    
+
     // Store the selected model as the default model for new sessions
     localStorage.setItem('defaultModelId', modelId);
     localStorage.setItem('defaultModelName', modelName);
-    
+
     // If we have a session, update the session model
     if (currentSessionId) {
         console.log('Updating session model');
         updateSessionModel(currentSessionId, modelId);
-        
+
         // Also update in localStorage for consistency
         const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
         sessionData.ai_model_name = modelName;
         localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
-        
+
         // Show confirmation message
         const confirmation = document.createElement('div');
         confirmation.className = 'alert alert-success alert-dismissible fade show';
@@ -587,7 +587,7 @@ function selectModel(modelId, modelName) {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(confirmation);
-        
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             if (confirmation.parentNode) {
@@ -595,15 +595,40 @@ function selectModel(modelId, modelName) {
             }
         }, 3000);
     } else {
-        // No active session. Instead of just setting the default,
-        // open the "New Chat" modal to start a new chat with the selected model.
-        // The modal opening logic will use the 'defaultModelId' from localStorage.
-        document.getElementById('new-chat-btn').click();
+        // No active session. Open the "New Chat" modal and pre-select the chosen model.
+        const newChatModalElement = document.getElementById('newChatModal');
+        const newChatModal = bootstrap.Modal.getInstance(newChatModalElement) || new bootstrap.Modal(newChatModalElement);
+
+        // Add a one-time event listener to run when the modal is fully shown
+        newChatModalElement.addEventListener('shown.bs.modal', () => {
+            const chatbotSelect = document.getElementById('modal-chatbot-select');
+            const modelSelect = document.getElementById('modal-model-select');
+            const defaultModelId = localStorage.getItem('defaultModelId');
+
+            if (chatbotSelect && modelSelect && defaultModelId) {
+                // Select the first chatbot to load its models
+                if (chatbotSelect.options.length > 1) {
+                    chatbotSelect.value = chatbotSelect.options[1].value;
+                    // Manually trigger the change event to load models
+                    chatbotSelect.dispatchEvent(new Event('change'));
+
+                    // Wait for the models to be loaded via AJAX
+                    setTimeout(() => {
+                        modelSelect.value = defaultModelId;
+                        // Final check to enable the create button
+                        checkModalSelections();
+                    }, 500); // 500ms delay might need adjustment
+                }
+            }
+        }, { once: true }); // The event listener will be removed after it runs once
+
+        newChatModal.show();
     }
-    
+
     // Hide floating model selection
     hideFloatingModelSelection();
 }
+
 
 // Function to show cost multiplier warning
 function showCostMultiplierWarning(model) {
