@@ -5,6 +5,8 @@
 // Global variables to store selected options for new session
 let selectedModelForNewSession = null;
 let isWebSearchEnabledForNewSession = false;
+// Store model data for cost multiplier checking
+let availableModelsData = [];
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -61,6 +63,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add event listener for model selection in welcome area
     document.getElementById('welcome-model-select').addEventListener('change', function() {
         selectedModelForNewSession = this.value;
+        
+        // Check if the selected model has a cost multiplier > 1 and show warning
+        if (selectedModelForNewSession) {
+            const selectedModel = availableModelsData.find(model => model.model_id === selectedModelForNewSession);
+            if (selectedModel && selectedModel.token_cost_multiplier > 1) {
+                // Show warning message
+                showCostMultiplierWarning(selectedModel);
+            } else {
+                // Hide any existing warning
+                hideCostMultiplierWarning();
+            }
+        } else {
+            // Hide warning when no model is selected
+            hideCostMultiplierWarning();
+        }
     });
     
     // Add event listener for web search toggle in welcome area
@@ -103,8 +120,23 @@ document.addEventListener('DOMContentLoaded', function() {
             loadModelsForChatbot(chatbotId);
         }
     });
-    document.getElementById('modal-model-select').addEventListener('change', checkModalSelections);
-    
+
+    document.getElementById('modal-model-select').addEventListener('change', function() {
+        checkModalSelections();
+        
+        // Check if the selected model has a cost multiplier > 1 and show warning
+        const selectedOption = this.options[this.selectedIndex];
+        const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+        
+        if (costMultiplier > 1) {
+            // Show warning message in modal
+            showModalCostWarning(costMultiplier);
+        } else {
+            // Hide any existing warning
+            hideModalCostWarning();
+        }
+    });
+
     // Modal create button
     document.getElementById('create-chat-btn').addEventListener('click', createNewChat);
     
@@ -239,6 +271,9 @@ function loadAvailableModelsForUser() {
                 return;
             }
             
+            // Store model data for later use
+            availableModelsData = data.models;
+            
             const modelSelect = document.getElementById('welcome-model-select');
             const modelSelectionContainer = document.getElementById('welcome-model-selection');
             const webSearchContainer = document.getElementById('welcome-web-search-container');
@@ -288,4 +323,76 @@ function loadAvailableModelsForUser() {
             }
         })
         .catch(error => console.error('Error loading models:', error));
+}
+
+// Function to show cost multiplier warning
+function showCostMultiplierWarning(model) {
+    // Check if warning already exists
+    let warningElement = document.getElementById('cost-multiplier-warning');
+    if (!warningElement) {
+        warningElement = document.createElement('div');
+        warningElement.id = 'cost-multiplier-warning';
+        warningElement.className = 'alert alert-warning alert-dismissible fade show mt-3';
+        warningElement.role = 'alert';
+        warningElement.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>هشدار هزینه!</strong>
+            <span id="warning-text"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        // Insert after the model selection container
+        const modelSelectionContainer = document.getElementById('welcome-model-selection');
+        modelSelectionContainer.parentNode.insertBefore(warningElement, modelSelectionContainer.nextSibling);
+    }
+    
+    // Update warning text
+    const multiplier = model.token_cost_multiplier;
+    const warningText = document.getElementById('warning-text');
+    warningText.textContent = ` این مدل هوش مصنوعی دارای ضریب هزینه ${multiplier} است و به ازای هر توکن مصرفی، ${multiplier} توکن از اعتبار شما کسر خواهد شد.`;
+    
+    // Make sure it's visible
+    warningElement.style.display = 'block';
+}
+
+// Function to hide cost multiplier warning
+function hideCostMultiplierWarning() {
+    const warningElement = document.getElementById('cost-multiplier-warning');
+    if (warningElement) {
+        warningElement.style.display = 'none';
+    }
+}
+
+// Function to show cost multiplier warning in modal
+function showModalCostWarning(multiplier) {
+    // Check if warning already exists
+    let warningElement = document.getElementById('modal-cost-warning');
+    if (!warningElement) {
+        warningElement = document.createElement('div');
+        warningElement.id = 'modal-cost-warning';
+        warningElement.className = 'alert alert-warning mt-3';
+        warningElement.role = 'alert';
+        warningElement.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>هشدار هزینه!</strong>
+            <span id="modal-warning-text"></span>
+        `;
+        // Insert before the create button
+        const createBtn = document.getElementById('create-chat-btn');
+        createBtn.parentNode.insertBefore(warningElement, createBtn);
+    }
+    
+    // Update warning text
+    const warningText = document.getElementById('modal-warning-text');
+    warningText.textContent = ` این مدل هوش مصنوعی دارای ضریب هزینه ${multiplier} است و به ازای هر توکن مصرفی، ${multiplier} توکن از اعتبار شما کسر خواهد شد.`;
+    
+    // Make sure it's visible
+    warningElement.style.display = 'block';
+}
+
+// Function to hide cost multiplier warning in modal
+function hideModalCostWarning() {
+    const warningElement = document.getElementById('modal-cost-warning');
+    if (warningElement) {
+        warningElement.style.display = 'none';
+    }
 }

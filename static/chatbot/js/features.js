@@ -226,12 +226,15 @@ function loadModelsForChatbot(chatbotId) {
                 return;
             }
             
+            // Store model data in the select element for later use
+            modelSelect.dataset.modelData = JSON.stringify(data.models);
+            
             // Populate model select
             data.models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.model_id;
                 option.textContent = model.name;
-                option.dataset.isFree = model.is_free;
+                option.dataset.tokenCostMultiplier = model.token_cost_multiplier; // Store cost multiplier
                 
                 // Add badge for free/premium models
                 if (model.is_free) {
@@ -306,6 +309,7 @@ function loadMessageInputModels(chatbotId) {
                 const option = document.createElement('option');
                 option.value = model.model_id;
                 option.textContent = model.name;
+                option.dataset.tokenCostMultiplier = model.token_cost_multiplier; // Store cost multiplier
                 
                 // Set as selected if this is the current model
                 if (model.model_id === currentModelId) {
@@ -381,3 +385,134 @@ function updateModelInfoInMessages(sessionId, modelName) {
 // function loadSessionFiles(sessionId) {
 //     // This function is intentionally left empty as we no longer show session files in a separate section
 // }
+
+// Add event listener for model selection in message input area
+document.getElementById('model-select').addEventListener('change', function() {
+    if (currentSessionId && this.value) {
+        // Check if the selected model has a cost multiplier > 1 and show warning
+        const selectedOption = this.options[this.selectedIndex];
+        const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+        
+        if (costMultiplier > 1) {
+            // Show warning message
+            showModelChangeCostWarning(costMultiplier);
+        }
+        
+        // Update the session model
+        updateSessionModel(currentSessionId, this.value);
+        
+        // Show a confirmation message
+        const originalText = this.options[this.selectedIndex].text;
+        const confirmation = document.createElement('div');
+        confirmation.className = 'alert alert-success alert-dismissible fade show';
+        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        confirmation.innerHTML = `
+            <strong>موفقیت!</strong> مدل به ${originalText.split(' <')[0]} تغییر یافت.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(confirmation);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (confirmation.parentNode) {
+                confirmation.parentNode.removeChild(confirmation);
+            }
+        }, 3000);
+    }
+});
+
+// Function to show cost multiplier warning when changing models
+function showModelChangeCostWarning(multiplier) {
+    // Check if warning already exists
+    let warningElement = document.getElementById('model-change-cost-warning');
+    if (!warningElement) {
+        warningElement = document.createElement('div');
+        warningElement.id = 'model-change-cost-warning';
+        warningElement.className = 'alert alert-warning alert-dismissible fade show mt-2';
+        warningElement.role = 'alert';
+        warningElement.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>هشدار هزینه!</strong>
+            <span id="model-change-warning-text"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        // Insert after the model selection dropdown
+        const modelSelect = document.getElementById('model-select');
+        modelSelect.parentNode.insertBefore(warningElement, modelSelect.nextSibling);
+    }
+    
+    // Update warning text
+    const warningText = document.getElementById('model-change-warning-text');
+    warningText.textContent = ` این مدل هوش مصنوعی دارای ضریب هزینه ${multiplier} است و به ازای هر توکن مصرفی، ${multiplier} توکن از اعتبار شما کسر خواهد شد.`;
+    
+    // Make sure it's visible
+    warningElement.style.display = 'block';
+    
+    // Auto hide after 5 seconds
+    setTimeout(() => {
+        if (warningElement) {
+            warningElement.style.display = 'none';
+        }
+    }, 5000);
+}
+
+// Modal selection change listeners
+document.getElementById('modal-chatbot-select').addEventListener('change', function() {
+    checkModalSelections();
+    // Load models based on chatbot type
+    const chatbotId = this.value;
+    if (chatbotId) {
+        loadModelsForChatbot(chatbotId);
+    }
+});
+
+document.getElementById('modal-model-select').addEventListener('change', function() {
+    checkModalSelections();
+    
+    // Check if the selected model has a cost multiplier > 1 and show warning
+    const selectedOption = this.options[this.selectedIndex];
+    const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+    
+    if (costMultiplier > 1) {
+        // Show warning message in modal
+        showModalCostWarning(costMultiplier);
+    } else {
+        // Hide any existing warning
+        hideModalCostWarning();
+    }
+});
+
+// Function to show cost multiplier warning in modal
+function showModalCostWarning(multiplier) {
+    // Check if warning already exists
+    let warningElement = document.getElementById('modal-cost-warning');
+    if (!warningElement) {
+        warningElement = document.createElement('div');
+        warningElement.id = 'modal-cost-warning';
+        warningElement.className = 'alert alert-warning mt-3';
+        warningElement.role = 'alert';
+        warningElement.innerHTML = `
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>هشدار هزینه!</strong>
+            <span id="modal-warning-text"></span>
+        `;
+        // Insert before the create button
+        const createBtn = document.getElementById('create-chat-btn');
+        createBtn.parentNode.insertBefore(warningElement, createBtn);
+    }
+    
+    // Update warning text
+    const warningText = document.getElementById('modal-warning-text');
+    warningText.textContent = ` این مدل هوش مصنوعی دارای ضریب هزینه ${multiplier} است و به ازای هر توکن مصرفی، ${multiplier} توکن از اعتبار شما کسر خواهد شد.`;
+    
+    // Make sure it's visible
+    warningElement.style.display = 'block';
+}
+
+// Function to hide cost multiplier warning in modal
+function hideModalCostWarning() {
+    const warningElement = document.getElementById('modal-cost-warning');
+    if (warningElement) {
+        warningElement.style.display = 'none';
+    }
+}

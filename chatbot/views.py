@@ -41,6 +41,11 @@ def _send_initial_welcome_message(session, chatbot, ai_model):
             welcome_content += f"\n\n🤖 **مدل هوش مصنوعی:** {ai_model.name}"
             if hasattr(ai_model, 'description') and ai_model.description:
                 welcome_content += f"\n{ai_model.description}"
+            
+            # Add cost multiplier warning if the model has a multiplier greater than 1
+            if hasattr(ai_model, 'token_cost_multiplier') and ai_model.token_cost_multiplier > 1:
+                multiplier = float(ai_model.token_cost_multiplier)
+                welcome_content += f"\n\n⚠️ **هشدار مهم:** این مدل هوش مصنوعی دارای ضریب هزینه {multiplier} است و به ازای هر توکن مصرفی، {multiplier} توکن از اعتبار شما کسر خواهد شد."
         
         welcome_content += "\n\n💬 حالا می‌توانید سوال خود را بپرسید!"
         
@@ -153,6 +158,7 @@ def get_available_models_for_user(request):
                 'name': model.name,
                 'is_free': model.is_free,
                 'model_type': model.model_type,
+                'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
                 'user_has_access': has_access
             })
         
@@ -205,6 +211,7 @@ def get_available_models_for_chatbot(request, chatbot_id):
                 'name': model.name,
                 'is_free': model.is_free,
                 'model_type': model.model_type,
+                'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
                 'user_has_access': has_access
             })
         
