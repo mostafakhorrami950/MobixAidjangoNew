@@ -109,8 +109,14 @@ function sendMessage() {
                 id: data.assistant_message_id
             });
             
-            // Start polling for chunks
-            pollForChunks(data.assistant_message_id, assistantMessageElement, 0);
+            // Verify that the assistantMessageElement was created successfully
+            if (assistantMessageElement) {
+                // Start polling for chunks
+                pollForChunks(data.assistant_message_id, assistantMessageElement, 0);
+            } else {
+                console.error('Failed to create assistant message element');
+                throw new Error('Failed to create assistant message element');
+            }
         } else {
             throw new Error('Invalid response from server');
         }
@@ -133,7 +139,32 @@ function sendMessage() {
 
 // Polling function for getting response chunks
 function pollForChunks(messageId, assistantMessageElement, offset) {
-    const contentDiv = assistantMessageElement.querySelector('.message-content');
+    // Add error checking to ensure assistantMessageElement exists
+    if (!assistantMessageElement) {
+        console.error('assistantMessageElement is undefined in pollForChunks');
+        hideTypingIndicator();
+        setButtonState(false);
+        return;
+    }
+    
+    // Try to get the contentDiv, with error handling
+    let contentDiv = assistantMessageElement.querySelector('.message-content');
+    if (!contentDiv) {
+        console.error('Could not find .message-content element in assistantMessageElement');
+        // Try to find the element by messageId as a fallback
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            contentDiv = messageElement.querySelector('.message-content');
+        }
+        
+        // If still not found, create a temporary error message
+        if (!contentDiv) {
+            console.error('Could not find message element with ID:', messageId);
+            hideTypingIndicator();
+            setButtonState(false);
+            return;
+        }
+    }
 
     fetch(`/chat/session/${currentSessionId}/get_chunk/?message_id=${messageId}&offset=${offset}`)
         .then(response => response.json())

@@ -112,7 +112,7 @@ function addMessageToChat(message) {
                 
                 // Scroll to bottom
                 scrollToBottom();
-                return;
+                return existingMessage; // Return the existing message element
             }
         }
     } else {
@@ -396,6 +396,9 @@ function addMessageToChat(message) {
     
     // Scroll to bottom with enhanced reliability
     scrollToBottom();
+    
+    // Return the created message element
+    return messageElement;
 }
 
 // Function to extract and display files from a message
