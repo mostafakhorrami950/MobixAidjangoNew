@@ -9,7 +9,6 @@ urlpatterns = [
     path('session/create-default/', views.create_default_session, name='create_default_session'),
     path('session/<int:session_id>/messages/', views.get_session_messages, name='get_session_messages'),
     path('session/<int:session_id>/send/', views.send_message, name='send_message'),
-    path('session/<int:session_id>/send_full/', views.send_message_and_get_full_response, name='send_message_full'),
     # Removed send-image endpoint as it's only used for image functionality
     path('session/<int:session_id>/delete/', views.delete_session, name='delete_session'),
     path('generate-title/', views.generate_chat_title, name='generate_chat_title'),
@@ -23,4 +22,6 @@ urlpatterns = [
     path('sidebar-menu-items/', views.get_sidebar_menu_items, name='get_sidebar_menu_items'),
     path('session/<int:session_id>/message/<uuid:message_id>/edit/', views.edit_message, name='edit_message'),
     path('api/global-settings/', views.get_global_settings, name='get_global_settings'),
+    path('session/<int:session_id>/initiate-ai-response/', views.initiate_ai_response, name='initiate_ai_response'),
+    path('session/<int:session_id>/get_chunk/', views.get_ai_response_chunk, name='get_ai_response_chunk'),
 ]

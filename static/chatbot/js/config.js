@@ -4,6 +4,7 @@
 
 // متغیرهای سراسری
 let currentSessionId = null;
+let isStreaming = false;
 let abortController = new AbortController();
 
 // Initialize markdown-it with enhanced configuration

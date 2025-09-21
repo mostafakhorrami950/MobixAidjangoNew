@@ -210,41 +210,12 @@ function checkImageGenerationAccess(sessionId) {
         });
 }
 
-// Event listener for chatbot selection change
-document.getElementById('modal-chatbot-select').addEventListener('change', function() {
-    const chatbotId = this.value;
-    const modelSelect = document.getElementById('modal-model-select');
-    const createBtn = document.getElementById('create-chat-btn');
-    
-    if (chatbotId) {
-        // Load models for this chatbot
-        loadModelsForChatbot(chatbotId);
-    } else {
-        // Clear model selection
-        modelSelect.innerHTML = '<option value="" selected>انتخاب مدل...</option>';
-        createBtn.disabled = true;
-    }
-});
-
-// Event listener for model selection change
-document.getElementById('modal-model-select').addEventListener('change', function() {
-    const chatbotSelect = document.getElementById('modal-chatbot-select');
-    const createBtn = document.getElementById('create-chat-btn');
-    
-    // Enable create button only if both chatbot and model are selected
-    if (chatbotSelect.value && this.value) {
-        createBtn.disabled = false;
-    } else {
-        createBtn.disabled = true;
-    }
-});
-
 // Load models for a specific chatbot
 function loadModelsForChatbot(chatbotId) {
     const modelSelect = document.getElementById('modal-model-select');
     
     // Clear current options
-    modelSelect.innerHTML = '<option value="" selected>انتخاب مدل...</option>';
+    modelSelect.innerHTML = '<option value="">-- مدلی را انتخاب کنید --</option>';
     
     // Load models for this chatbot
     fetch(`/chat/chatbot/${chatbotId}/models/`)
@@ -260,55 +231,44 @@ function loadModelsForChatbot(chatbotId) {
                 const option = document.createElement('option');
                 option.value = model.model_id;
                 option.textContent = model.name;
+                option.dataset.isFree = model.is_free;
                 
-                // Add access information to the text and styling
+                // Add badge for free/premium models
                 if (model.is_free) {
-                    option.textContent += ' (رایگان)';
-                    option.className = 'model-option-free';
+                    option.innerHTML += ' <span class="badge bg-success">رایگان</span>';
                 } else {
-                    if (model.user_has_access) {
-                        option.textContent += ' (ویژه)';
-                        option.className = 'model-option-premium';
-                    } else {
-                        option.textContent += ' (نیاز به اشتراک)';
-                        option.className = 'option-disabled';
-                        option.disabled = true;
-                    }
-                }
-                
-                // Disable option if user doesn't have access
-                if (!model.user_has_access) {
-                    option.disabled = true;
+                    option.innerHTML += ' <span class="badge bg-warning">ویژه</span>';
                 }
                 
                 modelSelect.appendChild(option);
             });
             
-            // Enable create button if there are enabled options and a chatbot is selected
-            const createBtn = document.getElementById('create-chat-btn');
-            const chatbotSelect = document.getElementById('modal-chatbot-select');
-            const enabledOptions = Array.from(modelSelect.options).filter(option => !option.disabled && option.value);
-            
-            if (chatbotSelect.value && enabledOptions.length > 0) {
-                // Check if there's at least one non-disabled option selected
-                const selectedOption = modelSelect.options[modelSelect.selectedIndex];
-                if (selectedOption && !selectedOption.disabled) {
-                    createBtn.disabled = false;
-                } else {
-                    createBtn.disabled = true;
-                }
+            // Show/hide image generation button based on chatbot type
+            const imageGenBtn = document.getElementById('image-generation-btn');
+            const webSearchBtn = document.getElementById('web-search-btn');
+            if (data.chatbot_type === 'image_editing') {
+                // For image editing chatbots:
+                // 1. Hide the image generation button (it's automatic)
+                imageGenBtn.style.display = 'none';
+                // 2. Enable image generation by default
+                sessionStorage.setItem(`imageGen_${currentSessionId}`, 'true');
+                // 3. Hide the web search button
+                webSearchBtn.style.display = 'none';
             } else {
-                createBtn.disabled = true;
+                // For other chatbots:
+                // 1. Show the image generation button
+                imageGenBtn.style.display = 'inline-block';
+                // 2. Restore web search button visibility
+                webSearchBtn.style.display = 'inline-block';
+                // Also disable image generation if it was enabled
+                imageGenBtn.classList.remove('btn-primary');
+                imageGenBtn.classList.add('btn-outline-primary');
+                imageGenBtn.innerHTML = '<i class="fas fa-image"></i> تولید تصویر';
+                imageGenBtn.title = 'فعال کردن تولید تصویر';
+                sessionStorage.setItem(`imageGen_${currentSessionId}`, 'false');
             }
         })
-        .catch(error => {
-            console.error('Error loading models:', error);
-            // Show error to user
-            const option = document.createElement('option');
-            option.textContent = 'خطا در بارگذاری مدل‌ها';
-            option.disabled = true;
-            modelSelect.appendChild(option);
-        });
+        .catch(error => console.error('Error loading models:', error));
 }
 
 // Load models for the message input area dropdown

@@ -1711,7 +1711,7 @@ def edit_message(request, session_id, message_id):
                     'content': msg.content
                 })
         
-        # Send to AI for regeneration using non-streaming method
+        # Send to AI for regeneration
         openrouter_service = OpenRouterService()
         
         # Get the AI model for this session
@@ -1724,156 +1724,128 @@ def edit_message(request, session_id, message_id):
         if not ai_model:
             return JsonResponse({'error': 'No AI model available for this session'}, status=500)
         
-        # Use the non-streaming method to get the full response
-        response = openrouter_service.send_text_message(
+        response = openrouter_service.stream_text_response(
             ai_model, openrouter_messages
         )
         
         if isinstance(response, dict) and 'error' in response:
             return JsonResponse({'error': response['error']}, status=500)
         
-        # Extract the full response content
-        full_response = ""
-        images_data = None
-        usage_data = None
-        
-        if isinstance(response, dict) and 'choices' in response:
-            try:
-                # Safely extract response content
-                choices = response.get('choices', [])
-                if choices and len(choices) > 0:
-                    choice = choices[0]
-                    if isinstance(choice, dict) and 'message' in choice:
-                        message = choice['message']
-                        if isinstance(message, dict) and 'content' in message:
-                            full_response = message['content'] or ""
-            except (KeyError, IndexError, TypeError) as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error extracting response content: {str(e)}")
-                full_response = "Error extracting response content"
-        
-        # Extract usage data if available
-        if isinstance(response, dict) and 'usage' in response:
-            usage_data = response.get('usage')
-        
-        # Create assistant message with the full response
+        # Create a new assistant message for the response
         assistant_message = ChatMessage.objects.create(
             session=session,
             message_type='assistant',
-            content=full_response,
-            tokens_count=0  # Will be updated later
+            content="",  # Will be populated by streaming
+            tokens_count=0
         )
         
-        # Process images if they were generated
-        images_saved = False
-        if isinstance(response, dict) and 'choices' in response:
+        # Stream the response and update the assistant message
+        def generate():
+            # Send disabled message IDs to frontend
+            disabled_data = {
+                'disabled_message_ids': disabled_message_ids
+            }
+            yield f"[DISABLED_MESSAGES]{json.dumps(disabled_data)}[DISABLED_MESSAGES_END]".encode('utf-8')
+            
+            # Send the new assistant message ID to frontend
+            assistant_message_data = {
+                'assistant_message_id': str(assistant_message.message_id)
+            }
+            yield f"[ASSISTANT_MESSAGE_ID]{json.dumps(assistant_message_data)}[ASSISTANT_MESSAGE_ID_END]".encode('utf-8')
+            
+            full_response = ""
+            usage_data = None
+            
             try:
-                # Check for image data in the response
-                choices = response.get('choices', [])
-                if choices and len(choices) > 0:
-                    choice = choices[0]
-                    if isinstance(choice, dict) and 'message' in choice:
-                        message = choice['message']
-                        if isinstance(message, dict) and 'images' in message:
-                            images_data = message['images']
-                            if images_data:
-                                saved_image_urls, _ = openrouter_service.process_image_response(images_data, session)
-                                if saved_image_urls:
-                                    assistant_message.image_url = ",".join(saved_image_urls)
-                                    images_saved = True
-            except (KeyError, IndexError, TypeError) as e:
+                for chunk in response:
+                    # Handle usage data
+                    if '[USAGE_DATA]' in chunk and '[USAGE_DATA_END]' in chunk:
+                        start_idx = chunk.find('[USAGE_DATA]') + 12
+                        end_idx = chunk.find('[USAGE_DATA_END]')
+                        usage_json = chunk[start_idx:end_idx]
+                        try:
+                            usage_data = json.loads(usage_json)
+                        except json.JSONDecodeError:
+                            pass
+                        continue
+                    
+                    # Accumulate response and update message
+                    full_response += chunk
+                    assistant_message.content = full_response
+                    assistant_message.save(update_fields=['content'])
+                    
+                    yield chunk.encode('utf-8')
+                    
+            except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.error(f"Error processing image data: {str(e)}")
-        
-        # Update token count for assistant message
-        prompt_tokens = 0
-        completion_tokens = 0
-        total_tokens_used = 0
-        
-        if usage_data and isinstance(usage_data, dict):
-            # از داده‌های API استفاده کنیم
-            prompt_tokens = usage_data.get('prompt_tokens', 0)
-            completion_tokens = usage_data.get('completion_tokens', 0)
-            total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-            # ثبت فقط توکن‌های پاسخ دستیار برای پیام دستیار
-            assistant_message.tokens_count = completion_tokens
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.debug(f"توکن‌های ثبت شده برای پیام دستیار: {completion_tokens}")
-        else:
-            # در صورت نبود داده، از محاسبه خودمان استفاده می‌کنیم
-            prompt_tokens = UsageService.calculate_tokens_for_message(new_content)  # Use edited message content
-            completion_tokens = UsageService.calculate_tokens_for_message(full_response)
-            total_tokens_used = prompt_tokens + completion_tokens
-            # ثبت فقط توکن‌های پاسخ دستیار
-            assistant_message.tokens_count = completion_tokens
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.debug(f"توکن‌های محاسبه شده برای پیام دستیار: {completion_tokens}")
-        
-        assistant_message.save()
-        
-        # Update session timestamp
-        session.updated_at = timezone.now()
-        session.save()
-        
-        # Update usage counters - only for image editing chatbots if images were successfully generated
-        if subscription_type:
-            # For image editing chatbots, only increment usage if images were successfully generated
-            if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
-                if images_saved:
-                    # Only increment usage if images were successfully saved
-                    UsageService.increment_image_generation_usage(
-                        request.user, subscription_type
-                    )
+                logger.error(f"Error in message editing stream: {str(e)}", exc_info=True)
+                yield f"Error: {str(e)}".encode('utf-8')
             
-            # For other chatbots or if images were generated successfully, increment regular usage
-            if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
-                if usage_data and isinstance(usage_data, dict):
-                    # Use actual token counts from API
+            finally:
+                # Finalize the assistant message
+                if usage_data:
                     prompt_tokens = usage_data.get('prompt_tokens', 0)
                     completion_tokens = usage_data.get('completion_tokens', 0)
-                    total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
-                    
-                    # Log token usage for debugging
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                    
-                    UsageService.increment_usage(
-                        request.user, subscription_type,
-                        messages_count=1,  # Only count one message interaction
-                        tokens_count=total_tokens_used,
-                        is_free_model=ai_model.is_free if ai_model else False
-                    )
+                    total_tokens = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                    assistant_message.tokens_count = total_tokens
                 else:
-                    # Fallback to our calculation if API doesn't provide usage data
-                    # **اصلاح منطق:** توکن‌های ورودی فقط پیام کاربر است
-                    # توکن‌های خروجی پاسخ دستیار است
-                    prompt_tokens = UsageService.calculate_tokens_for_message(new_content)  # Use edited message content
-                    completion_tokens = UsageService.calculate_tokens_for_message(full_response)
-                    total_tokens_used = prompt_tokens + completion_tokens
-                    
-                    # Log token usage for debugging
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.info(f"Token usage calculated - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
-                    
-                    UsageService.increment_usage(
-                        request.user, subscription_type,
-                        messages_count=1,  # Only count one message interaction
-                        tokens_count=total_tokens_used,
-                        is_free_model=ai_model.is_free if ai_model else False
-                    )
+                    # Fallback to character counting if API doesn't provide usage data
+                    assistant_message.tokens_count = UsageService.calculate_tokens_for_message(full_response)
+                
+                # Process images if they were generated
+                images_saved = False
+                # Note: images_data is not available in this scope for edit_message function
+                # Image processing for edit_message would need to be handled differently
+                
+                assistant_message.save()
+                
+                # Update session timestamp
+                session.updated_at = timezone.now()
+                session.save()
+                
+                # Update usage counters - only for image editing chatbots if images were successfully generated
+                if subscription_type:
+                    # For image editing chatbots, increment usage (images are processed in the main send_message function)
+                    # In edit_message, we don't generate new images, so we don't increment image usage here
+                    if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
+                        # For image editing chatbots during edit, we don't increment usage as no new images are generated
+                        pass
+                    else:
+                        # For other chatbots, increment regular usage
+                        if usage_data:
+                            # Use actual token counts from API - these are the REAL consumption
+                            prompt_tokens = usage_data.get('prompt_tokens', 0)
+                            completion_tokens = usage_data.get('completion_tokens', 0)
+                            total_tokens = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                            
+                            UsageService.increment_usage(
+                                request.user, subscription_type,
+                                messages_count=1,  # Only count one interaction
+                                tokens_count=total_tokens,  # Use actual API consumption
+                                is_free_model=ai_model.is_free if ai_model else False
+                            )
+                        else:
+                            # Fallback calculation - only the actual assistant response tokens
+                            # Don't re-calculate conversation history as it's already been paid for
+                            assistant_output_tokens = assistant_message.tokens_count
+                            # Estimate prompt tokens based on edited message + small context overhead
+                            edited_message_tokens = UsageService.calculate_tokens_for_message(new_content)
+                            estimated_prompt_tokens = edited_message_tokens + 50  # Small overhead for system prompt
+                            total_tokens = estimated_prompt_tokens + assistant_output_tokens
+                            
+                            UsageService.increment_usage(
+                                request.user, subscription_type,
+                                messages_count=1,  # Only count one interaction
+                                tokens_count=total_tokens,  # Only actual new consumption
+                                is_free_model=ai_model.is_free if ai_model else False
+                            )
         
-        # Return JSON response with full content and disabled message IDs
-        return JsonResponse({
-            'success': True,
-            'content': full_response,
-            'disabled_message_ids': disabled_message_ids
-        })
+        return StreamingHttpResponse(
+            generate(),
+            content_type='text/plain; charset=utf-8',
+            headers={'X-Accel-Buffering': 'no'}  # این خط را اضافه کنید
+        )
         
     except Exception as e:
         import logging
@@ -1902,9 +1874,10 @@ def get_global_settings(request):
 
 
 @login_required
-def send_message_and_get_full_response(request, session_id):
+def initiate_ai_response(request, session_id):
     # Define logger at the function level to ensure it's accessible in all blocks
     import logging
+    import uuid
     logger = logging.getLogger(__name__)
     
     if request.method == 'POST':
@@ -2177,7 +2150,6 @@ def send_message_and_get_full_response(request, session_id):
                             image_data = image_file.read()
                         encoded_image = base64.b64encode(image_data).decode('utf-8')
                         image_url = f"data:{mime_type};base64,{encoded_image}"
-
                         content_parts.append({"type": "image_url", "image_url": {"url": image_url}})
                         user_message_to_save += f" (تصویر {file_index + 1}: {uploaded_file.name})"
                     elif mime_type and (mime_type.startswith('text/') or 
@@ -2279,7 +2251,7 @@ def send_message_and_get_full_response(request, session_id):
             if generate_image:
                 modalities = ["image", "text"]
             
-            # Use the non-streaming method to get the full response
+            # Use send_text_message instead of stream_text_response to get the full response
             response = openrouter_service.send_text_message(
                 ai_model, openrouter_messages, stream=False, web_search=use_web_search,
                 modalities=modalities
@@ -2290,67 +2262,54 @@ def send_message_and_get_full_response(request, session_id):
 
             # Extract the full response content
             full_response = ""
-            images_data = None
             usage_data = None
+            images_data = None
             
-            if isinstance(response, dict) and 'choices' in response:
-                try:
-                    # Safely extract response content
-                    choices = response.get('choices', [])
-                    if choices and len(choices) > 0:
-                        choice = choices[0]
-                        if isinstance(choice, dict) and 'message' in choice:
-                            message = choice['message']
-                            if isinstance(message, dict) and 'content' in message:
-                                full_response = message['content'] or ""
-                except (KeyError, IndexError, TypeError) as e:
-                    logger.error(f"Error extracting response content: {str(e)}")
-                    full_response = "Error extracting response content"
+            # Handle the response correctly based on its type
+            if isinstance(response, dict):
+                if 'choices' in response and len(response['choices']) > 0:
+                    choice = response['choices'][0]
+                    if isinstance(choice, dict):
+                        # Handle regular response
+                        if 'message' in choice and isinstance(choice['message'], dict):
+                            full_response = choice['message'].get('content', '')
+                        # Handle streaming-like response with delta
+                        elif 'delta' in choice and isinstance(choice['delta'], dict):
+                            delta = choice['delta']
+                            full_response = delta.get('content', '')
+                            images_data = delta.get('images', [])
+                        
+                        # Extract usage data if available
+                        if 'usage' in response and isinstance(response['usage'], dict):
+                            usage_data = response['usage']
             
-            # Extract usage data if available
-            if isinstance(response, dict) and 'usage' in response:
-                usage_data = response.get('usage')
-            
-            # Create assistant message with the full response
-            assistant_message = ChatMessage.objects.create(
+            # Create an assistant message with the full response
+            # Generate a unique message_id for the assistant message
+            assistant_message_id = str(uuid.uuid4())
+            assistant_message_obj = ChatMessage.objects.create(
                 session=session,
                 message_type='assistant',
                 content=full_response,
-                tokens_count=0  # Will be updated later
+                tokens_count=0,  # Will be updated later
+                message_id=assistant_message_id  # Use the generated UUID
             )
             
-            # Process images if they were generated
+            # Process images if they exist in the response
             images_saved = False
-            if isinstance(response, dict) and 'choices' in response:
-                try:
-                    # Check for image data in the response
-                    choices = response.get('choices', [])
-                    if choices and len(choices) > 0:
-                        choice = choices[0]
-                        if isinstance(choice, dict) and 'message' in choice:
-                            message = choice['message']
-                            if isinstance(message, dict) and 'images' in message:
-                                images_data = message['images']
-                                if images_data:
-                                    saved_image_urls, _ = openrouter_service.process_image_response(images_data, session)
-                                    if saved_image_urls:
-                                        assistant_message.image_url = ",".join(saved_image_urls)
-                                        images_saved = True
-                except (KeyError, IndexError, TypeError) as e:
-                    logger.error(f"Error processing image data: {str(e)}")
+            if images_data:
+                saved_image_urls, _ = openrouter_service.process_image_response(images_data, session)
+                if saved_image_urls:
+                    assistant_message_obj.image_url = ",".join(saved_image_urls)
+                    images_saved = True
             
-            # Update token count for assistant message
-            prompt_tokens = 0
-            completion_tokens = 0
-            total_tokens_used = 0
-            
+            # Update token count
             if usage_data and isinstance(usage_data, dict):
                 # از داده‌های API استفاده کنیم
                 prompt_tokens = usage_data.get('prompt_tokens', 0)
                 completion_tokens = usage_data.get('completion_tokens', 0)
                 total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
                 # ثبت فقط توکن‌های پاسخ دستیار برای پیام دستیار
-                assistant_message.tokens_count = completion_tokens
+                assistant_message_obj.tokens_count = completion_tokens
                 logger.debug(f"توکن‌های ثبت شده برای پیام دستیار: {completion_tokens}")
             else:
                 # در صورت نبود داده، از محاسبه خودمان استفاده می‌کنیم
@@ -2358,10 +2317,10 @@ def send_message_and_get_full_response(request, session_id):
                 completion_tokens = UsageService.calculate_tokens_for_message(full_response)
                 total_tokens_used = prompt_tokens + completion_tokens
                 # ثبت فقط توکن‌های پاسخ دستیار
-                assistant_message.tokens_count = completion_tokens
+                assistant_message_obj.tokens_count = completion_tokens
                 logger.debug(f"توکن‌های محاسبه شده برای پیام دستیار: {completion_tokens}")
             
-            assistant_message.save()
+            assistant_message_obj.save()
             
             # Auto-generate title after first user message if needed
             title_generated = False
@@ -2394,7 +2353,7 @@ def send_message_and_get_full_response(request, session_id):
                 
                 # For other chatbots or if images were generated successfully, increment regular usage
                 if not (session.chatbot and session.chatbot.chatbot_type == 'image_editing') or images_saved:
-                    if usage_data and isinstance(usage_data, dict):
+                    if usage_data:
                         # Use actual token counts from API
                         prompt_tokens = usage_data.get('prompt_tokens', 0)
                         completion_tokens = usage_data.get('completion_tokens', 0)
@@ -2458,39 +2417,59 @@ def send_message_and_get_full_response(request, session_id):
                         except Exception as e:
                             logger.error(f"Error updating ChatSessionUsage: {str(e)}")
             
-            # Prepare user message data for response
-            user_message_data = {
-                'id': str(user_message.message_id),  # Use message_id (UUID) for editing
-                'db_id': user_message.id,  # Keep database ID for other functionality
-                'type': user_message.message_type,
-                'content': user_message.content,
-                'created_at': user_message.created_at.isoformat(),
-            }
-            
-            # Add uploaded files data to user message if any
-            uploaded_files_data = []
-            for message_file in user_message.uploaded_files.all().order_by('file_order'):
-                file_record = message_file.uploaded_file
-                uploaded_files_data.append({
-                    'filename': file_record.original_filename,
-                    'mimetype': file_record.mimetype,
-                    'size': file_record.size,
-                    'download_url': f'/media/uploaded_files/{file_record.filename}'
-                })
-            
-            if uploaded_files_data:
-                user_message_data['uploaded_files'] = uploaded_files_data
-            
-            # Return JSON response with full content
+            # Return the assistant message ID to the client
             return JsonResponse({
-                'success': True,
-                'content': full_response,
-                'user_message_data': user_message_data,
-                'assistant_message_id': str(assistant_message.message_id)
+                "status": "processing_started",
+                "assistant_message_id": assistant_message_id
             })
-
+            
         except Exception as e:
-            logger.error(f"Error in send_message_and_get_full_response: {str(e)}", exc_info=True)
+            logger.error(f"Error in initiate_ai_response: {str(e)}", exc_info=True)
             return JsonResponse({'error': 'Internal server error', 'details': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+
+@login_required
+def get_ai_response_chunk(request, session_id):
+    if request.method == 'GET':
+        try:
+            ChatSession = apps.get_model('chatbot', 'ChatSession')
+            ChatMessage = apps.get_model('chatbot', 'ChatMessage')
+            session = get_object_or_404(ChatSession, id=session_id, user=request.user)
+            
+            # Get parameters from query
+            message_id = request.GET.get('message_id')
+            offset = int(request.GET.get('offset', 0))
+            
+            if not message_id:
+                return JsonResponse({'error': 'message_id is required'}, status=400)
+            
+            # Retrieve the assistant message
+            try:
+                message = ChatMessage.objects.get(message_id=message_id, session=session, message_type='assistant')
+            except ChatMessage.DoesNotExist:
+                return JsonResponse({'error': 'Message not found'}, status=404)
+            
+            # Read the full content
+            full_content = message.content
+            
+            # If no content left to send
+            if offset >= len(full_content):
+                return JsonResponse({'status': 'complete'})
+            
+            # Get a chunk of text (50 characters)
+            chunk_size = 50
+            new_chunk = full_content[offset:offset + chunk_size]
+            new_offset = offset + len(new_chunk)
+            
+            return JsonResponse({
+                'status': 'new_chunk',
+                'content_chunk': new_chunk,
+                'new_offset': new_offset
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
     return JsonResponse({'error': 'Invalid request method'}, status=400)

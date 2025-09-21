@@ -1,10 +1,8 @@
 // =================================
-// ارسال پیام‌ها و streaming (Message Sending & Streaming)
+// ارسال پیام‌ها و long polling (Message Sending & Long Polling)
 // =================================
 
-
-
-// Send message with streaming support
+// Send message with long polling support (replaces streaming)
 function sendMessage() {
     console.log('sendMessage called');
     const messageInput = document.getElementById('message-input');
@@ -53,6 +51,8 @@ function sendMessage() {
     // Clear inputs
     messageInput.value = '';
     resetFilesState(); // Clear all selected files
+    // Don't disable the send button immediately - keep it enabled for stop functionality
+    // document.getElementById('send-button').disabled = true;
 
     // Disable input while processing
     messageInput.disabled = true;
@@ -75,14 +75,19 @@ function sendMessage() {
         formData.append('files', file); // تغییر از 'file' به 'files'
     });
 
-    // Use the new endpoint for long polling approach
-    fetch(`/chat/session/${currentSessionId}/send_full/`, {
+    // ساخت یک کنترلر جدید برای هر درخواست
+    abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
+    setButtonState(true); // تغییر دکمه به حالت "توقف"
+
+    // Unified fetch request to 'initiate_ai_response' endpoint instead of 'send_message'
+    fetch(`/chat/session/${currentSessionId}/initiate-ai-response/`, {
         method: 'POST',
         headers: {
             // 'Content-Type' is automatically set to 'multipart/form-data' by the browser when using FormData
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: formData
+        body: formData,
+        signal: abortController.signal // اتصال کنترلر به درخواست
     })
     .then(response => {
         if (!response.ok) {
@@ -90,38 +95,29 @@ function sendMessage() {
                 throw new Error(data.error || 'Error sending message');
             });
         }
+        
+        // Parse the JSON response
         return response.json();
     })
     .then(data => {
-        // Hide typing indicator
-        hideTypingIndicator();
-        
-        if (data.success) {
-            // Update the temporary user message with the real data from server
-            if (data.user_message_data) {
-                updateUserMessageWithServerData(data.user_message_data);
-            }
-            
-            // Display the assistant response with typing effect
-            displayTextGradually(data.content);
-        } else {
-            // Handle error
-            addMessageToChat({
+        if (data.status === 'processing_started' && data.assistant_message_id) {
+            // Create an empty assistant message element
+            const assistantMessageElement = addMessageToChat({
                 type: 'assistant',
-                content: `خطا: ${data.error || 'خطای نامشخص'}`,
-                created_at: new Date().toISOString()
+                content: '',
+                created_at: new Date().toISOString(),
+                id: data.assistant_message_id
             });
+            
+            // Start polling for chunks
+            pollForChunks(data.assistant_message_id, assistantMessageElement, 0);
+        } else {
+            throw new Error('Invalid response from server');
         }
-        
-        // Re-enable input and reset button state
-        messageInput.disabled = false;
-        messageInput.focus();
     })
     .catch(error => {
-        // Hide typing indicator
+        console.error('Error:', error);
         hideTypingIndicator();
-        
-        // Handle error
         addMessageToChat({
             type: 'assistant',
             content: `خطا: ${error.message || 'خطای نامشخص'}`,
@@ -131,7 +127,55 @@ function sendMessage() {
         // Re-enable input and reset button state
         messageInput.disabled = false;
         messageInput.focus();
+        setButtonState(false);
     });
+}
+
+// Polling function for getting response chunks
+function pollForChunks(messageId, assistantMessageElement, offset) {
+    const contentDiv = assistantMessageElement.querySelector('.message-content');
+
+    fetch(`/chat/session/${currentSessionId}/get_chunk/?message_id=${messageId}&offset=${offset}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'new_chunk') {
+                // Add the new chunk to the current content
+                contentDiv.textContent += data.content_chunk;
+
+                // If the user is at the bottom, scroll
+                if (isUserAtBottom()) {
+                    scrollToBottom();
+                }
+
+                // Call pollForChunks again with the new offset after a short delay
+                setTimeout(() => {
+                    pollForChunks(messageId, assistantMessageElement, data.new_offset);
+                }, 100); // Short delay for smooth streaming
+
+            } else if (data.status === 'complete') {
+                // Polling is complete
+                hideTypingIndicator();
+                setButtonState(false); // Enable the send button
+
+                // Now that the text is complete, render it with Markdown
+                const fullText = contentDiv.textContent;
+                contentDiv.innerHTML = md.render(fullText);
+
+                // Style code and add copy buttons
+                if (hljs) {
+                    contentDiv.querySelectorAll('pre code').forEach(block => {
+                        hljs.highlightElement(block);
+                    });
+                }
+                addCopyButtonsToContent(assistantMessageElement);
+                scrollToBottom();
+            }
+        })
+        .catch(error => {
+            console.error('Polling Error:', error);
+            hideTypingIndicator();
+            setButtonState(false);
+        });
 }
 
 // Function to update title in UI after auto-generation
@@ -151,10 +195,6 @@ function updateSessionTitleInUI(newTitle) {
         console.error('Error updating session title in UI:', error);
     }
 }
-
-
-
-
 
 // Generate chat title using AI
 function generateChatTitle(firstMessage, chatbotId, modelId) {
@@ -262,8 +302,7 @@ async function createDefaultSessionAndSendMessage(message, files) {
         document.getElementById('delete-session-btn').style.display = 'inline-block';
         
         // فعال کردن input ها
-        const messageInput = document.getElementById('message-input');
-        messageInput.disabled = false;
+        document.getElementById('message-input').disabled = false;
         document.getElementById('send-button').disabled = false;
         
         // Store session data in localStorage (important for auto-refresh functionality)
@@ -310,9 +349,6 @@ async function createDefaultSessionAndSendMessage(message, files) {
         hideTypingIndicator();
         
         // حالا پیام را ارسال کنیم
-        // Re-enable input before sending message
-        messageInput.disabled = false;
-        // Use the improved sendMessage function
         sendMessage();
         
     } catch (error) {
@@ -321,127 +357,6 @@ async function createDefaultSessionAndSendMessage(message, files) {
         alert('خطا در ایجاد چت جدید: ' + error.message);
     }
 }
-
-// sendMessageInternal function has been removed as it contained problematic streaming logic
-// We now use the improved sendMessage function exclusively
-
-// Function to update the temporary user message with real data from server
-function updateUserMessageWithServerData(userData) {
-    console.log('Updating user message with server data:', userData);
-    
-    // Find the last user message element (which should be our temporary one)
-    const userMessages = document.querySelectorAll('.message-user');
-    if (userMessages.length > 0) {
-        const lastUserMessage = userMessages[userMessages.length - 1];
-        
-        // Check if this message already has an ID and uploaded files data
-        if (lastUserMessage.dataset.messageId && lastUserMessage.querySelector('.files-container')) {
-            console.log('Last user message already has an ID and files:', lastUserMessage.dataset.messageId);
-            // If it already has an ID, make sure it matches the server ID
-            if (userData.id && lastUserMessage.dataset.messageId !== userData.id) {
-                console.warn('Message ID mismatch. Expected:', userData.id, 'Actual:', lastUserMessage.dataset.messageId);
-                // Update the ID to match the server
-                lastUserMessage.dataset.messageId = userData.id;
-            }
-            return;
-        }
-        
-        // Update the message ID data attribute for editing functionality
-        if (userData.id) {
-            lastUserMessage.dataset.messageId = userData.id;
-            console.log('Updated user message with server ID:', userData.id);
-        }
-        
-        // Add uploaded files display if files are present in server data
-        if (userData.uploaded_files && userData.uploaded_files.length > 0) {
-            console.log('Adding uploaded files to user message:', userData.uploaded_files);
-            
-            // Check if files container already exists
-            let filesContainer = lastUserMessage.querySelector('.files-container');
-            if (!filesContainer) {
-                // Create files container
-                filesContainer = document.createElement('div');
-                filesContainer.className = 'files-container mt-2';
-                filesContainer.innerHTML = '<div class="uploaded-files-header"><small class="text-muted"><i class="fas fa-paperclip"></i> فایل‌های آپلود شده:</small></div>';
-                
-                // Insert before message actions (if they exist) or at the end
-                const messageActions = lastUserMessage.querySelector('.message-actions');
-                if (messageActions) {
-                    lastUserMessage.insertBefore(filesContainer, messageActions);
-                } else {
-                    lastUserMessage.appendChild(filesContainer);
-                }
-            }
-            
-            // Add each file
-            userData.uploaded_files.forEach((file, index) => {
-                // Determine file icon based on mimetype
-                let iconClass = 'fas fa-file text-muted';
-                if (file.mimetype.startsWith('image/')) {
-                    iconClass = 'fas fa-file-image text-primary';
-                } else if (file.mimetype === 'application/pdf') {
-                    iconClass = 'fas fa-file-pdf text-danger';
-                } else if (file.mimetype.startsWith('text/')) {
-                    iconClass = 'fas fa-file-alt text-info';
-                } else if (file.mimetype.includes('word')) {
-                    iconClass = 'fas fa-file-word text-primary';
-                } else if (file.mimetype.includes('excel') || file.mimetype.includes('sheet')) {
-                    iconClass = 'fas fa-file-excel text-success';
-                }
-                
-                // Format file size
-                let sizeText = formatFileSize(file.size);
-                
-                const fileItemHtml = `
-                    <div class="uploaded-file-item d-flex align-items-center p-2 mb-1 bg-light rounded">
-                        <i class="${iconClass} me-2"></i>
-                        <div class="flex-grow-1">
-                            <div class="fw-semibold">${file.filename}</div>
-                            <div class="small text-muted">${sizeText}</div>
-                        </div>
-                        <div class="file-actions">
-                            ${file.mimetype.startsWith('image/') ? 
-                                `<button class="btn btn-sm btn-outline-primary me-1 preview-image-btn" data-image-url="${file.download_url}" title="پیش‌نمایش"><i class="fas fa-eye"></i></button>` : ''
-                            }
-                            <a href="${file.download_url}" download="${file.filename}" class="btn btn-sm btn-outline-success" title="دانلود">
-                                <i class="fas fa-download"></i>
-                            </a>
-                        </div>
-                    </div>
-                `;
-                
-                filesContainer.insertAdjacentHTML('beforeend', fileItemHtml);
-            });
-            
-            // Set up image preview functionality for uploaded files
-            setupImagePreviewButtons(lastUserMessage);
-            
-            // Scroll to show the updated message
-            setTimeout(() => {
-                scrollToBottom();
-            }, 100);
-        }
-    } else {
-        console.warn('No user messages found to update with server data');
-    }
-}
-
-// Function to ensure all messages have proper IDs
-function ensureMessageIds() {
-    // Get all messages that don't have IDs
-    const messagesWithoutIds = document.querySelectorAll('.message-user:not([data-message-id]), .message-assistant:not([data-message-id])');
-    console.log('Found messages without IDs:', messagesWithoutIds.length);
-    
-    // For each message without an ID, we can't do much except log a warning
-    // In a real implementation, we might want to reload the session or handle this differently
-    messagesWithoutIds.forEach((message, index) => {
-        console.warn('Message without ID found:', message);
-    });
-}
-
-
-
-
 
 // Function to show image generation success notification
 function showImageGenerationSuccess() {
