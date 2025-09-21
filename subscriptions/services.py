@@ -289,16 +289,24 @@ class UsageService:
         return total_tokens, free_model_tokens
     
     @staticmethod
-    def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False):
+    def increment_usage(user, subscription_type, messages_count=1, tokens_count=1, is_free_model=False, ai_model=None):
         """
-        Create a new usage record for each event with proper token separation.
+        Create a new usage record for each event with proper token separation and cost calculation.
         """
         logger.info(f"Incrementing usage for user {user.id}, is_free_model: {is_free_model}")
-        logger.debug(f"Messages count: {messages_count}, Tokens count: {tokens_count}")
+        
+        # Calculate effective token cost
+        effective_tokens_cost = tokens_count
+        if ai_model and not is_free_model:  # Only apply multiplier for paid models
+            cost_multiplier = float(ai_model.token_cost_multiplier)
+            effective_tokens_cost = int(tokens_count * cost_multiplier)
+            logger.info(f"Applying cost multiplier of {cost_multiplier}. Original tokens: {tokens_count}, Effective cost: {effective_tokens_cost}")
+
+        logger.debug(f"Messages count: {messages_count}, Effective Tokens count: {effective_tokens_cost}")
         
         UserUsage = apps.get_model('subscriptions', 'UserUsage')
         
-        # به طور پیش‌فرض همه مقادیر صفر هستند
+        # Default all values to zero
         defaults = {
             'messages_count': 0,
             'tokens_count': 0,
@@ -306,17 +314,17 @@ class UsageService:
             'free_model_tokens_count': 0
         }
         
-        # تفکیک دقیق بین مدل‌های رایگان و پولی
+        # Separate tracking for free vs paid models
         if is_free_model:
-            # برای مدل‌های رایگان
+            # For free models (don't use effective cost)
             defaults['free_model_messages_count'] = messages_count
-            defaults['free_model_tokens_count'] = tokens_count
+            defaults['free_model_tokens_count'] = tokens_count  # Record original tokens for free models
             logger.debug(f"Setting free model usage - Messages: {messages_count}, Tokens: {tokens_count}")
         else:
-            # برای مدل‌های پولی
+            # For paid models (use effective cost)
             defaults['messages_count'] = messages_count
-            defaults['tokens_count'] = tokens_count
-            logger.debug(f"Setting paid model usage - Messages: {messages_count}, Tokens: {tokens_count}")
+            defaults['tokens_count'] = effective_tokens_cost  # Record effective cost
+            logger.debug(f"Setting paid model usage - Messages: {messages_count}, Tokens: {effective_tokens_cost}")
             
         usage_record = UserUsage.objects.create(
             user=user,
@@ -324,9 +332,9 @@ class UsageService:
             **defaults
         )
         
-        # لاگ تفصیلی برای ردیابی
+        # Detailed logging for tracking
         model_type = "Free" if is_free_model else "Paid"
-        logger.info(f"Created {model_type} model usage record - ID: {usage_record.id}, Messages: {messages_count}, Tokens: {tokens_count}")
+        logger.info(f"Created {model_type} model usage record - ID: {usage_record.id}, Messages: {messages_count}, Effective Tokens: {effective_tokens_cost}")
         return usage_record
 
     @staticmethod

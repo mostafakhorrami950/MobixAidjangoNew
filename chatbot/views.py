@@ -970,7 +970,8 @@ def send_message(request, session_id):
                                         request.user, subscription_type,
                                         messages_count=1,  # Only count one message interaction
                                         tokens_count=total_tokens_used,
-                                        is_free_model=is_free_model
+                                        is_free_model=is_free_model,
+                                        ai_model=ai_model  # Pass the AI model for cost calculation
                                     )
                                 else:
                                     # Fallback to our calculation if API doesn't provide usage data
@@ -987,7 +988,8 @@ def send_message(request, session_id):
                                         request.user, subscription_type,
                                         messages_count=1,  # Only count one message interaction
                                         tokens_count=total_tokens_used,
-                                        is_free_model=is_free_model
+                                        is_free_model=is_free_model,
+                                        ai_model=ai_model  # Pass the AI model for cost calculation
                                     )
                                     
                                     # Also update ChatSessionUsage با دقت بیشتر
@@ -1823,7 +1825,8 @@ def edit_message(request, session_id, message_id):
                                 request.user, subscription_type,
                                 messages_count=1,  # Only count one interaction
                                 tokens_count=total_tokens,  # Use actual API consumption
-                                is_free_model=ai_model.is_free if ai_model else False
+                                is_free_model=ai_model.is_free if ai_model else False,
+                                ai_model=ai_model  # Pass the AI model for cost calculation
                             )
                         else:
                             # Fallback calculation - only the actual assistant response tokens
@@ -1838,7 +1841,8 @@ def edit_message(request, session_id, message_id):
                                 request.user, subscription_type,
                                 messages_count=1,  # Only count one interaction
                                 tokens_count=total_tokens,  # Only actual new consumption
-                                is_free_model=ai_model.is_free if ai_model else False
+                                is_free_model=ai_model.is_free if ai_model else False,
+                                ai_model=ai_model  # Pass the AI model for cost calculation
                             )
         
         return StreamingHttpResponse(

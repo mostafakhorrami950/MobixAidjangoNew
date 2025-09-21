@@ -13,6 +13,15 @@ class AIModel(models.Model):
     model_type = models.CharField(max_length=10, choices=MODEL_TYPES, default='text')
     is_active = models.BooleanField(default=True)
     is_free = models.BooleanField(default=False)  # Available for all registered users
+    
+    # Add the token cost multiplier field
+    token_cost_multiplier = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=1.00, 
+        help_text="Cost multiplier for this model. Example: 2.0 means double the cost."
+    )
+    
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     

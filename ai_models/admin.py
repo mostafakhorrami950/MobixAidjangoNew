@@ -7,10 +7,10 @@ class ModelSubscriptionInline(admin.TabularInline):
 
 @admin.register(AIModel)
 class AIModelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'model_id', 'model_type', 'is_active', 'is_free', 'access_type', 'created_at')
+    list_display = ('name', 'model_id', 'model_type', 'is_active', 'is_free', 'token_cost_multiplier', 'access_type', 'created_at')
     list_filter = ('model_type', 'is_active', 'is_free', 'created_at')
     search_fields = ('name', 'model_id')
-    list_editable = ('is_active', 'is_free')
+    list_editable = ('is_active', 'is_free', 'token_cost_multiplier')
     inlines = [ModelSubscriptionInline]
     
     def access_type(self, obj):
