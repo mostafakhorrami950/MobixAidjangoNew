@@ -595,22 +595,10 @@ function selectModel(modelId, modelName) {
             }
         }, 3000);
     } else {
-        // Show confirmation message for default model selection
-        const confirmation = document.createElement('div');
-        confirmation.className = 'alert alert-success alert-dismissible fade show';
-        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-        confirmation.innerHTML = `
-            <strong>موفقیت!</strong> مدل پیشفرض به ${modelName} تغییر یافت.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(confirmation);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            if (confirmation.parentNode) {
-                confirmation.parentNode.removeChild(confirmation);
-            }
-        }, 3000);
+        // No active session. Instead of just setting the default,
+        // open the "New Chat" modal to start a new chat with the selected model.
+        // The modal opening logic will use the 'defaultModelId' from localStorage.
+        document.getElementById('new-chat-btn').click();
     }
     
     // Hide floating model selection
