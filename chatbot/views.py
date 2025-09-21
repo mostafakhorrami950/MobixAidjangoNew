@@ -506,11 +506,9 @@ def send_message(request, session_id):
                     if subscription_type and subscription_type in enabled_subscription_types:
                         ai_model = web_search_settings.web_search_model
                         is_free_model = ai_model.is_free
-                        print(f"DEBUG: Selected ai_model '{ai_model.name}' via web_search for subscription '{subscription_type}', is_free: {is_free_model}")
                     elif not subscription_type and enabled_subscription_types.filter(name='Free').exists():
                         ai_model = web_search_settings.web_search_model
                         is_free_model = ai_model.is_free
-                        print(f"DEBUG: Selected ai_model '{ai_model.name}' via web_search for free user, is_free: {is_free_model}")
                     else:
                         use_web_search = False
                 except Exception:
@@ -520,9 +518,7 @@ def send_message(request, session_id):
                 if session.ai_model:
                     ai_model = session.ai_model
                     is_free_model = ai_model.is_free if ai_model else False
-                    print(f"DEBUG: Fallback ai_model '{ai_model.name}' from session, is_free: {is_free_model}")
                 else:
-                    print("DEBUG: No ai_model found in session or web_search")
                     return JsonResponse({'error': 'هیچ مدل هوش مصنوعی با این جلسه مرتبط نیست'}, status=500)
 
             # فقط توکن‌های پیام جدید کاربر را محاسبه کن
