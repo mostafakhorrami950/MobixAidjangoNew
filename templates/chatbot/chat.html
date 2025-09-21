@@ -46,6 +46,17 @@
                 </div>
             </div>
             
+            <!-- Floating Model Selection Component -->
+            <div class="floating-model-selection" id="floating-model-selection">
+                <div class="model-selection-header">
+                    <h6 class="mb-0">انتخاب مدل هوش مصنوعی</h6>
+                    <button class="btn btn-sm btn-close" id="close-model-selection" aria-label="بستن"></button>
+                </div>
+                <div class="model-grid" id="model-grid">
+                    <!-- Models will be loaded here dynamically -->
+                </div>
+            </div>
+            
             <div class="chat-messages-container">
                 <div id="chat-container" class="chat-messages">
                     <div class="welcome-message" id="welcome-message">
@@ -362,6 +373,7 @@
     align-items: center;
     margin-left: 5px;
     position: relative;
+    cursor: pointer;
 }
 
 .model-select-label {
@@ -369,6 +381,7 @@
     font-weight: 500;
     color: #495057;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 /* Badge styles for model types */
@@ -668,7 +681,7 @@ option:disabled {
         createSession: '{% url "create_session" %}',
         createDefaultSession: '{% url "create_default_session" %}',
         generateChatTitle: '{% url "generate_chat_title" %}',
-        getSidebarMenuItems: '{% url "get_sidebar_menu_items" %}'
+        getSidebarMenuItems: '{% url "get_sidebarMenu_items" %}'
     };
 </script>
 <script src="{% static 'chatbot/js/multifileupload.js' %}"></script>

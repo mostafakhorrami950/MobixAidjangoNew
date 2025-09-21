@@ -7,6 +7,8 @@ let selectedModelForNewSession = null;
 let isWebSearchEnabledForNewSession = false;
 // Store model data for cost multiplier checking
 let availableModelsData = [];
+// Store current selected model for the floating selection
+let currentSelectedModel = null;
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
@@ -271,6 +273,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add edit button to user messages after a short delay
     setTimeout(addEditButtonToUserMessages, 1000);
+    
+    // Initialize floating model selection functionality
+    initializeFloatingModelSelection();
 });
 
 // Load available models for user
@@ -333,8 +338,155 @@ function loadAvailableModelsForUser() {
                 // Check web search access for welcome area
                 checkWebSearchAccessForWelcome();
             }
+            
+            // Populate floating model selection grid
+            populateFloatingModelGrid(data.models);
         })
         .catch(error => console.error('Error loading models:', error));
+}
+
+// Initialize floating model selection functionality
+function initializeFloatingModelSelection() {
+    // Add click event to model selection wrapper to show floating model selection
+    const modelSelectionWrapper = document.querySelector('.model-selection-wrapper');
+    if (modelSelectionWrapper) {
+        modelSelectionWrapper.addEventListener('click', function(e) {
+            e.stopPropagation();
+            showFloatingModelSelection();
+        });
+    }
+    
+    // Add click event to close button
+    const closeModelSelection = document.getElementById('close-model-selection');
+    if (closeModelSelection) {
+        closeModelSelection.addEventListener('click', function() {
+            hideFloatingModelSelection();
+        });
+    }
+    
+    // Close floating model selection when clicking outside
+    document.addEventListener('click', function(e) {
+        const floatingModelSelection = document.getElementById('floating-model-selection');
+        if (floatingModelSelection && floatingModelSelection.classList.contains('show') && 
+            !floatingModelSelection.contains(e.target) && 
+            !e.target.closest('.model-selection-wrapper')) {
+            hideFloatingModelSelection();
+        }
+    });
+}
+
+// Show floating model selection
+function showFloatingModelSelection() {
+    const floatingModelSelection = document.getElementById('floating-model-selection');
+    if (floatingModelSelection) {
+        floatingModelSelection.classList.add('show');
+    }
+}
+
+// Hide floating model selection
+function hideFloatingModelSelection() {
+    const floatingModelSelection = document.getElementById('floating-model-selection');
+    if (floatingModelSelection) {
+        floatingModelSelection.classList.remove('show');
+    }
+}
+
+// Populate floating model grid with available models
+function populateFloatingModelGrid(models) {
+    const modelGrid = document.getElementById('model-grid');
+    if (!modelGrid) return;
+    
+    // Clear current grid
+    modelGrid.innerHTML = '';
+    
+    // Populate grid with model cards
+    models.forEach(model => {
+        const modelCard = document.createElement('div');
+        modelCard.className = 'model-card';
+        modelCard.dataset.modelId = model.model_id;
+        
+        // Add selected class if this is the current model
+        if (currentSessionId) {
+            const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+            if (sessionData.ai_model_name === model.name) {
+                modelCard.classList.add('selected');
+                currentSelectedModel = model.model_id;
+            }
+        }
+        
+        // Set access class
+        let accessClass = 'free';
+        let accessText = 'رایگان';
+        if (!model.is_free) {
+            if (model.user_has_access) {
+                accessClass = 'premium';
+                accessText = 'ویژه';
+            } else {
+                accessClass = 'restricted';
+                accessText = 'محدود';
+                modelCard.classList.add('restricted');
+            }
+        }
+        
+        // Set default image if none provided
+        const modelImage = model.image_url || '/static/images/default-model.png';
+        
+        modelCard.innerHTML = `
+            <img src="${modelImage}" alt="${model.name}" onerror="this.src='/static/images/default-model.png'">
+            <div class="model-name">${model.name}</div>
+            <span class="model-access ${accessClass}">${accessText}</span>
+        `;
+        
+        // Add click event if user has access
+        if (model.user_has_access || model.is_free) {
+            modelCard.addEventListener('click', function() {
+                selectModel(model.model_id, model.name);
+            });
+        }
+        
+        modelGrid.appendChild(modelCard);
+    });
+}
+
+// Select a model and update the session
+function selectModel(modelId, modelName) {
+    if (!currentSessionId) return;
+    
+    // Update session model
+    updateSessionModel(currentSessionId, modelId);
+    
+    // Update UI to show selected model
+    const modelCards = document.querySelectorAll('.model-card');
+    modelCards.forEach(card => {
+        if (card.dataset.modelId === modelId) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
+    });
+    
+    // Update current selected model
+    currentSelectedModel = modelId;
+    
+    // Show confirmation message
+    const confirmation = document.createElement('div');
+    confirmation.className = 'alert alert-success alert-dismissible fade show';
+    confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    confirmation.innerHTML = `
+        <strong>موفقیت!</strong> مدل به ${modelName} تغییر یافت.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(confirmation);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (confirmation.parentNode) {
+            confirmation.parentNode.removeChild(confirmation);
+        }
+    }, 3000);
+    
+    // Hide floating model selection
+    hideFloatingModelSelection();
 }
 
 // Function to show cost multiplier warning
