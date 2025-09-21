@@ -246,6 +246,19 @@ function loadModelsForChatbot(chatbotId) {
                 modelSelect.appendChild(option);
             });
             
+            // Check if there's a default model selected and pre-select it
+            const defaultModelId = localStorage.getItem('defaultModelId');
+            if (defaultModelId) {
+                // Check if the default model is available in the options
+                for (let i = 0; i < modelSelect.options.length; i++) {
+                    if (modelSelect.options[i].value === defaultModelId) {
+                        modelSelect.value = defaultModelId;
+                        checkModalSelections();
+                        break;
+                    }
+                }
+            }
+            
             // Show/hide image generation button based on chatbot type
             const imageGenBtn = document.getElementById('image-generation-btn');
             const webSearchBtn = document.getElementById('web-search-btn');

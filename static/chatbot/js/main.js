@@ -64,6 +64,26 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modal-chatbot-select').value = '';
         document.getElementById('modal-model-select').value = '';
         document.getElementById('create-chat-btn').disabled = true;
+        
+        // Check if there's a default model selected and pre-select it
+        const defaultModelId = localStorage.getItem('defaultModelId');
+        if (defaultModelId) {
+            // We need to wait for the models to be loaded, so we'll set it after a short delay
+            setTimeout(() => {
+                const modelSelect = document.getElementById('modal-model-select');
+                if (modelSelect) {
+                    // Check if the default model is available in the options
+                    for (let i = 0; i < modelSelect.options.length; i++) {
+                        if (modelSelect.options[i].value === defaultModelId) {
+                            modelSelect.value = defaultModelId;
+                            checkModalSelections();
+                            break;
+                        }
+                    }
+                }
+            }, 100);
+        }
+        
         const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
         modal.show();
     });
@@ -75,6 +95,26 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modal-chatbot-select').value = '';
             document.getElementById('modal-model-select').value = '';
             document.getElementById('create-chat-btn').disabled = true;
+            
+            // Check if there's a default model selected and pre-select it
+            const defaultModelId = localStorage.getItem('defaultModelId');
+            if (defaultModelId) {
+                // We need to wait for the models to be loaded, so we'll set it after a short delay
+                setTimeout(() => {
+                    const modelSelect = document.getElementById('modal-model-select');
+                    if (modelSelect) {
+                        // Check if the default model is available in the options
+                        for (let i = 0; i < modelSelect.options.length; i++) {
+                            if (modelSelect.options[i].value === defaultModelId) {
+                                modelSelect.value = defaultModelId;
+                                checkModalSelections();
+                                break;
+                            }
+                        }
+                    }
+                }, 100);
+            }
+            
             const modalElement = document.getElementById('newChatModal');
             const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
             modal.show();
@@ -255,6 +295,15 @@ function loadAvailableModelsForUser() {
                     const currentModelName = document.getElementById('current-model-name');
                     if (currentModelName) {
                         currentModelName.textContent = sessionData.ai_model_name;
+                    }
+                }
+            } else {
+                // If no session is selected, check if there's a default model and display it
+                const defaultModelName = localStorage.getItem('defaultModelName');
+                if (defaultModelName) {
+                    const currentModelName = document.getElementById('current-model-name');
+                    if (currentModelName) {
+                        currentModelName.textContent = defaultModelName;
                     }
                 }
             }
@@ -471,6 +520,10 @@ function selectModel(modelId, modelName) {
         currentModelName.textContent = modelName;
     }
     
+    // Store the selected model as the default model for new sessions
+    localStorage.setItem('defaultModelId', modelId);
+    localStorage.setItem('defaultModelName', modelName);
+    
     // If we have a session, update the session model
     if (currentSessionId) {
         console.log('Updating session model');
@@ -487,6 +540,23 @@ function selectModel(modelId, modelName) {
         confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
         confirmation.innerHTML = `
             <strong>موفقیت!</strong> مدل به ${modelName} تغییر یافت.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(confirmation);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (confirmation.parentNode) {
+                confirmation.parentNode.removeChild(confirmation);
+            }
+        }, 3000);
+    } else {
+        // Show confirmation message for default model selection
+        const confirmation = document.createElement('div');
+        confirmation.className = 'alert alert-success alert-dismissible fade show';
+        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        confirmation.innerHTML = `
+            <strong>موفقیت!</strong> مدل پیشفرض به ${modelName} تغییر یافت.
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(confirmation);
