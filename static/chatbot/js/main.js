@@ -8,6 +8,12 @@ let isWebSearchEnabledForNewSession = false;
 // Store model data for cost multiplier checking
 let availableModelsData = [];
 
+// Touch interaction variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     loadSessions();
@@ -59,6 +65,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
         }
     });
+    
+    // Add input focus management for mobile
+    function manageInputFocus() {
+        const messageInput = document.getElementById('message-input');
+        if (!messageInput) return;
+        
+        // Focus input when chat container is clicked (mobile-friendly)
+        const chatContainer = document.getElementById('chat-container');
+        if (chatContainer) {
+            chatContainer.addEventListener('click', function(e) {
+                // Only focus if we're not clicking on a button or link
+                if (!e.target.closest('button, a, .message-actions, .file-actions')) {
+                    messageInput.focus();
+                }
+            });
+        }
+        
+        // Handle viewport height changes (keyboard opening/closing on mobile)
+        let initialViewportHeight = window.innerHeight;
+        window.addEventListener('resize', function() {
+            const currentHeight = window.innerHeight;
+            const heightDifference = initialViewportHeight - currentHeight;
+            
+            // If keyboard is open (viewport height decreased significantly)
+            if (heightDifference > 150) {
+                // Scroll to bottom to keep input visible
+                setTimeout(scrollToBottom, 100);
+            }
+        });
+    }
+    
+    // Call input focus management
+    manageInputFocus();
+    
+    // Add touch event listeners for swipe gestures
+    setupTouchGestures();
+    
+    // Add long press detection for message actions
+    setupLongPressDetection();
     
     // Add event listener for model selection in welcome area
     document.getElementById('welcome-model-select').addEventListener('change', function() {
@@ -257,8 +302,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Add keyboard handling for mobile navigation
+    document.addEventListener('keydown', function(e) {
+        // ESC key to close sidebar on mobile
+        if (e.key === 'Escape' && window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('show')) {
+                toggleSidebar();
+            }
+        }
+    });
+    
     // Add edit button to user messages after a short delay
     setTimeout(addEditButtonToUserMessages, 1000);
+    
+    // Add touch event listeners for mobile optimization
+    setupMobileTouchEvents();
+    
+    // Add mobile input optimizations
+    setupMobileInputOptimizations();
+    
+    // Add mobile navigation enhancements
+    setupMobileNavigation();
 });
 
 // Load available models for user
@@ -395,4 +460,474 @@ function hideModalCostWarning() {
     if (warningElement) {
         warningElement.style.display = 'none';
     }
+}
+
+// Setup touch gestures for mobile interaction
+function setupTouchGestures() {
+    const chatContainer = document.getElementById('chat-container');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (!chatContainer || !sidebar) return;
+    
+    // Add touch event listeners for swipe gestures
+    chatContainer.addEventListener('touchstart', handleTouchStart, false);
+    chatContainer.addEventListener('touchmove', handleTouchMove, false);
+    chatContainer.addEventListener('touchend', handleTouchEnd, false);
+    
+    // Add touch event listeners for sidebar swipe
+    sidebar.addEventListener('touchstart', handleSidebarTouchStart, false);
+    sidebar.addEventListener('touchmove', handleSidebarTouchMove, false);
+    sidebar.addEventListener('touchend', handleSidebarTouchEnd, false);
+}
+
+// Handle touch start for main chat area
+function handleTouchStart(evt) {
+    touchStartX = evt.touches[0].clientX;
+    touchStartY = evt.touches[0].clientY;
+}
+
+// Handle touch move for main chat area
+function handleTouchMove(evt) {
+    // Prevent scrolling during swipe
+    if (Math.abs(touchStartX - evt.touches[0].clientX) > 10) {
+        evt.preventDefault();
+    }
+}
+
+// Handle touch end for main chat area
+function handleTouchEnd(evt) {
+    touchEndX = evt.changedTouches[0].clientX;
+    touchEndY = evt.changedTouches[0].clientY;
+    
+    handleSwipeGesture();
+}
+
+// Handle swipe gesture
+function handleSwipeGesture() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+    
+    // Minimum swipe distance
+    const minSwipeDistance = 50;
+    
+    // Check if it's a horizontal swipe
+    if (absDeltaX > absDeltaY && absDeltaX > minSwipeDistance) {
+        if (deltaX > 0) {
+            // Swipe right - open sidebar on mobile
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        } else {
+            // Swipe left - close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && sidebar.classList.contains('show')) {
+                    toggleSidebar();
+                }
+            }
+        }
+    }
+}
+
+// Handle touch start for sidebar
+function handleSidebarTouchStart(evt) {
+    touchStartX = evt.touches[0].clientX;
+    touchStartY = evt.touches[0].clientY;
+}
+
+// Handle touch move for sidebar
+function handleSidebarTouchMove(evt) {
+    // Prevent scrolling during swipe
+    if (Math.abs(touchStartX - evt.touches[0].clientX) > 10) {
+        evt.preventDefault();
+    }
+}
+
+// Handle touch end for sidebar
+function handleSidebarTouchEnd(evt) {
+    touchEndX = evt.changedTouches[0].clientX;
+    touchEndY = evt.changedTouches[0].clientY;
+    
+    handleSidebarSwipeGesture();
+}
+
+// Handle sidebar swipe gesture
+function handleSidebarSwipeGesture() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+    
+    // Minimum swipe distance
+    const minSwipeDistance = 50;
+    
+    // Check if it's a horizontal swipe to the left (close sidebar)
+    if (absDeltaX > absDeltaY && absDeltaX > minSwipeDistance && deltaX < 0) {
+        // Close sidebar on mobile
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('show')) {
+                toggleSidebar();
+            }
+        }
+    }
+}
+
+// Setup long press detection for message actions
+function setupLongPressDetection() {
+    const chatContainer = document.getElementById('chat-container');
+    if (!chatContainer) return;
+    
+    let pressTimer;
+    
+    // Add event listeners to message elements
+    chatContainer.addEventListener('touchstart', function(e) {
+        // Check if we're touching a message element
+        const messageElement = e.target.closest('.message-user, .message-assistant');
+        if (messageElement) {
+            pressTimer = setTimeout(function() {
+                // Show message actions on long press
+                showMessageActions(messageElement);
+            }, 500); // 500ms for long press
+        }
+    });
+    
+    chatContainer.addEventListener('touchend', function(e) {
+        clearTimeout(pressTimer);
+    });
+    
+    chatContainer.addEventListener('touchmove', function(e) {
+        clearTimeout(pressTimer);
+    });
+}
+
+// Show message actions on long press
+function showMessageActions(messageElement) {
+    // Find or create message actions container
+    let actionsContainer = messageElement.querySelector('.message-actions');
+    
+    if (!actionsContainer) {
+        actionsContainer = document.createElement('div');
+        actionsContainer.className = 'message-actions';
+        
+        // Add copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-sm';
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> کپی';
+        copyBtn.addEventListener('click', function() {
+            copyMessageContent(messageElement);
+        });
+        
+        // Add edit button for user messages
+        if (messageElement.classList.contains('message-user')) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn btn-sm';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i> ویرایش';
+            editBtn.addEventListener('click', function() {
+                editMessage(messageElement);
+            });
+            actionsContainer.appendChild(editBtn);
+        }
+        
+        actionsContainer.appendChild(copyBtn);
+        messageElement.appendChild(actionsContainer);
+    }
+    
+    // Show actions
+    actionsContainer.style.display = 'flex';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(function() {
+        if (actionsContainer.style.display === 'flex') {
+            actionsContainer.style.display = 'none';
+        }
+    }, 3000);
+}
+
+// Copy message content to clipboard
+function copyMessageContent(messageElement) {
+    const content = messageElement.querySelector('.message-content').innerText;
+    navigator.clipboard.writeText(content).then(function() {
+        // Show success notification
+        showNotification('محتوای پیام کپی شد', 'success');
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        showNotification('خطا در کپی محتوا', 'error');
+    });
+}
+
+// Show notification message
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+    notification.innerHTML = `
+        <strong>${type === 'success' ? 'موفقیت' : type === 'error' ? 'خطا' : 'اطلاعات'}!</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+// Setup mobile touch events
+function setupMobileTouchEvents() {
+    // Add double tap to scroll to bottom
+    let lastTap = 0;
+    const chatContainer = document.getElementById('chat-container');
+    
+    if (chatContainer) {
+        chatContainer.addEventListener('touchend', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap - scroll to bottom
+                scrollToBottom();
+                e.preventDefault();
+            }
+            
+            lastTap = currentTime;
+        });
+    }
+    
+    // Add pinch to zoom for images
+    setupImagePinchZoom();
+}
+
+// Setup pinch to zoom for images
+function setupImagePinchZoom() {
+    const images = document.querySelectorAll('.image-container img');
+    
+    images.forEach(function(img) {
+        let scale = 1;
+        let startDistance = 0;
+        
+        img.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                // Two fingers - start pinch
+                startDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        });
+        
+        img.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                // Two fingers - pinch in progress
+                const currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                
+                if (startDistance > 0) {
+                    scale = currentDistance / startDistance;
+                    
+                    // Limit zoom between 1x and 3x
+                    if (scale < 1) scale = 1;
+                    if (scale > 3) scale = 3;
+                    
+                    img.style.transform = `scale(${scale})`;
+                }
+                
+                e.preventDefault();
+            }
+        });
+        
+        img.addEventListener('touchend', function(e) {
+            startDistance = 0;
+            
+            // Reset scale if it's close to 1
+            if (scale < 1.1) {
+                scale = 1;
+                img.style.transform = '';
+            }
+        });
+    });
+}
+
+// Setup mobile input optimizations
+function setupMobileInputOptimizations() {
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) return;
+    
+    // Add focus handling for mobile keyboards
+    messageInput.addEventListener('focus', function() {
+        // Scroll to bottom when input is focused
+        setTimeout(scrollToBottom, 300);
+        
+        // Add visual feedback for focus
+        this.style.boxShadow = '0 0 0 2px var(--primary-blue)';
+    });
+    
+    messageInput.addEventListener('blur', function() {
+        // Remove focus styling
+        this.style.boxShadow = '';
+        
+        // Scroll to bottom when input loses focus
+        setTimeout(scrollToBottom, 300);
+    });
+    
+    // Add input event listener for dynamic height adjustment
+    messageInput.addEventListener('input', function() {
+        // Auto-resize textarea
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight > 200 ? 200 : this.scrollHeight) + 'px';
+        
+        // Update send button state
+        updateSendButtonState();
+    });
+    
+    // Add key event handling for mobile
+    messageInput.addEventListener('keydown', function(e) {
+        // Handle Enter key on mobile
+        if (e.key === 'Enter' && !e.shiftKey) {
+            // On mobile, we might want to allow line breaks with Enter
+            // But still send with a special combination
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+            }
+        }
+        
+        // Handle Escape key to blur input
+        if (e.key === 'Escape') {
+            this.blur();
+        }
+    });
+    
+    // Add paste handling for mobile
+    messageInput.addEventListener('paste', function(e) {
+        // Handle paste event for better mobile experience
+        setTimeout(() => {
+            // Auto-resize after paste
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight > 200 ? 200 : this.scrollHeight) + 'px';
+        }, 100);
+    });
+    
+    // Add long press detection for special actions
+    let pressTimer;
+    messageInput.addEventListener('touchstart', function(e) {
+        pressTimer = setTimeout(() => {
+            // Show special input options on long press
+            showInputOptions(this);
+        }, 1000);
+    });
+    
+    messageInput.addEventListener('touchend', function(e) {
+        clearTimeout(pressTimer);
+    });
+    
+    messageInput.addEventListener('touchmove', function(e) {
+        clearTimeout(pressTimer);
+    });
+}
+
+// Show input options on long press
+function showInputOptions(inputElement) {
+    // Create a context menu for input options
+    const menu = document.createElement('div');
+    menu.className = 'input-options-menu position-fixed bg-white border rounded shadow';
+    menu.style.cssText = 'z-index: 9999; padding: 10px;';
+    
+    // Get touch position
+    const touch = event.touches[0] || event.changedTouches[0];
+    menu.style.left = `${touch.clientX}px`;
+    menu.style.top = `${touch.clientY}px`;
+    
+    // Add options
+    menu.innerHTML = `
+        <div class="d-flex flex-column gap-2">
+            <button class="btn btn-sm btn-outline-primary" id="paste-btn">
+                <i class="fas fa-paste"></i> جای‌گذاری
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" id="clear-btn">
+                <i class="fas fa-trash"></i> پاک کردن
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(menu);
+    
+    // Add event listeners
+    document.getElementById('paste-btn').addEventListener('click', function() {
+        navigator.clipboard.readText().then(text => {
+            inputElement.value += text;
+            inputElement.dispatchEvent(new Event('input'));
+        }).catch(err => {
+            console.error('Failed to read clipboard contents: ', err);
+        });
+        menu.remove();
+    });
+    
+    document.getElementById('clear-btn').addEventListener('click', function() {
+        inputElement.value = '';
+        inputElement.dispatchEvent(new Event('input'));
+        menu.remove();
+    });
+    
+    // Remove menu when clicking elsewhere
+    setTimeout(() => {
+        document.addEventListener('click', function removeMenu() {
+            menu.remove();
+            document.removeEventListener('click', removeMenu);
+        });
+    }, 100);
+}
+
+// Setup mobile navigation enhancements
+function setupMobileNavigation() {
+    // Add click handlers for mobile navigation items
+    const mobileNavMenu = document.getElementById('mobile-nav-menu');
+    if (!mobileNavMenu) return;
+    
+    // Add delegated event listener for navigation links
+    mobileNavMenu.addEventListener('click', function(e) {
+        const navLink = e.target.closest('.nav-link');
+        if (navLink) {
+            // Close sidebar after navigation
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && sidebar.classList.contains('show')) {
+                    setTimeout(toggleSidebar, 150);
+                }
+            }
+        }
+    });
+    
+    // Add keyboard navigation support
+    mobileNavMenu.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const navLink = e.target.closest('.nav-link');
+            if (navLink) {
+                e.preventDefault();
+                navLink.click();
+            }
+        }
+    });
+}
+
+// Update send button state based on input content
+function updateSendButtonState() {
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    
+    if (!messageInput || !sendButton) return;
+    
+    // Enable send button if there's content or files
+    const hasContent = messageInput.value.trim().length > 0;
+    const hasFiles = getSelectedFiles && getSelectedFiles().length > 0;
+    
+    sendButton.disabled = !(hasContent || hasFiles);
 }
