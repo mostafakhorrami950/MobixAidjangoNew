@@ -48,14 +48,7 @@ function isUserAtBottom() {
 
 // Add message to chat display
 function addMessageToChat(message) {
-    console.log('addMessageToChat called with:', message);
-    
     const chatContainer = document.getElementById('chat-container');
-    if (!chatContainer) {
-        console.error('Chat container not found in addMessageToChat');
-        return null;
-    }
-    
     const welcomeMessage = document.getElementById('welcome-message');
     if (welcomeMessage) {
         welcomeMessage.remove();
@@ -119,8 +112,7 @@ function addMessageToChat(message) {
                 
                 // Scroll to bottom
                 scrollToBottom();
-                console.log('Returning existing message element');
-                return existingMessage; // Return the existing message element
+                return;
             }
         }
     } else {
@@ -318,27 +310,66 @@ function addMessageToChat(message) {
     
     // Add event listener for copy button
     const copyBtn = messageElement.querySelector('.copy-btn');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
-            // Get the raw text content, not the HTML
-            const contentDiv = messageElement.querySelector('.message-content');
-            if (!contentDiv) {
-                console.error('Could not find .message-content in messageElement for copy button');
-                return;
+    copyBtn.addEventListener('click', function() {
+        // Get the raw text content, not the HTML
+        const messageContent = messageElement.querySelector('.message-content').textContent;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(messageContent).then(() => {
+                // Show success feedback
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('کپی موفقیت‌آمیز نبود');
+            });
+        } else {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = messageContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                // Show success feedback
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                alert('کپی موفقیت‌آمیز نبود');
             }
-            
-            const messageContent = contentDiv.textContent;
+            document.body.removeChild(textArea);
+        }
+    });
+    
+    // Add event listener for share button
+    const shareBtn = messageElement.querySelector('.share-btn');
+    shareBtn.addEventListener('click', function() {
+        // Get the raw text content, not the HTML
+        const messageContent = messageElement.querySelector('.message-content').textContent;
+        if (navigator.share) {
+            navigator.share({
+                title: 'پیام از MobixAI',
+                text: messageContent,
+            }).catch((error) => console.log('Error sharing:', error));
+        } else {
+            // Fallback: copy to clipboard
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(messageContent).then(() => {
                     // Show success feedback
-                    const originalText = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
+                    const originalText = shareBtn.innerHTML;
+                    shareBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
                     setTimeout(() => {
-                        copyBtn.innerHTML = originalText;
+                        shareBtn.innerHTML = originalText;
                     }, 2000);
                 }).catch(err => {
                     console.error('Failed to copy: ', err);
-                    alert('کپی موفقیت‌آمیز نبود');
+                    alert('اشتراک‌گذاری موفقیت‌آمیز نبود');
                 });
             } else {
                 // Fallback for older browsers
@@ -349,81 +380,22 @@ function addMessageToChat(message) {
                 try {
                     document.execCommand('copy');
                     // Show success feedback
-                    const originalText = copyBtn.innerHTML;
-                    copyBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
+                    const originalText = shareBtn.innerHTML;
+                    shareBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
                     setTimeout(() => {
-                        copyBtn.innerHTML = originalText;
+                        shareBtn.innerHTML = originalText;
                     }, 2000);
                 } catch (err) {
                     console.error('Fallback: Oops, unable to copy', err);
-                    alert('کپی موفقیت‌آمیز نبود');
+                    alert('اشتراک‌گذاری موفقیت‌آمیز نبود');
                 }
                 document.body.removeChild(textArea);
             }
-        });
-    }
-    
-    // Add event listener for share button
-    const shareBtn = messageElement.querySelector('.share-btn');
-    if (shareBtn) {
-        shareBtn.addEventListener('click', function() {
-            // Get the raw text content, not the HTML
-            const contentDiv = messageElement.querySelector('.message-content');
-            if (!contentDiv) {
-                console.error('Could not find .message-content in messageElement for share button');
-                return;
-            }
-            
-            const messageContent = contentDiv.textContent;
-            if (navigator.share) {
-                navigator.share({
-                    title: 'پیام از MobixAI',
-                    text: messageContent,
-                }).catch((error) => console.log('Error sharing:', error));
-            } else {
-                // Fallback: copy to clipboard
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(messageContent).then(() => {
-                        // Show success feedback
-                        const originalText = shareBtn.innerHTML;
-                        shareBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
-                        setTimeout(() => {
-                            shareBtn.innerHTML = originalText;
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Failed to copy: ', err);
-                        alert('اشتراک‌گذاری موفقیت‌آمیز نبود');
-                    });
-                } else {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = messageContent;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        // Show success feedback
-                        const originalText = shareBtn.innerHTML;
-                        shareBtn.innerHTML = '<i class="fas fa-check"></i> کپی شد';
-                        setTimeout(() => {
-                            shareBtn.innerHTML = originalText;
-                        }, 2000);
-                    } catch (err) {
-                        console.error('Fallback: Oops, unable to copy', err);
-                        alert('اشتراک‌گذاری موفقیت‌آمیز نبود');
-                    }
-                    document.body.removeChild(textArea);
-                }
-            }
-        });
-    }
+        }
+    });
     
     // Scroll to bottom with enhanced reliability
     scrollToBottom();
-    
-    console.log('Created and returning new message element');
-    // Return the created message element
-    return messageElement;
 }
 
 // Function to extract and display files from a message
