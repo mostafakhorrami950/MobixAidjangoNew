@@ -108,6 +108,18 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.show();
     });
     
+    // Floating Action Button for mobile - new chat
+    const fabNewChat = document.getElementById('fab-new-chat');
+    if (fabNewChat) {
+        fabNewChat.addEventListener('click', function() {
+            document.getElementById('modal-chatbot-select').value = '';
+            document.getElementById('modal-model-select').value = '';
+            document.getElementById('create-chat-btn').disabled = true;
+            const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
+            modal.show();
+        });
+    }
+    
     // Toggle sessions list
     document.getElementById('toggle-sessions').addEventListener('click', toggleSessionsList);
     
