@@ -297,6 +297,10 @@ function showFloatingModelSelection() {
     const floatingModelSelection = document.getElementById('floating-model-selection');
     if (floatingModelSelection) {
         floatingModelSelection.classList.add('show');
+        // Populate the grid with available models if needed
+        if (availableModelsData && availableModelsData.length > 0) {
+            populateFloatingModelGrid(availableModelsData);
+        }
     }
 }
 
@@ -312,6 +316,25 @@ function hideFloatingModelSelection() {
 function populateFloatingModelGrid(models) {
     const modelGrid = document.getElementById('model-grid');
     if (!modelGrid) return;
+    
+    // Only populate if the grid is empty or models have changed
+    const existingCards = modelGrid.querySelectorAll('.model-card');
+    if (existingCards.length > 0 && existingCards.length === models.length) {
+        // Check if models are the same
+        let modelsMatch = true;
+        for (let i = 0; i < existingCards.length; i++) {
+            if (existingCards[i].dataset.modelId !== models[i].model_id) {
+                modelsMatch = false;
+                break;
+            }
+        }
+        
+        if (modelsMatch) {
+            // Models are the same, just update selection state
+            updateModelSelectionState(models);
+            return;
+        }
+    }
     
     // Clear current grid
     modelGrid.innerHTML = '';
@@ -371,23 +394,65 @@ function populateFloatingModelGrid(models) {
         
         // Add click event if user has access
         if (model.user_has_access || model.is_free) {
+            console.log('Adding click event for model:', model.model_id, model.name);
+            // Store model data directly on the element for use in the event handler
+            modelCard.modelId = model.model_id;
+            modelCard.modelName = model.name;
             modelCard.addEventListener('click', function() {
-                selectModel(model.model_id, model.name);
+                console.log('Model card clicked:', this.modelId, this.modelName);
+                selectModel(this.modelId, this.modelName);
             });
+        } else {
+            console.log('Model not accessible:', model.model_id, model.name);
+            // Add a visual indicator that the model is not accessible
+            modelCard.style.opacity = '0.5';
+            modelCard.style.cursor = 'not-allowed';
         }
         
         modelGrid.appendChild(modelCard);
     });
 }
 
+// Update selection state without recreating cards
+function updateModelSelectionState(models) {
+    const modelCards = document.querySelectorAll('.model-card');
+    modelCards.forEach(card => {
+        // Remove selected class from all cards
+        card.classList.remove('selected');
+        
+        // Add selected class if this is the current model
+        if (currentSessionId) {
+            const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+            const model = models.find(m => m.model_id === card.dataset.modelId);
+            if (model && sessionData.ai_model_name === model.name) {
+                card.classList.add('selected');
+                currentSelectedModel = model.model_id;
+                // Update the current model name in the button
+                const currentModelName = document.getElementById('current-model-name');
+                if (currentModelName) {
+                    currentModelName.textContent = model.name;
+                }
+            }
+        } else {
+            // If no session is selected, check if this is the model stored in the global variable
+            if (currentSelectedModel === card.dataset.modelId) {
+                card.classList.add('selected');
+                // Update the current model name in the button
+                const currentModelName = document.getElementById('current-model-name');
+                if (currentModelName) {
+                    const model = models.find(m => m.model_id === card.dataset.modelId);
+                    currentModelName.textContent = model ? model.name : 'انتخاب مدل';
+                }
+            }
+        }
+    });
+}
+
 // Select a model and update the session
 function selectModel(modelId, modelName) {
-    if (!currentSessionId) return;
+    console.log('Selecting model:', modelId, modelName);
     
-    // Update session model
-    updateSessionModel(currentSessionId, modelId);
-    
-    // Update UI to show selected model
+    // Update UI to show selected model regardless of session
     const modelCards = document.querySelectorAll('.model-card');
     modelCards.forEach(card => {
         if (card.dataset.modelId === modelId) {
@@ -406,29 +471,33 @@ function selectModel(modelId, modelName) {
         currentModelName.textContent = modelName;
     }
     
-    // Also update in localStorage for consistency
+    // If we have a session, update the session model
     if (currentSessionId) {
+        console.log('Updating session model');
+        updateSessionModel(currentSessionId, modelId);
+        
+        // Also update in localStorage for consistency
         const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
         sessionData.ai_model_name = modelName;
         localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
+        
+        // Show confirmation message
+        const confirmation = document.createElement('div');
+        confirmation.className = 'alert alert-success alert-dismissible fade show';
+        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        confirmation.innerHTML = `
+            <strong>موفقیت!</strong> مدل به ${modelName} تغییر یافت.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(confirmation);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (confirmation.parentNode) {
+                confirmation.parentNode.removeChild(confirmation);
+            }
+        }, 3000);
     }
-    
-    // Show confirmation message
-    const confirmation = document.createElement('div');
-    confirmation.className = 'alert alert-success alert-dismissible fade show';
-    confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
-    confirmation.innerHTML = `
-        <strong>موفقیت!</strong> مدل به ${modelName} تغییر یافت.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.body.appendChild(confirmation);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        if (confirmation.parentNode) {
-            confirmation.parentNode.removeChild(confirmation);
-        }
-    }, 3000);
     
     // Hide floating model selection
     hideFloatingModelSelection();

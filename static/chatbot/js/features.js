@@ -282,6 +282,7 @@ function loadMessageInputModels(chatbotId) {
 
 // Update session model
 function updateSessionModel(sessionId, modelId) {
+    console.log('Updating session model:', sessionId, modelId);
     // Send request to update the session model
     fetch(`/chat/session/${sessionId}/update-model/`, {
         method: 'POST',
@@ -293,8 +294,15 @@ function updateSessionModel(sessionId, modelId) {
             model_id: modelId
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Model update response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Model update response data:', data);
         if (data.error) {
             console.error('Error updating model:', data.error);
             // Show error message
@@ -309,6 +317,8 @@ function updateSessionModel(sessionId, modelId) {
         
         // Update the model info in existing messages
         updateModelInfoInMessages(sessionId, data.model_name);
+        
+        console.log('Model updated successfully');
     })
     .catch(error => {
         console.error('Error updating model:', error);
