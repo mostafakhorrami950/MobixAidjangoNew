@@ -267,7 +267,7 @@ function loadAvailableModelsForUser() {
                         option.className = 'model-option-premium';
                     } else {
                         option.textContent = `${model.name} (نیاز به اشتراک)`;
-                        option.className = 'model-option-disabled';
+                        option.className = 'option-disabled';
                         option.disabled = true;
                     }
                 }

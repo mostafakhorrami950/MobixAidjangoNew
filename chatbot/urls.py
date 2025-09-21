@@ -9,6 +9,7 @@ urlpatterns = [
     path('session/create-default/', views.create_default_session, name='create_default_session'),
     path('session/<int:session_id>/messages/', views.get_session_messages, name='get_session_messages'),
     path('session/<int:session_id>/send/', views.send_message, name='send_message'),
+    path('session/<int:session_id>/send_full/', views.send_message_and_get_full_response, name='send_message_full'),
     # Removed send-image endpoint as it's only used for image functionality
     path('session/<int:session_id>/delete/', views.delete_session, name='delete_session'),
     path('generate-title/', views.generate_chat_title, name='generate_chat_title'),
