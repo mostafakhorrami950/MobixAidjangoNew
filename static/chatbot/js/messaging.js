@@ -791,6 +791,26 @@ async function createDefaultSessionAndSendMessage(message, files) {
         // نمایش پیام انتظار
         showTypingIndicator();
         
+        // ایجاد جلسه پیش‌فرض
+        const sessionData = await createDefaultSession();
+        
+        // حالا پیام را ارسال کنیم
+        // Re-enable input before sending message
+        const messageInput = document.getElementById('message-input');
+        messageInput.disabled = false;
+        // Use the improved sendMessage function
+        sendMessage();
+        
+    } catch (error) {
+        hideTypingIndicator();
+        console.error('Error creating default session:', error);
+        alert('خطا در ایجاد چت جدید: ' + error.message);
+    }
+}
+
+// Standalone function to create a default session without sending a message
+async function createDefaultSession() {
+    try {
         // Prepare data for creating session
         const sessionCreateData = {};
         
@@ -799,7 +819,7 @@ async function createDefaultSessionAndSendMessage(message, files) {
             sessionCreateData.ai_model_id = selectedModelForNewSession;
         }
         
-        // ایجاد جلسه پیش‌فرض
+        // Create default session
         const response = await fetch(CHAT_URLS.createDefaultSession, {
             method: 'POST',
             headers: {
@@ -812,25 +832,24 @@ async function createDefaultSessionAndSendMessage(message, files) {
         const data = await response.json();
         
         if (data.error) {
-            hideTypingIndicator();
             alert('خطا در ایجاد چت جدید: ' + data.error);
-            return;
+            return data; // Return error data
         }
         
-        // تنظیم session ID جدید
+        // Set new session ID
         currentSessionId = data.session_id;
         
         // Redirect to the new session URL
         const newUrl = `/chat/session/${currentSessionId}/`;
         history.pushState({sessionId: currentSessionId}, '', newUrl);
         
-        // بروزرسانی UI
+        // Update UI
         document.getElementById('current-session-title').innerHTML = `
             <i class="fas fa-comments"></i> ${data.title}
         `;
         document.getElementById('delete-session-btn').style.display = 'inline-block';
         
-        // فعال کردن input ها
+        // Enable inputs
         const messageInput = document.getElementById('message-input');
         messageInput.disabled = false;
         document.getElementById('send-button').disabled = false;
@@ -867,27 +886,20 @@ async function createDefaultSessionAndSendMessage(message, files) {
             }
         }
         
-        // بروزرسانی لیست sessions
+        // Update sessions list
         loadSessions();
         
-        // مخفی کردن welcome message
+        // Hide welcome message
         const welcomeMessage = document.getElementById('welcome-message');
         if (welcomeMessage) {
             welcomeMessage.style.display = 'none';
         }
         
-        hideTypingIndicator();
-        
-        // حالا پیام را ارسال کنیم
-        // Re-enable input before sending message
-        messageInput.disabled = false;
-        // Use the improved sendMessage function
-        sendMessage();
-        
+        return data; // Return session data
     } catch (error) {
-        hideTypingIndicator();
         console.error('Error creating default session:', error);
         alert('خطا در ایجاد چت جدید: ' + error.message);
+        throw error; // Re-throw error for caller to handle
     }
 }
 
