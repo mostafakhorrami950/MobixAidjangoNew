@@ -16,6 +16,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+body.chat-page .modern-navbar {
+    display: none;
+}
+
 .modern-navbar .container {
   padding: 12px 24px;
   display: flex;

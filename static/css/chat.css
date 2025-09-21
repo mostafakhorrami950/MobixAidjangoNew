@@ -325,7 +325,6 @@ html, body {
 
 /* Mobile nav area inside sidebar */
 .mobile-nav-menu {
-  display: none;
   padding: 12px;
   border-top: 1px solid var(--border);
 }
@@ -1261,7 +1260,7 @@ html, body {
   }
   
   /* Mobile Navigation */
-  .mobile-nav-menu { 
+  #sidebar-nav-menu { 
     display: block; 
   }
   
@@ -1409,7 +1408,7 @@ html, body {
 }
 
 /* END OF FILE */
-.mobile-nav-menu.d-md-none {
+#sidebar-nav-menu {
   display: block; /* ensure visible on mobile */
   padding: 10px 6px;     /* slightly reduced outer padding for compactness */
   border-top: 1px solid var(--border);
@@ -1417,12 +1416,12 @@ html, body {
 }
 
 /* each nav item spacing (slightly smaller gaps between items) */
-.mobile-nav-menu.d-md-none .nav-item {
+#sidebar-nav-menu .nav-item {
   margin-bottom: 6px;    /* reduced margin between items */
 }
 
 /* style links: larger text, comfortable touch padding, RTL icon spacing */
-.mobile-nav-menu.d-md-none .nav-link {
+#sidebar-nav-menu .nav-link {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1438,7 +1437,7 @@ html, body {
 }
 
 /* icon in RTL: keep icon to left side, label on right */
-.mobile-nav-menu.d-md-none .nav-link i {
+#sidebar-nav-menu .nav-link i {
   margin-left: 8px;   /* icon separation from text in RTL */
   margin-right: 0;
   width: 20px;
@@ -1447,17 +1446,17 @@ html, body {
 }
 
 /* hover / active feedback for links */
-.mobile-nav-menu.d-md-none .nav-link:hover {
+#sidebar-nav-menu .nav-link:hover {
   background: linear-gradient(90deg, #FBFDFF, #F6F9FF);
   transform: translateY(-1px);
   border-color: rgba(79,70,229,0.12);
 }
-.mobile-nav-menu.d-md-none .nav-link:active {
+#sidebar-nav-menu .nav-link:active {
   transform: translateY(0);
 }
 
 /* smaller badge / text inside nav-item adjustments */
-.mobile-nav-menu.d-md-none .nav-link .badge {
+#sidebar-nav-menu .nav-link .badge {
   margin-left: 6px;
   margin-right: 0;
   font-size: 12px;
@@ -1473,9 +1472,132 @@ html, body {
   .session-item { padding: 10px; margin-bottom: 8px; }
 
   /* make nav links a bit more prominent on narrow screens */
-  .mobile-nav-menu.d-md-none .nav-link {
+  #sidebar-nav-menu .nav-link {
     font-size: 16px;
     padding: 14px 12px;
     min-height: 48px;
   }
+}
+
+/* Floating Action Button for New Chat */
+.fab-new-chat {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1002;
+}
+
+/* Floating Model Selector */
+.floating-model-selector-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    z-index: 1003;
+    display: none;
+    animation: slide-down 0.3s ease forwards;
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.floating-model-selector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.floating-model-selector-body {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.floating-model-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.floating-model-item:hover {
+    background-color: #f0f0f0;
+}
+
+.floating-model-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.floating-model-selector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1002;
+    display: none;
+}
+
+/* Subscription Button */
+.btn-subscribe {
+    position: fixed;
+    top: 20px;
+    right: 80px; /* Next to hamburger */
+    background-color: #E91E63; /* Pink */
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 10px 20px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.4);
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+    z-index: 1001;
+}
+
+.btn-subscribe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(233, 30, 99, 0.5);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
