@@ -110,6 +110,22 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.show();
     });
 
+    // Event listener for model selection toggle to show floating model selection
+    const modelToggle = document.getElementById('model-selection-toggle');
+    if (modelToggle) {
+        modelToggle.addEventListener('click', function() {
+            const floatingSelection = document.getElementById('floating-model-selection');
+            if (floatingSelection) {
+                floatingSelection.classList.toggle('show');
+            }
+            // Close any open modals or other dropdowns if needed
+            const newChatModal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
+            if (newChatModal) {
+                newChatModal.hide();
+            }
+        });
+    }
+
     // Floating Action Button for mobile - new chat
     const fabNewChat = document.getElementById('fab-new-chat');
     if (fabNewChat) {
