@@ -75,6 +75,12 @@ function loadSession(sessionId) {
             };
             localStorage.setItem(`session_${sessionId}`, JSON.stringify(sessionData));
             
+            // Update the model selection button to show the current model name
+            const currentModelName = document.getElementById('current-model-name');
+            if (currentModelName && data.ai_model_name) {
+                currentModelName.textContent = data.ai_model_name;
+            }
+            
             const chatContainer = document.getElementById('chat-container');
             chatContainer.innerHTML = '';
             
@@ -164,6 +170,33 @@ async function createNewChat() {
         
         // Load the new session
         loadSession(data.session_id);
+        
+        // Update the model selection button with the selected model name
+        const modelSelect = document.getElementById('modal-model-select');
+        if (modelSelect && modelSelect.options[modelSelect.selectedIndex]) {
+            const selectedModelName = modelSelect.options[modelSelect.selectedIndex].text;
+            const currentModelName = document.getElementById('current-model-name');
+            if (currentModelName) {
+                // Remove any badge text from the model name
+                const cleanModelName = selectedModelName.replace(/\s*<span[^>]*>[\s\S]*?<\/span>\s*/gi, '').trim();
+                currentModelName.textContent = cleanModelName;
+                // Also update the global variable
+                currentSelectedModel = modelSelect.value;
+            }
+        }
+        
+        // Initialize web search button for the new session
+        const webSearchBtn = document.getElementById('web-search-btn');
+        if (webSearchBtn) {
+            // Reset to default state
+            webSearchBtn.classList.remove('btn-success');
+            webSearchBtn.classList.add('btn-outline-secondary');
+            webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب';
+            webSearchBtn.title = 'فعال کردن جستجو وب';
+            webSearchBtn.disabled = false;
+            // Clear any previous session storage
+            sessionStorage.removeItem(`webSearch_${data.session_id}`);
+        }
         
         // Refresh sessions list
         loadSessions();

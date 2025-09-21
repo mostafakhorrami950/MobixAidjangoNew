@@ -194,6 +194,13 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedModelForNewSession = null;
             isWebSearchEnabledForNewSession = false;
             
+            // Reset model selection button text
+            const currentModelName = document.getElementById('current-model-name');
+            if (currentModelName) {
+                currentModelName.textContent = 'انتخاب مدل';
+            }
+            currentSelectedModel = null;
+            
             // Reload available models for user
             loadAvailableModelsForUser();
             
@@ -240,6 +247,17 @@ function loadAvailableModelsForUser() {
             
             // Populate floating model selection grid
             populateFloatingModelGrid(data.models);
+            
+            // If we have a current session, make sure the model name is displayed correctly
+            if (currentSessionId) {
+                const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                if (sessionData.ai_model_name) {
+                    const currentModelName = document.getElementById('current-model-name');
+                    if (currentModelName) {
+                        currentModelName.textContent = sessionData.ai_model_name;
+                    }
+                }
+            }
         })
         .catch(error => console.error('Error loading models:', error));
 }
@@ -316,6 +334,16 @@ function populateFloatingModelGrid(models) {
                     currentModelName.textContent = model.name;
                 }
             }
+        } else {
+            // If no session is selected, check if this is the model stored in the global variable
+            if (currentSelectedModel === model.model_id) {
+                modelCard.classList.add('selected');
+                // Update the current model name in the button
+                const currentModelName = document.getElementById('current-model-name');
+                if (currentModelName) {
+                    currentModelName.textContent = model.name;
+                }
+            }
         }
         
         // Set access class
@@ -376,6 +404,13 @@ function selectModel(modelId, modelName) {
     const currentModelName = document.getElementById('current-model-name');
     if (currentModelName) {
         currentModelName.textContent = modelName;
+    }
+    
+    // Also update in localStorage for consistency
+    if (currentSessionId) {
+        const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+        sessionData.ai_model_name = modelName;
+        localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
     }
     
     // Show confirmation message
