@@ -104,12 +104,6 @@ function loadSession(sessionId) {
             
             // Focus on input
             document.getElementById('message-input').focus();
-            
-            // Hide sidebar on mobile after selecting a session
-            if (window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.remove('show');
-                document.getElementById('sidebar-overlay').classList.remove('show');
-            }
         })
         .catch(error => console.error('Error loading session:', error));
 }
@@ -204,12 +198,6 @@ function deleteSession() {
                 document.getElementById('send-button').disabled = true;
                 document.getElementById('delete-session-btn').style.display = 'none';
                 loadSessions();
-                
-                // Hide sidebar on mobile
-                if (window.innerWidth < 768) {
-                    document.getElementById('sidebar').classList.remove('show');
-                    document.getElementById('sidebar-overlay').classList.remove('show');
-                }
             } else {
                 alert('خطا در حذف چت');
             }

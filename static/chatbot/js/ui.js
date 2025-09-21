@@ -2,40 +2,6 @@
 // مدیریت رابط کاربری و تعامل (UI & Interaction Management)
 // =================================
 
-// Toggle sidebar on mobile
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    
-    if (sidebar) {
-        sidebar.classList.toggle('show');
-    }
-    if (overlay) {
-        overlay.classList.toggle('show');
-    }
-}
-
-// Toggle sessions list visibility
-function toggleSessionsList() {
-    const sessionsContainer = document.getElementById('sessions-container');
-    const toggleBtn = document.getElementById('toggle-sessions');
-    const icon = toggleBtn.querySelector('i');
-    
-    if (sessionsContainer.classList.contains('collapsed')) {
-        // Show sessions
-        sessionsContainer.classList.remove('collapsed');
-        sessionsContainer.style.display = 'block';
-        icon.className = 'fas fa-chevron-up';
-        toggleBtn.title = 'جمع کردن چت‌ها';
-    } else {
-        // Hide sessions
-        sessionsContainer.classList.add('collapsed');
-        sessionsContainer.style.display = 'none';
-        icon.className = 'fas fa-chevron-down';
-        toggleBtn.title = 'باز کردن چت‌ها';
-    }
-}
-
 // Check if both chatbot and model are selected in modal
 function checkModalSelections() {
     const chatbotSelect = document.getElementById('modal-chatbot-select');
