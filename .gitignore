@@ -21,9 +21,10 @@ htmlcov/
 .pytest_cache/
 
 # Django specific
-# db.sqlite3 و ai_chatbot.sqlite3 باید بمونند، پس حذف نمی‌کنیم
-*/migrations/*.py
-!*/migrations/__init__.py
+# همه فایل‌های مایگریشن برن توی گیت
+# فقط pyc ها ایگنور بشن
+*/migrations/__pycache__/
+
 
 # IDE / Editor settings
 .vscode/
