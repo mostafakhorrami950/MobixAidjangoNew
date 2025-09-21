@@ -68,16 +68,38 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if there's a default model selected and pre-select it
         const defaultModelId = localStorage.getItem('defaultModelId');
         if (defaultModelId) {
-            // We need to wait for the models to be loaded, so we'll set it after a short delay
+            // Set a small delay to ensure the modal is fully loaded
             setTimeout(() => {
+                const chatbotSelect = document.getElementById('modal-chatbot-select');
                 const modelSelect = document.getElementById('modal-model-select');
-                if (modelSelect) {
-                    // Check if the default model is available in the options
-                    for (let i = 0; i < modelSelect.options.length; i++) {
-                        if (modelSelect.options[i].value === defaultModelId) {
-                            modelSelect.value = defaultModelId;
-                            checkModalSelections();
-                            break;
+                
+                if (chatbotSelect && modelSelect) {
+                    // If chatbot is not selected, select the first available chatbot
+                    if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
+                        chatbotSelect.value = chatbotSelect.options[1].value;
+                        // Trigger the change event to load models
+                        chatbotSelect.dispatchEvent(new Event('change'));
+                        
+                        // After models are loaded, select the default model
+                        setTimeout(() => {
+                            // Check if the default model is available in the options
+                            for (let i = 0; i < modelSelect.options.length; i++) {
+                                if (modelSelect.options[i].value === defaultModelId) {
+                                    modelSelect.value = defaultModelId;
+                                    checkModalSelections();
+                                    break;
+                                }
+                            }
+                        }, 200);
+                    } else if (chatbotSelect.value) {
+                        // If chatbot is already selected, just select the default model
+                        // Check if the default model is available in the options
+                        for (let i = 0; i < modelSelect.options.length; i++) {
+                            if (modelSelect.options[i].value === defaultModelId) {
+                                modelSelect.value = defaultModelId;
+                                checkModalSelections();
+                                break;
+                            }
                         }
                     }
                 }
@@ -87,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
         modal.show();
     });
-    
+
     // Floating Action Button for mobile - new chat
     const fabNewChat = document.getElementById('fab-new-chat');
     if (fabNewChat) {
@@ -99,16 +121,38 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check if there's a default model selected and pre-select it
             const defaultModelId = localStorage.getItem('defaultModelId');
             if (defaultModelId) {
-                // We need to wait for the models to be loaded, so we'll set it after a short delay
+                // Set a small delay to ensure the modal is fully loaded
                 setTimeout(() => {
+                    const chatbotSelect = document.getElementById('modal-chatbot-select');
                     const modelSelect = document.getElementById('modal-model-select');
-                    if (modelSelect) {
-                        // Check if the default model is available in the options
-                        for (let i = 0; i < modelSelect.options.length; i++) {
-                            if (modelSelect.options[i].value === defaultModelId) {
-                                modelSelect.value = defaultModelId;
-                                checkModalSelections();
-                                break;
+                    
+                    if (chatbotSelect && modelSelect) {
+                        // If chatbot is not selected, select the first available chatbot
+                        if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
+                            chatbotSelect.value = chatbotSelect.options[1].value;
+                            // Trigger the change event to load models
+                            chatbotSelect.dispatchEvent(new Event('change'));
+                            
+                            // After models are loaded, select the default model
+                            setTimeout(() => {
+                                // Check if the default model is available in the options
+                                for (let i = 0; i < modelSelect.options.length; i++) {
+                                    if (modelSelect.options[i].value === defaultModelId) {
+                                        modelSelect.value = defaultModelId;
+                                        checkModalSelections();
+                                        break;
+                                    }
+                                }
+                            }, 200);
+                        } else if (chatbotSelect.value) {
+                            // If chatbot is already selected, just select the default model
+                            // Check if the default model is available in the options
+                            for (let i = 0; i < modelSelect.options.length; i++) {
+                                if (modelSelect.options[i].value === defaultModelId) {
+                                    modelSelect.value = defaultModelId;
+                                    checkModalSelections();
+                                    break;
+                                }
                             }
                         }
                     }
