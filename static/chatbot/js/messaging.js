@@ -102,19 +102,33 @@ function sendMessage() {
     .then(data => {
         if (data.status === 'processing_started' && data.assistant_message_id) {
             // Create an empty assistant message element
-            const assistantMessageElement = addMessageToChat({
+            console.log('Creating assistant message with ID:', data.assistant_message_id);
+            
+            // Debug: Check if chat container exists
+            const chatContainer = document.getElementById('chat-container');
+            if (!chatContainer) {
+                console.error('Chat container not found!');
+                throw new Error('Chat container not found');
+            }
+            
+            const messageData = {
                 type: 'assistant',
                 content: '',
                 created_at: new Date().toISOString(),
                 id: data.assistant_message_id
-            });
+            };
+            
+            console.log('Calling addMessageToChat with:', messageData);
+            const assistantMessageElement = addMessageToChat(messageData);
+            console.log('addMessageToChat returned:', assistantMessageElement);
             
             // Verify that the assistantMessageElement was created successfully
             if (assistantMessageElement) {
+                console.log('Assistant message element created successfully');
                 // Start polling for chunks
                 pollForChunks(data.assistant_message_id, assistantMessageElement, 0);
             } else {
-                console.error('Failed to create assistant message element');
+                console.error('Failed to create assistant message element - returned null/undefined');
                 throw new Error('Failed to create assistant message element');
             }
         } else {
@@ -139,6 +153,8 @@ function sendMessage() {
 
 // Polling function for getting response chunks
 function pollForChunks(messageId, assistantMessageElement, offset) {
+    console.log('pollForChunks called with:', { messageId, assistantMessageElement, offset });
+    
     // Add error checking to ensure assistantMessageElement exists
     if (!assistantMessageElement) {
         console.error('assistantMessageElement is undefined in pollForChunks');
@@ -155,6 +171,7 @@ function pollForChunks(messageId, assistantMessageElement, offset) {
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             contentDiv = messageElement.querySelector('.message-content');
+            console.log('Found contentDiv using fallback method');
         }
         
         // If still not found, create a temporary error message
@@ -165,13 +182,18 @@ function pollForChunks(messageId, assistantMessageElement, offset) {
             return;
         }
     }
+    
+    console.log('Content div found, proceeding with fetch');
 
     fetch(`/chat/session/${currentSessionId}/get_chunk/?message_id=${messageId}&offset=${offset}`)
         .then(response => response.json())
         .then(data => {
+            console.log('Received chunk data:', data);
+            
             if (data.status === 'new_chunk') {
                 // Add the new chunk to the current content
                 contentDiv.textContent += data.content_chunk;
+                console.log('Added chunk to content');
 
                 // If the user is at the bottom, scroll
                 if (isUserAtBottom()) {
@@ -184,6 +206,7 @@ function pollForChunks(messageId, assistantMessageElement, offset) {
                 }, 100); // Short delay for smooth streaming
 
             } else if (data.status === 'complete') {
+                console.log('Polling complete, rendering final content');
                 // Polling is complete
                 hideTypingIndicator();
                 setButtonState(false); // Enable the send button
