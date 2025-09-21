@@ -114,10 +114,19 @@
             
             // Handle hamburger menu toggle
             if (mobileMenuToggle) {
-                mobileMenuToggle.addEventListener('click', function() {
-                    // Check if we're on the chat page - if so, don't create mobile sidebar
+                mobileMenuToggle.addEventListener('click', function(e) {
+                    // Check if we're on the chat page
                     if (window.location.pathname.startsWith('/chat')) {
-                        // On chat page, the sidebar is already part of the page
+                        // On chat page, toggle the existing sidebar
+                        const sidebar = document.getElementById('sidebar');
+                        const sidebarOverlay = document.getElementById('sidebar-overlay');
+                        
+                        if (sidebar) {
+                            sidebar.classList.toggle('show');
+                        }
+                        if (sidebarOverlay) {
+                            sidebarOverlay.classList.toggle('show');
+                        }
                         return;
                     }
                     // Create mobile sidebar menu for other pages
@@ -128,6 +137,20 @@
             // Handle overlay click to close sidebar
             if (overlay) {
                 overlay.addEventListener('click', function() {
+                    // Check if we're on the chat page
+                    if (window.location.pathname.startsWith('/chat')) {
+                        // On chat page, close the existing sidebar
+                        const sidebar = document.getElementById('sidebar');
+                        const sidebarOverlay = document.getElementById('sidebar-overlay');
+                        
+                        if (sidebar) {
+                            sidebar.classList.remove('show');
+                        }
+                        if (sidebarOverlay) {
+                            sidebarOverlay.classList.remove('show');
+                        }
+                        return;
+                    }
                     closeMobileSidebar();
                 });
             }

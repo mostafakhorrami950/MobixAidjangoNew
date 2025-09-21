@@ -150,9 +150,24 @@ html, body {
   z-index: 100;
 }
 
-/* Hide sidebar completely as per UX/UI team requirements */
-.sidebar {
-  display: none !important;
+/* For mobile, sidebar is hidden by default and shown when 'show' class is added */
+@media (max-width: 767.98px) {
+  .sidebar {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+  }
+  
+  /* Show sidebar when 'show' class is added */
+  .sidebar.show {
+    display: flex;
+    transform: translateX(0);
+  }
 }
 
 .sidebar:hover {
@@ -1263,4 +1278,20 @@ option:disabled {
   background-color: #fff3cd;
   border-color: #ffeeba;
   color: #856404;
+}
+
+/* Overlay for mobile sidebar */
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+}
+
+.overlay.show {
+  display: block;
 }
