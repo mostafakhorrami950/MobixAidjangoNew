@@ -324,9 +324,58 @@ html, body {
 }
 
 /* Mobile nav area inside sidebar */
-.mobile-nav-menu {
-  padding: 12px;
+#sidebar-nav-menu {
+  display: block; /* ensure visible on mobile */
+  padding: 10px 6px;     /* slightly reduced outer padding for compactness */
   border-top: 1px solid var(--border);
+  background: transparent;
+}
+
+/* each nav item spacing (slightly smaller gaps between items) */
+#sidebar-nav-menu .nav-item {
+  margin-bottom: 6px;    /* reduced margin between items */
+}
+
+/* style links: larger text, comfortable touch padding, RTL icon spacing */
+#sidebar-nav-menu .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;    /* comfortable touch area */
+  min-height: 44px;      /* recommended touch target */
+  font-size: 15px;       /* larger & readable */
+  color: var(--text);
+  background: #FFFFFF;   /* surface for clear contrast (you can change) */
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background .12s ease, transform .08s ease;
+}
+
+/* icon in RTL: keep icon to left side, label on right */
+#sidebar-nav-menu .nav-link i {
+  margin-left: 8px;   /* icon separation from text in RTL */
+  margin-right: 0;
+  width: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* hover / active feedback for links */
+#sidebar-nav-menu .nav-link:hover {
+  background: linear-gradient(90deg, #FBFDFF, #F6F9FF);
+  transform: translateY(-1px);
+  border-color: rgba(79,70,229,0.12);
+}
+#sidebar-nav-menu .nav-link:active {
+  transform: translateY(0);
+}
+
+/* smaller badge / text inside nav-item adjustments */
+#sidebar-nav-menu .nav-link .badge {
+  margin-left: 6px;
+  margin-right: 0;
+  font-size: 12px;
 }
 
 /* ---------------------------
