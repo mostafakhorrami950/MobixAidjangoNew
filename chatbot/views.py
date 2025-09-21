@@ -82,15 +82,17 @@ def chat(request):
             if not user_subscription or not chatbot.subscription_types.filter(id=user_subscription.id).exists():
                 has_access = False
         
-        # Create a dictionary representation with access information
-        chatbot_data = {
-            'id': chatbot.id,
-            'name': chatbot.name,
-            'description': chatbot.description,
-            'is_active': chatbot.is_active,
-            'user_has_access': has_access
-        }
-        available_chatbots.append(chatbot_data)
+        # Only add chatbots that user has access to
+        if has_access:
+            # Create a dictionary representation with access information
+            chatbot_data = {
+                'id': chatbot.id,
+                'name': chatbot.name,
+                'description': chatbot.description,
+                'is_active': chatbot.is_active,
+                'user_has_access': has_access
+            }
+            available_chatbots.append(chatbot_data)
     
     # Get ALL active AI models (not just those available to user)
     all_models = AIModel.objects.filter(is_active=True)

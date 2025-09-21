@@ -188,12 +188,8 @@
                                         <option value="" selected>انتخاب چت‌بات...</option>
                                         {% for chatbot in available_chatbots %}
                                             <option value="{{ chatbot.id }}" 
-                                                    data-has-model="true" 
-                                                    {% if not chatbot.user_has_access %}disabled{% endif %}>
+                                                    data-has-model="true">
                                                 {{ chatbot.name }}
-                                                {% if not chatbot.user_has_access %}
-                                                    <span class="badge bg-danger ms-2">نیاز به اشتراک</span>
-                                                {% endif %}
                                             </option>
                                         {% endfor %}
                                     </select>
@@ -221,17 +217,12 @@
                                         <option value="" selected>انتخاب مدل...</option>
                                         {% for model in available_models %}
                                             <option value="{{ model.model_id }}" 
-                                                    data-is-free="{{ model.is_free }}" 
-                                                    {% if not model.user_has_access %}disabled{% endif %}>
+                                                    data-is-free="{{ model.is_free }}">
                                                 {{ model.name }}
                                                 {% if model.is_free %}
                                                     <span class="badge bg-success ms-2">رایگان</span>
                                                 {% else %}
-                                                    {% if model.user_has_access %}
-                                                        <span class="badge bg-warning ms-2">ویژه</span>
-                                                    {% else %}
-                                                        <span class="badge bg-danger ms-2">نیاز به اشتراک</span>
-                                                    {% endif %}
+                                                    <span class="badge bg-warning ms-2">ویژه</span>
                                                 {% endif %}
                                             </option>
                                         {% endfor %}
