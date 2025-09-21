@@ -24,21 +24,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load sidebar menu items
     loadSidebarMenuItems();
     
-    // Clicking on message input opens new chat modal if no session is selected
+    // When clicking the message input, create a new session if one doesn't exist
     document.getElementById('message-input').addEventListener('click', function() {
-        if (!currentSessionId) {
-            // Instead of opening modal, we'll allow users to send messages directly
-            // The sendMessage function will handle creating a default session
+        // Do nothing if a session is already active or being created
+        if (currentSessionId || this.dataset.creatingSession === 'true') {
             return;
         }
+
+        // Set a flag to prevent multiple requests
+        this.dataset.creatingSession = 'true';
+        
+        // Show a loading state to the user
+        showSessionCreationLoading();
+
+        // Call the function from sessions.js to create a new default session
+        createDefaultSession()
+            .then(sessionData => {
+                if (sessionData && sessionData.session_id) {
+                    // Session created successfully, load it
+                    // loadSession will handle UI updates, including enabling inputs
+                    loadSession(sessionData.session_id);
+
+                    // Update the URL to reflect the new session without reloading the page
+                    const newUrl = `/chat/session/${sessionData.session_id}/`;
+                    history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                } else {
+                    // Handle cases where the server returns an error in the JSON response
+                    console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+                    alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+                    hideSessionCreationLoading(false); // Hide loading and restore welcome message
+                }
+            })
+            .catch(error => {
+                // Handle network or other unexpected errors
+                console.error('Error creating default session:', error);
+                alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
+                hideSessionCreationLoading(false); // Hide loading and restore welcome message
+            })
+            .finally(() => {
+                // Remove the flag
+                this.dataset.creatingSession = 'false';
+            });
     });
-    
-    // Input event listener is now handled by MultiFileUploadManager
-    // This prevents conflicts between multiple event listeners
-    
-
-    
-
     
     // Add event listener for web search toggle in welcome area
     document.getElementById('welcome-web-search-btn').addEventListener('click', function() {
@@ -544,7 +572,7 @@ function updateModelSelectionState(models) {
 // Select a model and update the session
 function selectModel(modelId, modelName) {
     console.log('Selecting model:', modelId, modelName);
-
+    
     // Update UI to show selected model regardless of session
     const modelCards = document.querySelectorAll('.model-card');
     modelCards.forEach(card => {
@@ -554,30 +582,30 @@ function selectModel(modelId, modelName) {
             card.classList.remove('selected');
         }
     });
-
+    
     // Update current selected model
     currentSelectedModel = modelId;
-
+    
     // Update the current model name in the button
     const currentModelName = document.getElementById('current-model-name');
     if (currentModelName) {
         currentModelName.textContent = modelName;
     }
-
+    
     // Store the selected model as the default model for new sessions
     localStorage.setItem('defaultModelId', modelId);
     localStorage.setItem('defaultModelName', modelName);
-
+    
     // If we have a session, update the session model
     if (currentSessionId) {
         console.log('Updating session model');
         updateSessionModel(currentSessionId, modelId);
-
+        
         // Also update in localStorage for consistency
         const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
         sessionData.ai_model_name = modelName;
         localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
-
+        
         // Show confirmation message
         const confirmation = document.createElement('div');
         confirmation.className = 'alert alert-success alert-dismissible fade show';
@@ -587,7 +615,7 @@ function selectModel(modelId, modelName) {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(confirmation);
-
+        
         // Auto remove after 3 seconds
         setTimeout(() => {
             if (confirmation.parentNode) {
@@ -595,40 +623,27 @@ function selectModel(modelId, modelName) {
             }
         }, 3000);
     } else {
-        // No active session. Open the "New Chat" modal and pre-select the chosen model.
-        const newChatModalElement = document.getElementById('newChatModal');
-        const newChatModal = bootstrap.Modal.getInstance(newChatModalElement) || new bootstrap.Modal(newChatModalElement);
-
-        // Add a one-time event listener to run when the modal is fully shown
-        newChatModalElement.addEventListener('shown.bs.modal', () => {
-            const chatbotSelect = document.getElementById('modal-chatbot-select');
-            const modelSelect = document.getElementById('modal-model-select');
-            const defaultModelId = localStorage.getItem('defaultModelId');
-
-            if (chatbotSelect && modelSelect && defaultModelId) {
-                // Select the first chatbot to load its models
-                if (chatbotSelect.options.length > 1) {
-                    chatbotSelect.value = chatbotSelect.options[1].value;
-                    // Manually trigger the change event to load models
-                    chatbotSelect.dispatchEvent(new Event('change'));
-
-                    // Wait for the models to be loaded via AJAX
-                    setTimeout(() => {
-                        modelSelect.value = defaultModelId;
-                        // Final check to enable the create button
-                        checkModalSelections();
-                    }, 500); // 500ms delay might need adjustment
-                }
+        // Show confirmation message for default model selection
+        const confirmation = document.createElement('div');
+        confirmation.className = 'alert alert-info alert-dismissible fade show';
+        confirmation.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        confirmation.innerHTML = `
+            <strong>توجه!</strong> مدل پیشفرض برای چت‌های بعدی به ${modelName} تغییر یافت.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(confirmation);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (confirmation.parentNode) {
+                confirmation.parentNode.removeChild(confirmation);
             }
-        }, { once: true }); // The event listener will be removed after it runs once
-
-        newChatModal.show();
+        }, 3000);
     }
-
+    
     // Hide floating model selection
     hideFloatingModelSelection();
 }
-
 
 // Function to show cost multiplier warning
 function showCostMultiplierWarning(model) {

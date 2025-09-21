@@ -3,7 +3,6 @@
 {% block content %}
 <div class="chatgpt-container">
     <div class="chatgpt-layout">
-        <!-- Sidebar - Collapsible on mobile -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h5 class="mb-0">چت‌های من</h5>
@@ -21,19 +20,14 @@
             </div>
             <div class="sessions-container" id="sessions-container">
                 <div class="list-group sessions-list" id="sessions-list">
-                    <!-- Sessions will be loaded here -->
-                </div>
+                    </div>
             </div>
             
-            <!-- Mobile Navigation Menu -->
             <div class="mobile-nav-menu d-md-none" id="mobile-nav-menu">
-                <!-- Menu items will be loaded here dynamically -->
-            </div>
+                </div>
             
-            <!-- Available Chatbots - REMOVED as per requirements -->
-        </div>
+            </div>
         
-        <!-- Main Chat Area -->
         <div class="main-content" id="main-content">
             <div class="chat-header">
                 <h5 id="current-session-title">
@@ -46,15 +40,13 @@
                 </div>
             </div>
             
-            <!-- Floating Model Selection Component -->
             <div class="floating-model-selection" id="floating-model-selection">
                 <div class="model-selection-header">
                     <h6 class="mb-0">انتخاب مدل هوش مصنوعی</h6>
                     <button class="btn btn-sm btn-close" id="close-model-selection" aria-label="بستن"></button>
                 </div>
                 <div class="model-grid" id="model-grid">
-                    <!-- Models will be loaded here dynamically -->
-                </div>
+                    </div>
             </div>
             
             <div class="chat-messages-container">
@@ -62,9 +54,8 @@
                     <div class="welcome-message" id="welcome-message">
                         <i class="fas fa-robot fa-3x mb-3"></i>
                         <h4>به چت‌بات MobixAI خوش آمدید</h4>
-                        <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
+                        <p class="mb-0">برای شروع، روی کادر نوشتن پیام کلیک کنید تا یک چت جدید ایجاد شود.</p>
                         
-                        <!-- Web search toggle for new session -->
                         <div class="web-search-toggle-container mt-3" id="welcome-web-search-container" style="display: none;">
                             <button class="btn btn-outline-secondary" id="welcome-web-search-btn" type="button">
                                 <i class="fas fa-search"></i> جستجو وب
@@ -74,19 +65,14 @@
                             </small>
                         </div>
                     </div>
-                    <!-- Chat messages will appear here -->
-                </div>
+                    </div>
             </div>
-            
-            <!-- Web search button above input -->
-
             
             <div class="input-container">
                 <div class="web-search-container">
                     <button class="btn btn-sm btn-outline-secondary" id="web-search-btn" title="جستجو وب">
                         <i class="fas fa-search"></i> جستجو وب
                     </button>
-                    <!-- Add image generation button -->
                     <button class="btn btn-sm btn-outline-primary" id="image-generation-btn" style="display: none;" title="تولید تصویر">
                         <i class="fas fa-image"></i> تولید تصویر
                     </button>
@@ -95,18 +81,15 @@
                 <form id="chat-form" class="d-flex">
                     <div class="input-group">
                         <textarea class="form-control" id="message-input" placeholder="پیام خود را تایپ کنید..." rows="2"></textarea>
-                        <!-- Hidden hint for image editing chatbot -->
                         <div class="image-merge-hint d-none position-absolute" id="image-merge-hint">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle me-1"></i>
                                 برای ادغام با تصویر قبلی، کلمه "ادغام" یا "ترکیب" را بنویسید
                             </small>
                         </div>
-                        <!-- Add file upload button -->
                         <button class="btn btn-secondary" type="button" id="upload-btn" title="آپلود فایل">
                             <i class="fas fa-paperclip"></i>
                         </button>
-                        <!-- Hidden file input for multiple files - فایل انپوت مخفی برای چند فایل -->
                         <input type="file" id="file-input" multiple style="display: none;">
                         <button class="btn btn-primary" type="button" id="send-button" disabled>
                             <span class="send-icon">
@@ -118,7 +101,6 @@
                         </button>
                     </div>
                 </form>
-                <!-- Multiple Files preview area - ناحیه پیشنمایش چندین فایل -->
                 <div id="files-preview" class="files-preview mt-2" style="display: none;">
                     <div class="files-header d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted">
@@ -129,8 +111,7 @@
                         </button>
                     </div>
                     <div id="files-list" class="files-list">
-                        <!-- Files will be added here dynamically -->
-                    </div>
+                        </div>
                 </div>
                 <div class="input-hint">
                     <small class="text-muted">
@@ -142,24 +123,20 @@
     </div>
 </div>
 
-<!-- Model Selection Wrapper as Floating Button -->
 <div class="model-selection-wrapper" id="model-selection-button">
     <span class="model-select-label">مدل: </span>
     <span id="current-model-name">انتخاب مدل</span>
     <i class="fas fa-chevron-down ms-1"></i>
 </div>
 
-<!-- Overlay for mobile sidebar -->
 <div class="overlay d-md-none" id="sidebar-overlay"></div>
 
-<!-- Floating Action Button for Mobile -->
 <div class="floating-action-button d-md-none" id="fab-new-chat">
     <button class="btn btn-primary rounded-circle shadow-lg" title="چت جدید">
         <i class="fas fa-plus"></i>
     </button>
 </div>
 
-<!-- New Chat Modal -->
 <div class="modal fade" id="newChatModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content rounded-3 shadow">
@@ -266,7 +243,6 @@
     </div>
 </div>
 
-<!-- استایل‌های اضافی برای drag and drop -->
 <style>
 .drag-over {
     border: 2px dashed #007bff !important;
@@ -645,9 +621,7 @@ option:disabled {
 }
 </style>
 
-<!-- JavaScript فایل‌های مجزا -->
 {% load static %}
-<!-- بارگذاری فایل‌های JavaScript به ترتیب صحیح -->
 <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
 <script src="{% static 'chatbot/js/config.js' %}"></script>
 <script src="{% static 'chatbot/js/utils.js' %}"></script>

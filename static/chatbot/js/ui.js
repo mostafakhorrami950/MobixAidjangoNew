@@ -42,64 +42,30 @@ function checkModalSelections() {
     const modelSelect = document.getElementById('modal-model-select');
     const createBtn = document.getElementById('create-chat-btn');
     
-    const chatbotSelected = chatbotSelect.value;
-    const modelSelected = modelSelect.value;
-    
-    // Both chatbot and model must be selected
-    if (chatbotSelected && modelSelected) {
+    // Enable button only if both a chatbot and a model are selected
+    if (chatbotSelect.value && modelSelect.value) {
         createBtn.disabled = false;
     } else {
         createBtn.disabled = true;
     }
 }
 
-// Check if both chatbot and model are selected in sidebar
-function checkSidebarSelections() {
-    const chatbotSelect = document.getElementById('chatbot-select');
-    const startBtn = document.getElementById('start-chat-btn');
-    
-    const chatbotSelected = chatbotSelect.value;
-    
-    // Chatbot must be selected
-    if (chatbotSelected) {
-        startBtn.disabled = false;
-    } else {
-        startBtn.disabled = true;
-    }
-}
-
-// Load sidebar menu items dynamically
+// Load sidebar menu items for mobile view
 function loadSidebarMenuItems() {
-    // Only load for mobile view
-    if (window.innerWidth >= 768) {
-        return;
-    }
-    
     const mobileNavMenu = document.getElementById('mobile-nav-menu');
-    if (!mobileNavMenu) {
-        return;
-    }
-    
-    // Fetch menu items from the server
+    if (!mobileNavMenu) return;
+
     fetch(CHAT_URLS.getSidebarMenuItems)
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                console.error('Error loading menu items:', data.error);
-                return;
-            }
-            
-            // Clear existing menu items
-            mobileNavMenu.innerHTML = '';
-            
-            // Add menu items
+            mobileNavMenu.innerHTML = ''; // Clear previous items
             if (data.menu_items && data.menu_items.length > 0) {
                 data.menu_items.forEach(item => {
                     const navItem = document.createElement('div');
                     navItem.className = 'nav-item';
                     navItem.innerHTML = `
                         <a class="nav-link" href="${item.url}">
-                            <i class="${item.icon_class}"></i> ${item.name}
+                          <i class="${item.icon_class}"></i> ${item.name}
                         </a>
                     `;
                     mobileNavMenu.appendChild(navItem);
@@ -136,4 +102,44 @@ function loadSidebarMenuItems() {
                 </div>
             `;
         });
+}
+
+// Show loading indicator when creating a new session by clicking the input
+function showSessionCreationLoading() {
+    const welcomeMessage = document.getElementById('welcome-message');
+    if (welcomeMessage) {
+        welcomeMessage.innerHTML = `
+            <div class="text-center text-muted p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 mb-0">در حال ایجاد چت جدید...</p>
+            </div>
+        `;
+    }
+    document.getElementById('message-input').placeholder = 'لطفا صبر کنید...';
+    document.getElementById('message-input').disabled = true;
+    document.getElementById('send-button').disabled = true;
+}
+
+// Hide loading indicator after session creation attempt
+function hideSessionCreationLoading(success = true) {
+    const messageInput = document.getElementById('message-input');
+    if(messageInput) {
+        messageInput.disabled = false;
+        messageInput.placeholder = 'پیام خود را تایپ کنید...';
+    }
+
+    // If creation failed, restore the original welcome message
+    if (!success) {
+        const welcomeMessage = document.getElementById('welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.innerHTML = `
+                <i class="fas fa-robot fa-3x mb-3"></i>
+                <h4>به چت‌بات MobixAI خوش آمدید</h4>
+                <p class="mb-0">برای شروع، روی این کادر کلیک کنید تا چت جدیدی ایجاد شود.</p>
+            `;
+        }
+    }
+    // If successful, loadSession will handle replacing the welcome message
 }
