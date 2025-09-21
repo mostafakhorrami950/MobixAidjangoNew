@@ -25,10 +25,12 @@
                 </div>
             </div>
             
-            <!-- Move all navigation menu information to sidebar -->
-            <div class="sidebar-nav-menu" id="sidebar-nav-menu">
+            <!-- Mobile Navigation Menu -->
+            <div class="mobile-nav-menu d-md-none" id="mobile-nav-menu">
                 <!-- Menu items will be loaded here dynamically -->
             </div>
+            
+            <!-- Available Chatbots - REMOVED as per requirements -->
         </div>
         
         <!-- Main Chat Area -->
@@ -153,24 +155,6 @@
 
 <!-- Overlay for mobile sidebar -->
 <div class="overlay d-md-none" id="sidebar-overlay"></div>
-
-<!-- Floating new conversation button for mobile -->
-<div class="floating-new-chat-btn d-md-none" id="floating-new-chat-btn" title="چت جدید">
-    <i class="fas fa-plus"></i>
-</div>
-
-<!-- Floating model selection list -->
-<div class="floating-model-selection" id="floating-model-selection" style="display: none;">
-    <div class="model-selection-header">
-        <h6>انتخاب مدل هوش مصنوعی</h6>
-        <button class="close-model-selection" id="close-model-selection">
-            <i class="fas fa-times"></i>
-        </button>
-    </div>
-    <div class="model-list" id="model-list">
-        <!-- Models will be loaded here dynamically -->
-    </div>
-</div>
 
 <!-- New Chat Modal -->
 <div class="modal fade" id="newChatModal" tabindex="-1">
@@ -661,182 +645,6 @@ option:disabled {
     background-color: #fff3cd;
     border-color: #ffeeba;
     color: #856404;
-}
-
-/* Floating new conversation button for mobile */
-.floating-new-chat-btn {
-    position: fixed;
-    top: 90px;
-    left: 20px;
-    z-index: 1000;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 20px;
-}
-
-.floating-new-chat-btn:hover {
-    transform: translateY(-3px) scale(1.1);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
-}
-
-/* Floating model selection styles */
-.floating-model-selection {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1002;
-    background: white;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-    overflow: hidden;
-    display: none;
-    animation: fadeInDown 0.3s ease;
-}
-
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -20px);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, 0);
-    }
-}
-
-.model-selection-header {
-    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
-    color: white;
-    padding: var(--gap-lg);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.model-selection-header h6 {
-    margin: 0;
-    font-weight: 700;
-}
-
-.close-model-selection {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.close-model-selection:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
-}
-
-.model-list {
-    padding: var(--gap-lg);
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-.model-item {
-    display: flex;
-    align-items: center;
-    padding: var(--gap-lg);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--gap-sm);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.model-item:hover {
-    background: var(--light-blue);
-    border-color: var(--primary-blue);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-}
-
-.model-item:last-child {
-    margin-bottom: 0;
-}
-
-.model-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    margin-left: var(--gap);
-    font-size: 16px;
-}
-
-.model-info {
-    flex: 1;
-}
-
-.model-name {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.model-type {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.model-badge {
-    font-size: 10px;
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
-}
-
-.model-badge.free {
-    background: var(--success);
-    color: white;
-}
-
-.model-badge.premium {
-    background: var(--warning);
-    color: var(--text-primary);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .floating-model-selection {
-        width: 95%;
-        top: 10px;
-    }
-    
-    .model-list {
-        padding: var(--gap);
-    }
-    
-    .model-item {
-        padding: var(--gap);
-    }
 }
 </style>
 
