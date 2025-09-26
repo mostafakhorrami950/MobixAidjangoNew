@@ -273,6 +273,10 @@ ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Login/Logout redirect URLs
+LOGIN_REDIRECT_URL = 'chat'
+LOGOUT_REDIRECT_URL = 'login'
+
 # Production Security Settings
 if not DEBUG:
     # Security settings for production

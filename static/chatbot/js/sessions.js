@@ -23,7 +23,7 @@ function loadSessions() {
                 }
                 sessionElement.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
-                        <div>
+                        <div class="session-info flex-grow-1">
                             <strong>${session.title}</strong>
                             <div class="small text-muted">
                                 ${session.session_name} 
@@ -32,11 +32,30 @@ function loadSessions() {
                                 </span>
                             </div>
                         </div>
-                        <div class="text-muted small">${new Date(session.updated_at).toLocaleTimeString('fa-IR')}</div>
+                        <div class="session-actions d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-danger delete-session-btn ms-2" data-session-id="${session.id}" title="حذف چت">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <div class="text-muted small">${new Date(session.updated_at).toLocaleTimeString('fa-IR')}</div>
+                        </div>
                     </div>
                 `;
-                sessionElement.addEventListener('click', () => loadSession(session.id));
+                sessionElement.addEventListener('click', (e) => {
+                    // Only load session if click is not on delete button
+                    if (!e.target.closest('.delete-session-btn')) {
+                        loadSession(session.id);
+                    }
+                });
                 sessionsList.appendChild(sessionElement);
+            });
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-session-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const sessionId = this.getAttribute('data-session-id');
+                    deleteSessionFromList(sessionId);
+                });
             });
         })
         .catch(error => console.error('Error loading sessions:', error));
@@ -243,6 +262,56 @@ function deleteSession() {
                     document.getElementById('sidebar').classList.remove('show');
                     document.getElementById('sidebar-overlay').classList.remove('show');
                 }
+            } else {
+                alert('خطا در حذف چت');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('خطا در حذف چت');
+        });
+    }
+}
+
+// Add new function to delete a session from the list
+function deleteSessionFromList(sessionId) {
+    if (confirm('آیا مطمئن هستید که می‌خواهید این جلسه چت را حذف کنید؟')) {
+        // Send DELETE request to remove the session
+        fetch(`/chat/session/${sessionId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // If we're deleting the current session, reset UI
+                if (currentSessionId == sessionId) {
+                    // Reset UI
+                    currentSessionId = null;
+                    document.getElementById('current-session-title').innerHTML = `
+                        <i class="fas fa-comments"></i> چت را انتخاب کنید یا جدیدی ایجاد کنید
+                    `;
+                    document.getElementById('chat-container').innerHTML = `
+                        <div class="text-center text-muted welcome-message" id="welcome-message">
+                            <i class="fas fa-robot fa-3x mb-3"></i>
+                            <h4>به چت‌بات MobixAI خوش آمدید</h4>
+                            <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
+                        </div>
+                    `;
+                    document.getElementById('message-input').disabled = true;
+                    document.getElementById('send-button').disabled = true;
+                    document.getElementById('delete-session-btn').style.display = 'none';
+                    
+                    // Hide sidebar on mobile
+                    if (window.innerWidth < 768) {
+                        document.getElementById('sidebar').classList.remove('show');
+                        document.getElementById('sidebar-overlay').classList.remove('show');
+                    }
+                }
+                
+                // Refresh sessions list
+                loadSessions();
             } else {
                 alert('خطا در حذف چت');
             }

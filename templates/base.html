@@ -114,24 +114,14 @@
             
             // Handle hamburger menu toggle
             if (mobileMenuToggle) {
-                mobileMenuToggle.addEventListener('click', function(e) {
-                    // Check if we're on the chat page
-                    if (window.location.pathname.startsWith('/chat')) {
-                        // On chat page, toggle the existing sidebar
-                        const sidebar = document.getElementById('sidebar');
-                        const sidebarOverlay = document.getElementById('sidebar-overlay');
-                        
-                        if (sidebar) {
-                            sidebar.classList.toggle('show');
-                        }
-                        if (sidebarOverlay) {
-                            sidebarOverlay.classList.toggle('show');
-                        }
-                        return;
-                    }
-                    // Create mobile sidebar menu for other pages
-                    createMobileSidebar();
-                });
+                // Only add event listener if we're NOT on the chat page
+                // On the chat page, main.js will handle this
+                if (!window.location.pathname.startsWith('/chat')) {
+                    mobileMenuToggle.addEventListener('click', function(e) {
+                        // Create mobile sidebar menu for non-chat pages
+                        createMobileSidebar();
+                    });
+                }
             }
             
             // Handle overlay click to close sidebar

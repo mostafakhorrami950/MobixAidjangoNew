@@ -794,12 +794,25 @@ async function createDefaultSessionAndSendMessage(message, files) {
         // ایجاد جلسه پیش‌فرض
         const sessionData = await createDefaultSession();
         
-        // حالا پیام را ارسال کنیم
-        // Re-enable input before sending message
-        const messageInput = document.getElementById('message-input');
-        messageInput.disabled = false;
-        // Use the improved sendMessage function
-        sendMessage();
+        if (sessionData && sessionData.session_id) {
+            // Load the session properly
+            await loadSession(sessionData.session_id);
+            
+            // Now send the message
+            // Re-enable input before sending message
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.disabled = false;
+            }
+            
+            // Use the improved sendMessage function
+            sendMessage();
+        } else {
+            // Handle error case
+            hideTypingIndicator();
+            console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+            alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+        }
         
     } catch (error) {
         hideTypingIndicator();
@@ -811,12 +824,21 @@ async function createDefaultSessionAndSendMessage(message, files) {
 // Standalone function to create a default session without sending a message
 async function createDefaultSession() {
     try {
-        // Prepare data for creating session
-        const sessionCreateData = {};
+        console.log('Creating default session...');
         
-        // If a model is selected for new session, use it
+        // Prepare session creation data
+        const sessionCreateData = {
+            title: 'چت جدید',
+        };
+        
+        // Add model selection if available
         if (selectedModelForNewSession) {
             sessionCreateData.ai_model_id = selectedModelForNewSession;
+        }
+        
+        // Add web search preference if enabled
+        if (isWebSearchEnabledForNewSession) {
+            sessionCreateData.enable_web_search = true;
         }
         
         // Create default session
@@ -843,59 +865,8 @@ async function createDefaultSession() {
         const newUrl = `/chat/session/${currentSessionId}/`;
         history.pushState({sessionId: currentSessionId}, '', newUrl);
         
-        // Update UI
-        document.getElementById('current-session-title').innerHTML = `
-            <i class="fas fa-comments"></i> ${data.title}
-        `;
-        document.getElementById('delete-session-btn').style.display = 'inline-block';
-        
-        // Enable inputs
-        const messageInput = document.getElementById('message-input');
-        messageInput.disabled = false;
-        document.getElementById('send-button').disabled = false;
-        
-        // Store session data in localStorage (important for auto-refresh functionality)
-        const sessionData = {
-            ai_model_name: data.ai_model_name || 'مدل پیش‌فرض',
-            session_name: data.title,
-            chatbot_type: data.chatbot_type,
-            chatbot_id: data.chatbot_id
-        };
-        localStorage.setItem(`session_${currentSessionId}`, JSON.stringify(sessionData));
-        console.log('Stored session data for auto-refresh:', sessionData);
-        
-        // Load models for the message input area
-        if (data.chatbot_id) {
-            loadMessageInputModels(data.chatbot_id);
-        }
-        
-        // Check web search and image generation access
-        checkWebSearchAccess(currentSessionId);
-        checkImageGenerationAccess(currentSessionId);
-        
-        // Set web search state if it was enabled for new session
-        if (isWebSearchEnabledForNewSession) {
-            sessionStorage.setItem(`webSearch_${currentSessionId}`, 'true');
-            // Update the web search button UI
-            const webSearchBtn = document.getElementById('web-search-btn');
-            if (webSearchBtn) {
-                webSearchBtn.classList.remove('btn-outline-secondary');
-                webSearchBtn.classList.add('btn-success');
-                webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
-                webSearchBtn.title = 'غیرفعال کردن جستجو وب';
-            }
-        }
-        
-        // Update sessions list
-        loadSessions();
-        
-        // Hide welcome message
-        const welcomeMessage = document.getElementById('welcome-message');
-        if (welcomeMessage) {
-            welcomeMessage.style.display = 'none';
-        }
-        
-        return data; // Return session data
+        // Return session data for caller to handle UI updates
+        return data;
     } catch (error) {
         console.error('Error creating default session:', error);
         alert('خطا در ایجاد چت جدید: ' + error.message);
