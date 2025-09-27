@@ -64,11 +64,6 @@
   --transition-slow: all 0.3s ease;
 }
 
-/* Hide the modern navbar on chat page only */
-body[data-chat-page] .modern-navbar.d-none.d-md-block {
-  display: none !important;
-}
-
 /* Global Styles - Modern & Clean */
 html, body {
   height: 100%;
