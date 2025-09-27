@@ -448,16 +448,38 @@ function initializeFloatingModelSelection() {
     // Add click event to model selection wrapper to show floating model selection
     const modelSelectionButton = document.getElementById('model-selection-button');
     if (modelSelectionButton) {
-        modelSelectionButton.addEventListener('click', function(e) {
+        // Remove any existing event listeners to prevent duplicates
+        const cloneModelSelectionButton = modelSelectionButton.cloneNode(true);
+        modelSelectionButton.parentNode.replaceChild(cloneModelSelectionButton, modelSelectionButton);
+        
+        // Add click event listener
+        cloneModelSelectionButton.addEventListener('click', function(e) {
             e.stopPropagation();
-            showFloatingModelSelection();
+            e.preventDefault();
+            
+            // Toggle floating model selection
+            const floatingModelSelection = document.getElementById('floating-model-selection');
+            if (floatingModelSelection) {
+                if (floatingModelSelection.classList.contains('show')) {
+                    hideFloatingModelSelection();
+                } else {
+                    showFloatingModelSelection();
+                }
+            }
         });
     }
     
     // Add click event to close button
     const closeModelSelection = document.getElementById('close-model-selection');
     if (closeModelSelection) {
-        closeModelSelection.addEventListener('click', function() {
+        // Remove any existing event listeners to prevent duplicates
+        const cloneCloseModelSelection = closeModelSelection.cloneNode(true);
+        closeModelSelection.parentNode.replaceChild(cloneCloseModelSelection, closeModelSelection);
+        
+        // Add click event listener
+        cloneCloseModelSelection.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
             hideFloatingModelSelection();
         });
     }
@@ -465,10 +487,14 @@ function initializeFloatingModelSelection() {
     // Close floating model selection when clicking outside
     document.addEventListener('click', function(e) {
         const floatingModelSelection = document.getElementById('floating-model-selection');
-        if (floatingModelSelection && floatingModelSelection.classList.contains('show') && 
-            !floatingModelSelection.contains(e.target) && 
-            !e.target.closest('#model-selection-button')) {
-            hideFloatingModelSelection();
+        const modelSelectionButton = document.getElementById('model-selection-button');
+        
+        if (floatingModelSelection && floatingModelSelection.classList.contains('show')) {
+            // Check if click is outside the floating model selection and not on the model selection button
+            if (!floatingModelSelection.contains(e.target) && 
+                (!modelSelectionButton || !modelSelectionButton.contains(e.target))) {
+                hideFloatingModelSelection();
+            }
         }
     });
 }
