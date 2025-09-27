@@ -128,6 +128,33 @@ function checkInitialSession() {
         const sessionId = parseInt(pathParts[3]);
         if (sessionId) {
             loadSession(sessionId);
+            
+            // Check if there's a pending message to send after session creation
+            const pendingMessage = sessionStorage.getItem('pendingMessage');
+            const pendingFiles = sessionStorage.getItem('pendingFiles');
+            
+            if (pendingMessage || pendingFiles) {
+                // Clear the session storage
+                sessionStorage.removeItem('pendingMessage');
+                sessionStorage.removeItem('pendingFiles');
+                
+                // Send the pending message after a short delay to ensure UI is ready
+                setTimeout(() => {
+                    const messageInput = document.getElementById('message-input');
+                    if (messageInput) {
+                        // Set the message content
+                        if (pendingMessage) {
+                            messageInput.value = pendingMessage;
+                        }
+                        
+                        // Trigger the send button click
+                        const sendButton = document.getElementById('send-button');
+                        if (sendButton) {
+                            sendButton.click();
+                        }
+                    }
+                }, 1000);
+            }
         }
     }
 }

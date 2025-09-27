@@ -26,6 +26,17 @@ function sendMessage() {
     
     // بررسی وجود currentSessionId و ایجاد session پیش‌فرض در صورت نیاز
     if (!currentSessionId) {
+        // Store the message content in session storage so it can be sent after page refresh
+        if (message) {
+            sessionStorage.setItem('pendingMessage', message);
+        }
+        
+        // Store files info in session storage if needed
+        if (files && files.length > 0) {
+            // For simplicity, we'll just store the fact that files were selected
+            sessionStorage.setItem('pendingFiles', 'true');
+        }
+        
         // ایجاد session پیش‌فرض
         createDefaultSessionAndSendMessage(message, files);
         return;
@@ -791,15 +802,30 @@ async function createDefaultSessionAndSendMessage(message, files) {
         // نمایش پیام انتظار
         showTypingIndicator();
         
+        // Store the message content in session storage so it can be sent after page refresh
+        if (message) {
+            sessionStorage.setItem('pendingMessage', message);
+        }
+        
+        // Store files info in session storage if needed
+        if (files && files.length > 0) {
+            // For simplicity, we'll just store the fact that files were selected
+            sessionStorage.setItem('pendingFiles', 'true');
+        }
+        
         // ایجاد جلسه پیش‌فرض
         const sessionData = await createDefaultSession();
         
+        // The page will refresh automatically after createDefaultSession
+        // so the following code will not execute
+        /*
         // حالا پیام را ارسال کنیم
         // Re-enable input before sending message
         const messageInput = document.getElementById('message-input');
         messageInput.disabled = false;
         // Use the improved sendMessage function
         sendMessage();
+        */
         
     } catch (error) {
         hideTypingIndicator();
@@ -839,8 +865,12 @@ async function createDefaultSession() {
         // Set new session ID
         currentSessionId = data.session_id;
         
-        // Redirect to the new session URL
+        // Redirect to the new session URL with page refresh
         const newUrl = `/chat/session/${currentSessionId}/`;
+        window.location.href = newUrl;
+        
+        // The following code will not execute due to page refresh
+        /*
         history.pushState({sessionId: currentSessionId}, '', newUrl);
         
         // Update UI
@@ -894,6 +924,7 @@ async function createDefaultSession() {
         if (welcomeMessage) {
             welcomeMessage.style.display = 'none';
         }
+        */
         
         return data; // Return session data
     } catch (error) {
