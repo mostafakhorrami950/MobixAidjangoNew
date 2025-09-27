@@ -10,21 +10,19 @@
     <div class="auth-card">
         <div class="auth-header">
             <div class="auth-logo">
-                <i class="fas fa-robot"></i>
+                <i class="fas fa-user-plus"></i>
             </div>
-            <h2 class="auth-title">ثبت نام در MobixAI</h2>
-            <p class="auth-subtitle">حساب کاربری خود را ایجاد کنید</p>
+            <h2 class="auth-title">عضویت در MobixAI</h2>
+            <p class="auth-subtitle">به جمع کاربران هوش مصنوعی بپیوندید</p>
         </div>
         
         <div class="auth-body">
             <!-- Error Messages -->
-            {% if messages %}
+            {% if form.non_field_errors %}
                 <div class="error-messages">
                     <ul>
-                        {% for message in messages %}
-                            {% if message.tags == 'error' %}
-                                <li>{{ message }}</li>
-                            {% endif %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -40,15 +38,14 @@
                     <div class="input-with-icon">
                         <input 
                             type="text" 
-                            class="form-control {% if form.name.errors %}error{% endif %}" 
+                            class="form-control {{ form.name.errors|yesno:'error,' }}" 
                             id="{{ form.name.id_for_label }}" 
-                            name="{{ form.name.name }}"
-                            value="{% if form.name.value %}{{ form.name.value }}{% endif %}"
-                            placeholder="نام کامل خود را وارد کنید"
-                            maxlength="100"
+                            name="{{ form.name.name }}" 
+                            value="{{ form.name.value|default:'' }}"
+                            placeholder="مثال: علی احمدی"
                             required
                         >
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-id-card"></i>
                     </div>
                     {% if form.name.errors %}
                         {% for error in form.name.errors %}
@@ -64,10 +61,10 @@
                     <div class="input-with-icon">
                         <input 
                             type="tel" 
-                            class="form-control {% if form.phone_number.errors %}error{% endif %}" 
+                            class="form-control {{ form.phone_number.errors|yesno:'error,' }}" 
                             id="{{ form.phone_number.id_for_label }}" 
-                            name="{{ form.phone_number.name }}"
-                            value="{% if form.phone_number.value %}{{ form.phone_number.value }}{% endif %}"
+                            name="{{ form.phone_number.name }}" 
+                            value="{{ form.phone_number.value|default:'' }}"
                             placeholder="مثال: 09123456789"
                             pattern="09[0-9]{9}"
                             maxlength="11"
@@ -80,13 +77,13 @@
                             <span class="field-error">{{ error }}</span>
                         {% endfor %}
                     {% endif %}
-                    <small class="form-text">شماره تلفن برای احراز هویت استفاده می‌شود</small>
+                    <span class="field-error" id="phone-error" style="display: none;">شماره تلفن نامعتبر است</span>
                 </div>
                 
-                <div class="form-group form-check">
+                <div class="form-check">
                     <input 
                         type="checkbox" 
-                        class="form-check-input {% if form.terms_accepted.errors %}error{% endif %}" 
+                        class="form-check-input" 
                         id="{{ form.terms_accepted.id_for_label }}" 
                         name="{{ form.terms_accepted.name }}"
                         {% if form.terms_accepted.value %}checked{% endif %}
@@ -120,19 +117,29 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is already authenticated and redirect to chat
+    // Check if user is already authenticated and redirect
     if (document.body.dataset.authenticated === 'true') {
-        window.location.href = '{% url "chat" %}';
+        window.location.href = '{% url "dashboard" %}';
         return;
     }
-    
     const form = document.getElementById('registerForm');
-    const phoneInput = document.querySelector('input[name="phone_number"]');
-    const nameInput = document.querySelector('input[name="name"]');
-    const termsCheckbox = document.getElementById('{{ form.terms_accepted.id_for_label }}');
+    const nameInput = document.getElementById('id_name');
+    const phoneInput = document.getElementById('id_phone_number');
+    const phoneError = document.getElementById('phone-error');
+    const termsCheckbox = document.getElementById('id_terms_accepted');
     const submitBtn = document.getElementById('submitBtn');
     
-    // Phone number validation
+    // Name validation
+    nameInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^\u0600-\u06FF\u0020]/g, ''); // Allow only Persian chars and space
+        if (this.value.trim().length < 2) {
+            this.classList.add('error');
+        } else {
+            this.classList.remove('error');
+        }
+    });
+    
+    // Phone number validation and formatting
     phoneInput.addEventListener('input', function() {
         let value = this.value.replace(/\D/g, ''); // Remove non-digits
         
@@ -147,78 +154,123 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         this.value = value;
-    });
-    
-    // Form submission validation
-    form.addEventListener('submit', function(e) {
-        const phoneValue = phoneInput.value;
-        const nameValue = nameInput.value.trim();
         
         // Validate phone number
-        if (!/^09[0-9]{9}$/.test(phoneValue)) {
-            e.preventDefault();
-            alert('لطفاً شماره تلفن معتبر وارد کنید (11 رقم و با 09 شروع شود)');
-            phoneInput.focus();
-            return;
+        if (value.length === 11 && /^09[0-9]{9}$/.test(value)) {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
+        } else if (value.length > 0) {
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'شماره تلفن باید 11 رقم و با 09 شروع شود';
+            this.classList.add('error');
+        } else {
+            phoneError.style.display = 'none';
+            this.classList.remove('error');
         }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
         
         // Validate name
-        if (nameValue.length < 2) {
-            e.preventDefault();
-            alert('لطفاً نام خود را به درستی وارد کنید');
-            nameInput.focus();
-            return;
+        if (nameInput.value.trim().length < 2) {
+            isValid = false;
+            nameInput.classList.add('error');
         }
         
-        // Validate terms acceptance
+        // Validate phone
+        const phoneValue = phoneInput.value;
+        if (!/^09[0-9]{9}$/.test(phoneValue)) {
+            isValid = false;
+            phoneError.style.display = 'block';
+            phoneError.textContent = 'لطفاً شماره تلفن معتبر وارد کنید';
+            phoneInput.classList.add('error');
+        }
+        
+        // Validate terms
         if (!termsCheckbox.checked) {
+            isValid = false;
+            alert('لطفاً شرایط و قوانین را قبول کنید');
+        }
+        
+        if (!isValid) {
             e.preventDefault();
-            alert('برای ثبت نام باید شرایط و قوانین را بپذیرید');
             return;
         }
         
         // Add loading state
         submitBtn.classList.add('loading');
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ثبت نام...';
+        submitBtn.textContent = 'در حال ایجاد حساب...';
         submitBtn.disabled = true;
     });
 });
+</script>
 
-function showTermsModal() {
-    // Create and show terms modal
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>شرایط و قوانین استفاده</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>شرایط و قوانین استفاده از سرویس MobixAI:</p>
-                <ol>
-                    <li>با استفاده از این سرویس، شما موافقت خود را با این شرایط اعلام می‌کنید.</li>
-                    <li>از سرویس در امور غیرقانونی استفاده نکنید.</li>
-                    <li>حریم خصوصی کاربران رعایت می‌شود.</li>
-                    <li>استفاده مناسب از منابع سرویس ضروری است.</li>
-                    <li>شرایط این قابل تغییر است.</li>
-                </ol>
-            </div>
+<!-- Terms and Conditions Modal -->
+<div class="terms-modal-overlay" id="termsModalOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: none;">
+    <div class="terms-modal" id="termsModal" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; z-index: 1001; display: none;">
+        <div class="terms-modal-header" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="terms-modal-title" style="font-size: 1.5rem; font-weight: 700; color: #1f2937; margin: 0;">شرایط و قوانین استفاده</h2>
+            <button class="terms-modal-close" id="termsModalClose" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s ease;">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-    `;
+        <div class="terms-modal-body" id="termsModalBody" style="padding: 1.5rem; color: #374151; line-height: 1.7; white-space: pre-line; text-align: justify;">
+            در حال بارگذاری...
+        </div>
+    </div>
+</div>
+
+<script>
+// Terms Modal functionality
+function showTermsModal() {
+    // Load terms content via AJAX
+    fetch('{% url "terms_and_conditions" %}')
+        .then(response => response.text())
+        .then(html => {
+            // Extract content from the response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const termsContent = doc.querySelector('.terms-content');
+            
+            if (termsContent) {
+                document.getElementById('termsModalBody').innerHTML = termsContent.innerHTML;
+            } else {
+                document.getElementById('termsModalBody').innerHTML = 'شرایط و قوانین در حال حاضر در دسترس نیست.';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading terms:', error);
+            document.getElementById('termsModalBody').innerHTML = 'خطا در بارگذاری شرایط و قوانین.';
+        });
     
-    document.body.appendChild(modal);
-    
-    // Close modal functionality
-    modal.querySelector('.close').addEventListener('click', function() {
-        document.body.removeChild(modal);
-    });
-    
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            document.body.removeChild(modal);
+    document.getElementById('termsModalOverlay').style.display = 'block';
+    document.getElementById('termsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function hideTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'none';
+    document.getElementById('termsModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Modal event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('termsModalClose').addEventListener('click', hideTermsModal);
+    document.getElementById('termsModalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideTermsModal();
         }
     });
-}
+    
+    // ESC key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideTermsModal();
+        }
+    });
+});
 </script>
 {% endblock %}

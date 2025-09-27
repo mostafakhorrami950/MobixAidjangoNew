@@ -80,9 +80,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if user is already authenticated and redirect to chat
+    // Check if user is already authenticated and redirect
     if (document.body.dataset.authenticated === 'true') {
-        window.location.href = '{% url "chat" %}';
+        window.location.href = '{% url "dashboard" %}';
         return;
     }
     const form = document.getElementById('loginForm');

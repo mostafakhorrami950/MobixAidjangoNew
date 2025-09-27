@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def register(request):
     # Redirect if user is already authenticated
     if request.user.is_authenticated:
-        return redirect('chat')
+        return redirect('dashboard')
         
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
@@ -87,7 +87,7 @@ def register(request):
 def verify_otp(request):
     # Redirect if user is already authenticated
     if request.user.is_authenticated:
-        return redirect('chat')
+        return redirect('dashboard')
         
     phone_number = request.session.get('phone_number')
     if not phone_number:
@@ -131,8 +131,13 @@ def verify_otp(request):
                     messages.success(request, 'شماره تلفن با موفقیت تأیید شد! خوش آمدید.')
                     logger.info(f'User {user.phone_number} successfully verified and logged in')
                     
-                    # Redirect all users to chat page after login/registration
-                    return redirect('chat')
+                    # Check if user came from registration or login
+                    if 'registration_user_id' in request.session:
+                        # New user - redirect to dashboard
+                        return redirect('dashboard')
+                    else:
+                        # Existing user logging in - redirect to chat
+                        return redirect('dashboard')
                 else:
                     if 'expired' in message.lower() or 'منقضی' in message:
                         messages.error(request, 'کد تأیید منقضی شده است. لطفاً کد جدید درخواست کنید.')
@@ -159,7 +164,7 @@ def verify_otp(request):
 def login_view(request):
     # Redirect if user is already authenticated
     if request.user.is_authenticated:
-        return redirect('chat')
+        return redirect('dashboard')
         
     if request.method == 'POST':
         phone_number = request.POST.get('phone_number')

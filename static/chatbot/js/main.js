@@ -60,8 +60,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, refresh the page to load the new session
-                            window.location.href = `/chat/session/${sessionData.session_id}/`;
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
                         } else {
                             // Handle cases where the server returns an error in the JSON response
                             console.error('Failed to create session:', sessionData.error || 'No session ID returned');
@@ -92,8 +98,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, refresh the page to load the new session
-                            window.location.href = `/chat/session/${sessionData.session_id}/`;
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                            // After session is created, trigger the file input
+                            setTimeout(() => {
+                                document.getElementById('file-input').click();
+                            }, 100);
+
                         } else {
                             // Handle cases where the server returns an error in the JSON response
                             console.error('Failed to create session:', sessionData.error || 'No session ID returned');
@@ -125,8 +142,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, refresh the page to load the new session
-                            window.location.href = `/chat/session/${sessionData.session_id}/`;
+                            // Session created successfully, load it
+                            // loadSession will handle UI updates, including enabling inputs
+                            loadSession(sessionData.session_id);
+
+                            // Update the URL to reflect the new session without reloading the page
+                            const newUrl = `/chat/session/${sessionData.session_id}/`;
+                            history.pushState({ sessionId: sessionData.session_id }, '', newUrl);
+
+                            // After session is created, show the model selection
+                            setTimeout(() => {
+                                showFloatingModelSelection();
+                            }, 100);
+
                         } else {
                             // Handle cases where the server returns an error in the JSON response
                             console.error('Failed to create session:', sessionData.error || 'No session ID returned');
