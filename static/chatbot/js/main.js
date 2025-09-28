@@ -12,6 +12,17 @@ let currentSelectedModel = null;
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Chat page DOM content loaded');
+    
+    // Log important elements
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    
+    console.log('Chat page - Sidebar element:', sidebar);
+    console.log('Chat page - Sidebar overlay element:', sidebarOverlay);
+    console.log('Chat page - Mobile menu toggle element:', mobileMenuToggle);
+    
     loadSessions();
     checkInitialSession(); // Check if we should load a specific session
     
@@ -21,7 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load available models for user
     loadAvailableModelsForUser();
 
-    // Load sidebar menu items
+    // Load sidebar menu items for both desktop and mobile
+    loadDesktopSidebarMenuItems();
     loadSidebarMenuItems();
 
     // Input event listener is now handled by MultiFileUploadManager
@@ -330,7 +342,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('image-generation-btn').addEventListener('click', toggleImageGeneration);
     
     // Mobile sidebar toggle - moved from base.html to here where sidebar exists
-    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent event bubbling
@@ -392,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadAvailableModelsForUser();
             
             // Reload sidebar menu items
+            loadDesktopSidebarMenuItems();
             loadSidebarMenuItems();
         }
     });
@@ -399,11 +411,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Reload sidebar menu items on window resize
     window.addEventListener('resize', function() {
         if (window.innerWidth >= 768) {
-            // On desktop, clear mobile menu
-            const mobileNavMenu = document.getElementById('mobile-nav-menu');
-            if (mobileNavMenu) {
-                mobileNavMenu.innerHTML = '';
-            }
+            // On desktop, reload desktop menu items
+            loadDesktopSidebarMenuItems();
         } else {
             // On mobile, reload menu items
             loadSidebarMenuItems();

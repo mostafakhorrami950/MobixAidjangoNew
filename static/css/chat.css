@@ -64,6 +64,11 @@
   --transition-slow: all 0.3s ease;
 }
 
+/* Hide the modern navbar on chat page for desktop */
+.modern-navbar.d-none.d-md-block {
+  display: none !important;
+}
+
 /* Global Styles - Modern & Clean */
 html, body {
   height: 100%;
@@ -158,7 +163,7 @@ html, body {
     top: 0;
     right: 0;
     height: 100vh;
-    z-index: 1000;
+    z-index: 10000; /* Updated to meet project specification requirement */
     transform: translateX(100%);
     transition: transform 0.3s ease;
   }
@@ -166,7 +171,7 @@ html, body {
   /* Show sidebar when 'show' class is added */
   .sidebar.show {
     display: flex;
-    transform: translateX(0);
+    transform: translateX(0) !important;
   }
 }
 
@@ -1502,11 +1507,11 @@ option:disabled {
 .overlay {
   position: fixed;
   top: 0;
+  left: 0;
   right: 0;
-  width: 100%;
-  height: 100%;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  z-index: 9999; /* Just below sidebar z-index */
   display: none;
 }
 

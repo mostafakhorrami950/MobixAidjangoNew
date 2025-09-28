@@ -98,6 +98,10 @@
     <div class="overlay d-md-none" id="mobile-overlay"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    {% load static %}
+    <script src="{% static 'js/console-production.js' %}"></script>
+    <script src="{% static 'js/mobile-menu.js' %}"></script>
     <script>
         // URLs for API endpoints
         const BASE_URLS = {
@@ -106,52 +110,23 @@
         
         // Mobile menu toggle functionality for all pages
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Base DOM content loaded');
+            
             // Load desktop menu items
             loadDesktopMenuItems();
             
+            // Handle hamburger menu toggle specifically for chat page
             const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-            const overlay = document.getElementById('mobile-overlay');
-            
-            // Handle hamburger menu toggle
             if (mobileMenuToggle) {
                 mobileMenuToggle.addEventListener('click', function(e) {
                     // Check if we're on the chat page
-                    if (window.location.pathname.startsWith('/chat')) {
-                        // On chat page, toggle the existing sidebar
-                        const sidebar = document.getElementById('sidebar');
-                        const sidebarOverlay = document.getElementById('sidebar-overlay');
-                        
-                        if (sidebar) {
-                            sidebar.classList.toggle('show');
-                        }
-                        if (sidebarOverlay) {
-                            sidebarOverlay.classList.toggle('show');
-                        }
+                    const isChatPage = window.location.pathname.startsWith('/chat');
+                    if (isChatPage) {
+                        // On chat page, prevent default behavior and let mobile menu handle it
+                        e.preventDefault();
+                        e.stopPropagation();
                         return;
                     }
-                    // Create mobile sidebar menu for other pages
-                    createMobileSidebar();
-                });
-            }
-            
-            // Handle overlay click to close sidebar
-            if (overlay) {
-                overlay.addEventListener('click', function() {
-                    // Check if we're on the chat page
-                    if (window.location.pathname.startsWith('/chat')) {
-                        // On chat page, close the existing sidebar
-                        const sidebar = document.getElementById('sidebar');
-                        const sidebarOverlay = document.getElementById('sidebar-overlay');
-                        
-                        if (sidebar) {
-                            sidebar.classList.remove('show');
-                        }
-                        if (sidebarOverlay) {
-                            sidebarOverlay.classList.remove('show');
-                        }
-                        return;
-                    }
-                    closeMobileSidebar();
                 });
             }
         });
@@ -259,7 +234,7 @@
                 });
         }
         
-        // Show default desktop menu items if there's an error or no items configured
+        // Show default desktop menu items if there's an error
         function showDefaultDesktopMenuItems() {
             const desktopNavLeft = document.getElementById('desktop-nav-left');
             const desktopNavRight = document.getElementById('desktop-nav-right');
@@ -328,190 +303,6 @@
                 `;
                 desktopNavRight.appendChild(li);
             });
-        }
-        
-        // Create mobile sidebar with navigation options
-        function createMobileSidebar() {
-            // Remove existing sidebar if it exists
-            const existingSidebar = document.getElementById('mobile-sidebar');
-            if (existingSidebar) {
-                existingSidebar.remove();
-            }
-            
-            // Create sidebar element
-            const sidebar = document.createElement('div');
-            sidebar.id = 'mobile-sidebar';
-            sidebar.className = 'sidebar show';
-            
-            // Create sidebar content with loading state
-            sidebar.innerHTML = `
-                <div class="sidebar-header">
-                    <h5 class="mb-0">منو</h5>
-                    <div class="sidebar-controls">
-                        <button class="btn btn-sm" id="close-mobile-sidebar" title="بستن">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="mobile-nav-menu d-md-none" id="mobile-nav-menu">
-                    <div class="text-center p-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">در حال بارگذاری...</span>
-                        </div>
-                        <p class="mt-2">در حال بارگذاری منو...</p>
-                    </div>
-                </div>
-            `;
-            
-            // Add sidebar to body
-            document.body.appendChild(sidebar);
-            
-            // Show overlay
-            const overlay = document.getElementById('mobile-overlay');
-            if (overlay) {
-                overlay.classList.add('show');
-            }
-            
-            // Add event listener to close button
-            const closeBtn = document.getElementById('close-mobile-sidebar');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function() {
-                    closeMobileSidebar();
-                });
-            }
-            
-            // Load menu items dynamically
-            loadSidebarMenuItems();
-        }
-        
-        // Load sidebar menu items dynamically
-        function loadSidebarMenuItems() {
-            const mobileNavMenu = document.getElementById('mobile-nav-menu');
-            if (!mobileNavMenu) {
-                return;
-            }
-            
-            // Fetch menu items from the server
-            fetch(BASE_URLS.getSidebarMenuItems)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error('Error loading menu items:', data.error);
-                        showDefaultMenuItems();
-                        return;
-                    }
-                    
-                    // Clear loading state
-                    mobileNavMenu.innerHTML = '';
-                    
-                    // Check if user is authenticated
-                    const isAuthenticated = document.body.dataset.authenticated === 'true';
-                    
-                    // Add menu items
-                    if (data.menu_items && data.menu_items.length > 0) {
-                        data.menu_items.forEach(item => {
-                            // Skip items that should only be shown to authenticated users if user is not authenticated
-                            if (item.show_only_for_authenticated && !isAuthenticated) {
-                                return;
-                            }
-                            
-                            // Skip items that should only be shown to non-authenticated users if user is authenticated
-                            if (item.show_only_for_non_authenticated && isAuthenticated) {
-                                return;
-                            }
-                            
-                            const navItem = document.createElement('div');
-                            navItem.className = 'nav-item';
-                            navItem.innerHTML = `
-                                <a class="nav-link" href="${item.url}">
-                                    <i class="${item.icon_class}"></i> ${item.name}
-                                </a>
-                            `;
-                            mobileNavMenu.appendChild(navItem);
-                        });
-                    } else {
-                        // Show default menu items if none are configured
-                        showDefaultMenuItems();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading menu items:', error);
-                    showDefaultMenuItems();
-                });
-        }
-        
-        // Show default menu items if there's an error or no items configured
-        function showDefaultMenuItems() {
-            const mobileNavMenu = document.getElementById('mobile-nav-menu');
-            if (!mobileNavMenu) {
-                return;
-            }
-            
-            // Check if user is authenticated by looking for specific elements or cookies
-            // This is a simple check - in a real application, you might want to use a more robust method
-            const isAuthenticated = document.body.dataset.authenticated === 'true';
-            
-            let menuHtml = `
-                <div class="nav-item">
-                    <a class="nav-link" href="/">
-                        <i class="fas fa-home"></i> خانه
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a class="nav-link" href="/chat/">
-                        <i class="fas fa-comments"></i> چت
-                    </a>
-                </div>
-            `;
-            
-            if (isAuthenticated) {
-                menuHtml += `
-                    <div class="nav-item">
-                        <a class="nav-link" href="/dashboard/">
-                            <i class="fas fa-tachometer-alt"></i> داشبورد
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="/financial-transactions/">
-                            <i class="fas fa-credit-card"></i> تراکنش‌های مالی
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="/purchase-subscription/">
-                            <i class="fas fa-shopping-cart"></i> خرید اشتراک
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-link" href="/accounts/logout/">
-                            <i class="fas fa-sign-out-alt"></i> خروج
-                        </a>
-                    </div>
-                `;
-            } else {
-                menuHtml += `
-                    <div class="nav-item">
-                        <a class="nav-link" href="/accounts/login/">
-                            <i class="fas fa-sign-in-alt"></i> ورود
-                        </a>
-                    </div>
-                `;
-            }
-            
-            mobileNavMenu.innerHTML = menuHtml;
-        }
-        
-        // Close mobile sidebar
-        function closeMobileSidebar() {
-            const sidebar = document.getElementById('mobile-sidebar');
-            const overlay = document.getElementById('mobile-overlay');
-            
-            if (sidebar) {
-                sidebar.remove();
-            }
-            
-            if (overlay) {
-                overlay.classList.remove('show');
-            }
         }
     </script>
 </body>

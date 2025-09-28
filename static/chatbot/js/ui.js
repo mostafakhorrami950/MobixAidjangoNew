@@ -4,15 +4,29 @@
 
 // Toggle sidebar on mobile
 function toggleSidebar() {
+    console.log('toggleSidebar function called');
+    
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
     
+    console.log('Sidebar element:', sidebar);
+    console.log('Overlay element:', overlay);
+    
     if (sidebar) {
         sidebar.classList.toggle('show');
+        console.log('Sidebar show class toggled. Current classes:', sidebar.className);
+    } else {
+        console.error('Sidebar element not found');
     }
+    
     if (overlay) {
         overlay.classList.toggle('show');
+        console.log('Overlay show class toggled. Current classes:', overlay.className);
+    } else {
+        console.error('Overlay element not found');
     }
+    
+    console.log('toggleSidebar function completed');
 }
 
 // Toggle sessions list visibility
@@ -48,6 +62,60 @@ function checkModalSelections() {
     } else {
         createBtn.disabled = true;
     }
+}
+
+// Load sidebar menu items for desktop view
+function loadDesktopSidebarMenuItems() {
+    const desktopNavMenu = document.getElementById('desktop-nav-menu');
+    if (!desktopNavMenu) return;
+
+    fetch(CHAT_URLS.getSidebarMenuItems)
+        .then(response => response.json())
+        .then(data => {
+            desktopNavMenu.innerHTML = ''; // Clear previous items
+            if (data.menu_items && data.menu_items.length > 0) {
+                data.menu_items.forEach(item => {
+                    const navItem = document.createElement('div');
+                    navItem.className = 'nav-item';
+                    navItem.innerHTML = `
+                        <a class="nav-link" href="${item.url}">
+                          <i class="${item.icon_class}"></i> ${item.name}
+                        </a>
+                    `;
+                    desktopNavMenu.appendChild(navItem);
+                });
+            } else {
+                // Show default menu items if none are configured
+                desktopNavMenu.innerHTML = `
+                    <div class="nav-item">
+                        <a class="nav-link" href="/chat/">
+                            <i class="fas fa-comments"></i> چت
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a class="nav-link" href="/accounts/profile/">
+                            <i class="fas fa-user"></i> پروفایل
+                        </a>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading desktop menu items:', error);
+            // Show default menu items if there's an error
+            desktopNavMenu.innerHTML = `
+                <div class="nav-item">
+                    <a class="nav-link" href="/chat/">
+                        <i class="fas fa-comments"></i> چت
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a class="nav-link" href="/accounts/profile/">
+                        <i class="fas fa-user"></i> پروفایل
+                    </a>
+                </div>
+            `;
+        });
 }
 
 // Load sidebar menu items for mobile view
@@ -143,3 +211,8 @@ function hideSessionCreationLoading(success = true) {
     }
     // If successful, loadSession will handle replacing the welcome message
 }
+
+// Export functions to global scope for cross-file access
+console.log('Exporting toggleSidebar to global scope');
+window.toggleSidebar = toggleSidebar;
+console.log('toggleSidebar exported. Type:', typeof window.toggleSidebar);
