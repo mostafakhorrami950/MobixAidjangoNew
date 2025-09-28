@@ -5,6 +5,12 @@ console.log('Mobile Menu System Loaded');
 class MobileMenu {
     constructor() {
         this.isOpen = false;
+        this.sessions = [];
+        this.currentPage = 1;
+        this.pageSize = 20;
+        this.isLoading = false;
+        this.hasMore = true;
+        this.currentSessionId = null;
         this.init();
     }
 
@@ -237,9 +243,14 @@ class MobileMenu {
             return;
         }
         
-        // Fetch sessions from the server
-        fetch('/chat/sessions/')
-            .then(response => response.json())
+        // Get current session ID from URL if on chat page
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts.length >= 4 && pathParts[1] === 'chat' && pathParts[2] === 'session') {
+            this.currentSessionId = parseInt(pathParts[3]);
+        }
+        
+        // Fetch sessions from the server with pagination
+        this.fetchSessions(1)
             .then(data => {
                 console.log('Sessions loaded:', data);
                 
@@ -248,9 +259,18 @@ class MobileMenu {
                 
                 // Add sessions
                 if (data.sessions && data.sessions.length > 0) {
+                    this.sessions = data.sessions;
+                    this.hasMore = data.sessions.length === this.pageSize;
+                    this.currentPage = 1;
+                    
                     data.sessions.forEach(session => {
                         const sessionItem = this.createSessionItem(session);
                         sessionsList.appendChild(sessionItem);
+                    });
+                    
+                    // Add scroll event listener for infinite scroll
+                    sessionsList.addEventListener('scroll', () => {
+                        this.handleScroll(sessionsList);
                     });
                 } else {
                     // No sessions message
@@ -300,7 +320,7 @@ class MobileMenu {
             return;
         }
         
-        // Fetch menu items from the server
+        // Fetch menu items from the server (chat app endpoint)
         fetch('/chat/sidebar-menu-items/')
             .then(response => response.json())
             .then(data => {
@@ -344,11 +364,81 @@ class MobileMenu {
             });
     }
 
+    // Fetch sessions with pagination
+    async fetchSessions(page) {
+        const response = await fetch(`/chat/sessions/?page=${page}&page_size=${this.pageSize}`);
+        return await response.json();
+    }
+    
+    // Handle scroll for infinite loading
+    handleScroll(sessionsList) {
+        // Check if we're near the bottom of the scrollable area
+        if (sessionsList.scrollTop + sessionsList.clientHeight >= sessionsList.scrollHeight - 50) {
+            this.loadMoreSessions();
+        }
+    }
+    
+    // Load more sessions when scrolling
+    loadMoreSessions() {
+        if (this.isLoading || !this.hasMore) return;
+        
+        this.isLoading = true;
+        const sessionsList = document.getElementById('mobile-sessions-list');
+        
+        // Show loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'sessions-loading-more';
+        loadingIndicator.className = 'text-center p-2';
+        loadingIndicator.innerHTML = `
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">در حال بارگذاری...</span>
+            </div>
+        `;
+        sessionsList.appendChild(loadingIndicator);
+        
+        this.fetchSessions(this.currentPage + 1)
+            .then(data => {
+                // Remove loading indicator
+                if (loadingIndicator.parentNode) {
+                    loadingIndicator.parentNode.removeChild(loadingIndicator);
+                }
+                
+                if (data.sessions && data.sessions.length > 0) {
+                    this.currentPage++;
+                    this.sessions = [...this.sessions, ...data.sessions];
+                    this.hasMore = data.sessions.length === this.pageSize;
+                    
+                    // Add new sessions to the list
+                    data.sessions.forEach(session => {
+                        const sessionItem = this.createSessionItem(session);
+                        sessionsList.appendChild(sessionItem);
+                    });
+                } else {
+                    this.hasMore = false;
+                }
+                
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error loading more sessions:', error);
+                // Remove loading indicator
+                if (loadingIndicator.parentNode) {
+                    loadingIndicator.parentNode.removeChild(loadingIndicator);
+                }
+                this.isLoading = false;
+            });
+    }
+    
     // Create a session item element
     createSessionItem(session) {
         const sessionItem = document.createElement('div');
         sessionItem.className = 'mobile-menu-item session-item';
         sessionItem.dataset.sessionId = session.id;
+        
+        // Add active class if this is the current session
+        if (this.currentSessionId && this.currentSessionId === session.id) {
+            sessionItem.classList.add('active');
+        }
         
         // Truncate title if too long
         const truncatedTitle = session.title.length > 30 ? session.title.substring(0, 30) + '...' : session.title;
@@ -378,8 +468,8 @@ class MobileMenu {
             return;
         }
         
-        // Fetch menu items from the server
-        fetch('/chat/sidebar-menu-items/')
+        // Fetch menu items from the server (core app endpoint for non-chat pages)
+        fetch('/sidebar-menu-items/')
             .then(response => response.json())
             .then(data => {
                 console.log('Menu items loaded:', data);

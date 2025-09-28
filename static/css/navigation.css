@@ -9,11 +9,20 @@
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
   padding: 0;
-  position: static;
+  position: fixed;
+  top: 0;
   width: 100%;
   z-index: 1000;
   backdrop-filter: blur(20px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: none; /* Hidden by default on mobile */
+}
+
+/* Show navbar only on medium devices and larger (desktop) */
+@media (min-width: 768px) {
+  .modern-navbar {
+    display: block;
+  }
 }
 
 .modern-navbar .container {
@@ -251,7 +260,6 @@
 
 /* Mobile Hamburger - Enhanced */
 .hamburger-menu {
-  display: none;
   position: fixed;
   top: 20px;
   right: 20px;
@@ -395,77 +403,302 @@
 .mobile-menu-section-content {
   display: flex;
   flex-direction: column;
+  max-height: 400px; /* Limit height for scrollable area */
 }
 
 .mobile-menu-items {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+/* Make sessions list scrollable */
+#mobile-sessions-list {
+  max-height: 400px; /* Increased for better usability */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+/* Custom scrollbar */
+#mobile-sessions-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+#mobile-sessions-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+#mobile-sessions-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+#mobile-sessions-list::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }
 
 .mobile-menu-item {
-  border-bottom: 1px solid #E2E8F0;
+  border: none;
 }
 
 .mobile-menu-item:last-child {
-  border-bottom: none;
+  border: none;
 }
 
 .mobile-menu-item.empty,
 .mobile-menu-item.error {
-  border-bottom: none;
+  border: none;
 }
 
+/* Fresh minimalist list-row style for mobile-menu-link */
 .mobile-menu-link {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px 20px;
+  gap: 12px;
+  padding: 14px 16px;
   text-decoration: none;
-  color: #334155;
-  transition: all 0.2s;
+  color: #111827; /* neutral-900 */
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  min-height: 56px; /* larger tap target */
+  position: relative;
+  background: transparent;
+  border-radius: 12px;
+  margin: 0 8px;
+  border: 1px solid transparent; /* allows focus ring */
+}
+
+/* Subtle hover background and left accent bar */
+.mobile-menu-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: linear-gradient(180deg, #10b981, #34d399);
+  border-radius: 2px;
+  opacity: 0; /* only visible on hover/active */
+  transition: opacity 0.2s ease;
 }
 
 .mobile-menu-link:hover {
-  background: #F1F5F9;
-  color: #2563EB;
-  transform: translateX(-5px);
+  background: #f9fafb; /* neutral-50 */
+  color: #065f46; /* emerald-900 */
 }
 
+.mobile-menu-link:hover::before {
+  opacity: 1;
+}
+
+.mobile-menu-link:focus-visible {
+  outline: none;
+  border-color: #a7f3d0; /* emerald-200 */
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+/* Icon chip style for menu items that include an <i> */
 .mobile-menu-link i {
-  width: 24px;
-  text-align: center;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 18px;
+  color: #047857; /* emerald-700 */
+  background: #ecfdf5; /* emerald-50 */
+  border: 1px solid #d1fae5; /* emerald-200 */
+  border-radius: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  flex-shrink: 0;
 }
 
-/* Session item specific styles */
+.mobile-menu-link:hover i {
+  color: #065f46;
+  background: #d1fae5;
+  transform: translateY(-1px);
+}
+
+/* Session item styles (mobile-first, optimized touch targets) */
+.mobile-menu-item.session-item {
+  margin: 0;
+  padding: 5px;
+  background: transparent;
+  border-bottom: 1px solid #f3f4f6; /* subtle divider between rows */
+  transition: all 0.2s ease;
+  min-height: 100px;
+}
+
+.mobile-menu-item.session-item:first-child {
+  border-top: 1px solid #f3f4f6;
+}
+
 .mobile-menu-item.session-item .mobile-menu-link {
-  padding: 12px 20px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px; /* larger hit area for better mobile touch targets */
+  margin: 6px 12px; /* breathing room from edges */
+  min-height: 70px; /* increased height for better mobile usability */
+  border-radius: 16px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effect for larger touch targets */
+.mobile-menu-item.session-item .mobile-menu-link:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Active session: mobile-friendly emphasis */
+.mobile-menu-item.session-item.active .mobile-menu-link {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.15));
+  color: #2563EB;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
+}
+
+.mobile-menu-item.session-item.active .mobile-menu-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #2563EB, #3B82F6);
+  border-radius: 0 4px 4px 0;
+  opacity: 1; /* show accent bar on active */
+}
+
+.mobile-menu-item.session-item.active .mobile-menu-link i {
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.2);
+  transform: scale(1.1);
+}
+
+.mobile-menu-item.session-item.active .session-title {
+  color: #2563EB;
+  font-weight: 700;
+}
+
+.mobile-menu-item.session-item.active .session-meta {
+  color: #3B82F6;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .mobile-menu-link {
+    font-size: 16px;
+    padding: 16px 20px; /* larger on mobile for better touch targets */
+    margin: 6px 12px;
+    border-radius: 16px;
+  }
+
+  .mobile-menu-link:active {
+    transform: scale(0.98);
+    background: #f1f5f9;
+  }
+
+  .mobile-menu-item.session-item {
+    margin: 0;
+  }
+
+  .mobile-menu-item.session-item .mobile-menu-link {
+    margin: 6px 12px;
+    min-height: 70px; /* ensure comfortable height on mobile */
+    border-radius: 16px;
+    padding: 16px 20px;
+  }
+}
+
+/* Extra small devices (phones, less than 375px) */
+@media (max-width: 375px) {
+  .mobile-menu-item.session-item .mobile-menu-link {
+    padding: 14px 16px;
+    min-height: 65px;
+    margin: 4px 8px;
+  }
+}
+
+/* Larger touch targets for accessibility */
+@media (max-width: 480px) {
+  .mobile-menu-item.session-item .mobile-menu-link {
+    min-height: 75px;
+  }
 }
 
 .session-info {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   flex: 1;
+  padding-left: 16px;
+  min-width: 0;
 }
 
 .session-title {
   font-weight: 600;
-  margin-bottom: 5px;
+  margin: 0 0 4px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 16px;
+  color: #1e293b;
 }
 
 .session-meta {
   display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #94A3B8;
+  justify-content: flex-start;
+  font-size: 13px;
+  color: #94a3b8;
+  gap: 12px;
 }
 
 .session-date,
 .session-count {
   white-space: nowrap;
+}
+
+/* Mobile-specific session info enhancements */
+@media (max-width: 768px) {
+  .session-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .session-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    font-size: 17px;
+    color: #0f172a;
+  }
+
+  .session-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #64748b;
+    gap: 12px;
+  }
+
+  .session-date,
+  .session-count {
+    white-space: nowrap;
+  }
 }
 
 /* Prevent body scroll when menu is open */
@@ -607,21 +840,6 @@ body.mobile-menu-open {
   }
 }
 
-@media (max-width: 768px) {
-  .modern-navbar {
-    display: none;
-  }
-  
-  .hamburger-menu {
-    display: flex !important;
-  }
-  
-  /* Hide user avatar on mobile in navigation */
-  .user-avatar {
-    display: none;
-  }
-}
-
 /* Animation for navbar entrance */
 @keyframes slideDown {
   from {
@@ -682,13 +900,8 @@ body.mobile-menu-open {
 }
 
 /* Main content padding to prevent overlap with fixed navbar */
-main {
-  padding-top: 0; /* Changed from 80px since navbar is now static */
-}
 
-@media (max-width: 768px) {
-  /* On mobile, navbar is hidden and hamburger is used instead */
-  main {
-    padding-top: 0;
-  }
+
+.chat-page main {
+  padding-top: 0; /* No padding on chat page */
 }

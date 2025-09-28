@@ -35,6 +35,20 @@
             margin: 0;
             padding: 0;
         }
+        
+        /* Add margin top to content to account for navbar */
+        main {
+            margin-top: 80px;
+        }
+        
+        /* Hide navbar on chat page */
+        .chat-page .modern-navbar {
+            display: none !important;
+        }
+        
+        .chat-page main {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body {% if user.is_authenticated %}data-authenticated="true" data-user-name="{{ user.name }}"{% endif %}>
@@ -43,8 +57,8 @@
         <i class="fas fa-bars"></i>
     </button>
     
-    <!-- Modern Navigation Header -->
-    <nav class="modern-navbar d-none d-md-block">
+    <!-- Modern Navigation Header - Only visible on desktop -->
+    <nav class="modern-navbar">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
                 <i class="fas fa-robot"></i> MobixAI
@@ -105,12 +119,20 @@
     <script>
         // URLs for API endpoints
         const BASE_URLS = {
-            getSidebarMenuItems: '/chat/sidebar-menu-items/'
+            getSidebarMenuItems: '{% url "get_sidebar_menu_items" %}'
         };
         
         // Mobile menu toggle functionality for all pages
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Base DOM content loaded');
+            
+            // Check if we're on the chat page
+            const isChatPage = window.location.pathname.startsWith('/chat');
+            
+            // Add chat-page class to body if we're on chat page
+            if (isChatPage) {
+                document.body.classList.add('chat-page');
+            }
             
             // Load desktop menu items
             loadDesktopMenuItems();
@@ -119,8 +141,6 @@
             const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
             if (mobileMenuToggle) {
                 mobileMenuToggle.addEventListener('click', function(e) {
-                    // Check if we're on the chat page
-                    const isChatPage = window.location.pathname.startsWith('/chat');
                     if (isChatPage) {
                         // On chat page, prevent default behavior and let mobile menu handle it
                         e.preventDefault();
@@ -256,6 +276,11 @@
             // Add default left menu items
             const leftItems = [
                 {
+                    name: 'خانه',
+                    url: '/',
+                    icon_class: 'fas fa-home'
+                },
+                {
                     name: 'چت',
                     url: '/chat/',
                     icon_class: 'fas fa-comments'
@@ -284,7 +309,7 @@
                 rightItems.push(
                     { name: 'داشبورد', url: '/dashboard/', icon_class: 'fas fa-tachometer-alt' },
                     { name: 'تراکنش‌های مالی', url: '/financial-transactions/', icon_class: 'fas fa-credit-card' },
-                    { name: 'خرید اشتراک', url: '/purchase-subscription/', icon_class: 'fas fa-shopping-cart' },
+                    { name: 'خرید اشتراک', url: '/subscriptions/purchase/', icon_class: 'fas fa-shopping-cart' },
                     { name: 'خروج', url: '/accounts/logout/', icon_class: 'fas fa-sign-out-alt' }
                 );
             } else {

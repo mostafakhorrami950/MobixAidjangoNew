@@ -5,9 +5,11 @@ from django.db.models import Count
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.apps import apps
+from django.urls import reverse
 from subscriptions.services import UsageService
 from subscriptions.usage_stats import UserUsageStatsService
 from .models import TermsAndConditions
+from chatbot.models import SidebarMenuItem
 
 def home(request):
     """
@@ -142,3 +144,58 @@ def terms_and_conditions(request):
         'terms': terms
     }
     return render(request, 'terms_and_conditions.html', context)
+
+def get_sidebar_menu_items(request):
+    """
+    Get all active sidebar menu items that the user has permission to view
+    This is a simplified version for non-chat pages
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    try:
+        SidebarMenuItem = apps.get_model('chatbot', 'SidebarMenuItem')
+        
+        # Get all active menu items ordered by display order
+        menu_items = SidebarMenuItem.objects.filter(is_active=True).order_by('order')
+        
+        # Filter items based on user permissions and authentication status
+        user_menu_items = []
+        for item in menu_items:
+            # If item should only be shown to authenticated users and user is not authenticated, skip it
+            if item.show_only_for_authenticated and not request.user.is_authenticated:
+                continue
+                
+            # If item should only be shown to non-authenticated users and user is authenticated, skip it
+            if item.show_only_for_non_authenticated and request.user.is_authenticated:
+                continue
+            
+            # Resolve the URL
+            try:
+                # Handle namespaced URLs (e.g., 'chat:chat')
+                if ':' in item.url_name:
+                    url = reverse(item.url_name)
+                else:
+                    # Try to resolve as a chat app URL first, then fall back to global
+                    try:
+                        url = reverse(f'chat:{item.url_name}')
+                    except:
+                        url = reverse(item.url_name)
+                user_menu_items.append({
+                    'name': item.name,
+                    'url': url,
+                    'icon_class': item.icon_class,
+                    'order': item.order,
+                    'show_only_for_authenticated': item.show_only_for_authenticated,
+                    'show_only_for_non_authenticated': item.show_only_for_non_authenticated
+                })
+            except:
+                # Skip items with invalid URLs
+                continue
+        
+        return JsonResponse({
+            'menu_items': user_menu_items
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

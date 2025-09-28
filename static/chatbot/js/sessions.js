@@ -8,6 +8,11 @@ function loadSessions() {
         .then(response => response.json())
         .then(data => {
             const sessionsList = document.getElementById('sessions-list');
+            if (!sessionsList) {
+                console.warn('Sessions list element not found');
+                return;
+            }
+            
             sessionsList.innerHTML = '';
             
             if (data.sessions.length === 0) {
@@ -55,10 +60,17 @@ function loadSession(sessionId) {
     fetch(`/chat/session/${sessionId}/messages/`)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('current-session-title').innerHTML = `
-                <i class="fas fa-comments"></i> ${data.session_title}
-            `;
-            document.getElementById('delete-session-btn').style.display = 'inline-block';
+            const currentSessionTitle = document.getElementById('current-session-title');
+            if (currentSessionTitle) {
+                currentSessionTitle.innerHTML = `
+                    <i class="fas fa-comments"></i> ${data.session_title}
+                `;
+            }
+            
+            const deleteSessionBtn = document.getElementById('delete-session-btn');
+            if (deleteSessionBtn) {
+                deleteSessionBtn.style.display = 'inline-block';
+            }
             
             // Check if user has access to web search functionality
             checkWebSearchAccess(sessionId);
@@ -82,23 +94,32 @@ function loadSession(sessionId) {
             }
             
             const chatContainer = document.getElementById('chat-container');
-            chatContainer.innerHTML = '';
-            
-            if (data.messages.length === 0) {
-                chatContainer.innerHTML = `
-                    <div class="text-center text-muted">
-                        <i class="fas fa-comment-slash"></i> هنوز پیامی وجود ندارد. مکالمه را شروع کنید!
-                    </div>
-                `;
-            } else {
-                data.messages.forEach(message => {
-                    addMessageToChat(message);
-                });
+            if (chatContainer) {
+                chatContainer.innerHTML = '';
+                
+                if (data.messages.length === 0) {
+                    chatContainer.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-comment-slash"></i> هنوز پیامی وجود ندارد. مکالمه را شروع کنید!
+                        </div>
+                    `;
+                } else {
+                    data.messages.forEach(message => {
+                        addMessageToChat(message);
+                    });
+                }
             }
             
             // Enable input fields
-            document.getElementById('message-input').disabled = false;
-            document.getElementById('send-button').disabled = false;
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.disabled = false;
+            }
+            
+            const sendButton = document.getElementById('send-button');
+            if (sendButton) {
+                sendButton.disabled = false;
+            }
             
             // Load models for the message input area
             if (data.chatbot_id) {
@@ -109,12 +130,20 @@ function loadSession(sessionId) {
             scrollToBottom();
             
             // Focus on input
-            document.getElementById('message-input').focus();
+            if (messageInput) {
+                messageInput.focus();
+            }
             
             // Hide sidebar on mobile after selecting a session
             if (window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.remove('show');
-                document.getElementById('sidebar-overlay').classList.remove('show');
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    sidebar.classList.remove('show');
+                }
+                const sidebarOverlay = document.getElementById('sidebar-overlay');
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('show');
+                }
             }
         })
         .catch(error => console.error('Error loading session:', error));
@@ -250,25 +279,52 @@ function deleteSession() {
             if (response.ok) {
                 // Reset UI
                 currentSessionId = null;
-                document.getElementById('current-session-title').innerHTML = `
-                    <i class="fas fa-comments"></i> چت را انتخاب کنید یا جدیدی ایجاد کنید
-                `;
-                document.getElementById('chat-container').innerHTML = `
-                    <div class="text-center text-muted welcome-message" id="welcome-message">
-                        <i class="fas fa-robot fa-3x mb-3"></i>
-                        <h4>به چت‌بات MobixAI خوش آمدید</h4>
-                        <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
-                    </div>
-                `;
-                document.getElementById('message-input').disabled = true;
-                document.getElementById('send-button').disabled = true;
-                document.getElementById('delete-session-btn').style.display = 'none';
+                
+                const currentSessionTitle = document.getElementById('current-session-title');
+                if (currentSessionTitle) {
+                    currentSessionTitle.innerHTML = `
+                        <i class="fas fa-comments"></i> چت را انتخاب کنید یا جدیدی ایجاد کنید
+                    `;
+                }
+                
+                const chatContainer = document.getElementById('chat-container');
+                if (chatContainer) {
+                    chatContainer.innerHTML = `
+                        <div class="text-center text-muted welcome-message" id="welcome-message">
+                            <i class="fas fa-robot fa-3x mb-3"></i>
+                            <h4>به چت‌بات MobixAI خوش آمدید</h4>
+                            <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
+                        </div>
+                    `;
+                }
+                
+                const messageInput = document.getElementById('message-input');
+                if (messageInput) {
+                    messageInput.disabled = true;
+                }
+                
+                const sendButton = document.getElementById('send-button');
+                if (sendButton) {
+                    sendButton.disabled = true;
+                }
+                
+                const deleteSessionBtn = document.getElementById('delete-session-btn');
+                if (deleteSessionBtn) {
+                    deleteSessionBtn.style.display = 'none';
+                }
+                
                 loadSessions();
                 
                 // Hide sidebar on mobile
                 if (window.innerWidth < 768) {
-                    document.getElementById('sidebar').classList.remove('show');
-                    document.getElementById('sidebar-overlay').classList.remove('show');
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar) {
+                        sidebar.classList.remove('show');
+                    }
+                    const sidebarOverlay = document.getElementById('sidebar-overlay');
+                    if (sidebarOverlay) {
+                        sidebarOverlay.classList.remove('show');
+                    }
                 }
             } else {
                 alert('خطا در حذف چت');

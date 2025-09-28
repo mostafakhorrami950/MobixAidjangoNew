@@ -12,21 +12,30 @@ function toggleSidebar() {
     console.log('Sidebar element:', sidebar);
     console.log('Overlay element:', overlay);
     
+    // Only toggle sidebar on mobile devices
+    if (window.innerWidth >= 768) {
+        console.log('Not toggling sidebar on desktop');
+        return;
+    }
+    
+    // On mobile devices, prevent sidebar from showing
     if (sidebar) {
-        sidebar.classList.toggle('show');
-        console.log('Sidebar show class toggled. Current classes:', sidebar.className);
+        // Remove show class to ensure sidebar stays hidden on mobile
+        sidebar.classList.remove('show');
+        console.log('Sidebar show class removed on mobile. Current classes:', sidebar.className);
     } else {
         console.error('Sidebar element not found');
     }
     
     if (overlay) {
-        overlay.classList.toggle('show');
-        console.log('Overlay show class toggled. Current classes:', overlay.className);
+        // Remove show class to ensure overlay stays hidden on mobile
+        overlay.classList.remove('show');
+        console.log('Overlay show class removed on mobile. Current classes:', overlay.className);
     } else {
         console.error('Overlay element not found');
     }
     
-    console.log('toggleSidebar function completed');
+    console.log('toggleSidebar function completed - sidebar and overlay remain hidden on mobile');
 }
 
 // Toggle sessions list visibility

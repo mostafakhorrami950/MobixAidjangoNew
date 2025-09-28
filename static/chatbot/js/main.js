@@ -23,6 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat page - Sidebar overlay element:', sidebarOverlay);
     console.log('Chat page - Mobile menu toggle element:', mobileMenuToggle);
     
+    // Ensure sidebar and overlay are hidden on mobile devices on page load
+    if (window.innerWidth < 768) {
+        if (sidebar) {
+            sidebar.classList.remove('show');
+        }
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.remove('show');
+        }
+    }
+    
     loadSessions();
     checkInitialSession(); // Check if we should load a specific session
     
@@ -40,23 +50,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // This prevents conflicts between multiple event listeners
 
     // Add event listener for web search toggle in welcome area
-    document.getElementById('welcome-web-search-btn').addEventListener('click', function() {
-        const isWebSearchActive = this.classList.contains('btn-success');
-        
-        if (isWebSearchActive) {
-            // Disable web search
-            this.classList.remove('btn-success');
-            this.classList.add('btn-outline-secondary');
-            this.innerHTML = '<i class="fas fa-search"></i> جستجو وب';
-            isWebSearchEnabledForNewSession = false;
-        } else {
-            // Enable web search
-            this.classList.remove('btn-outline-secondary');
-            this.classList.add('btn-success');
-            this.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
-            isWebSearchEnabledForNewSession = true;
-        }
-    });
+    const welcomeWebSearchBtn = document.getElementById('welcome-web-search-btn');
+    if (welcomeWebSearchBtn) {
+        welcomeWebSearchBtn.addEventListener('click', function() {
+            const isWebSearchActive = this.classList.contains('btn-success');
+            
+            if (isWebSearchActive) {
+                // Disable web search
+                this.classList.remove('btn-success');
+                this.classList.add('btn-outline-secondary');
+                this.innerHTML = '<i class="fas fa-search"></i> جستجو وب';
+                isWebSearchEnabledForNewSession = false;
+            } else {
+                // Enable web search
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-success');
+                this.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
+                isWebSearchEnabledForNewSession = true;
+            }
+        });
+    }
 
     // Add event listeners for automatic session creation
     // Message input box
@@ -175,28 +188,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // New chat button opens modal
-    document.getElementById('new-chat-btn').addEventListener('click', function() {
-        document.getElementById('modal-chatbot-select').value = '';
-        document.getElementById('modal-model-select').value = '';
-        document.getElementById('create-chat-btn').disabled = true;
-        
-        // Check if there's a default model selected and pre-select it
-        const defaultModelId = localStorage.getItem('defaultModelId');
-        if (defaultModelId) {
-            // Set a small delay to ensure the modal is fully loaded
-            setTimeout(() => {
-                const chatbotSelect = document.getElementById('modal-chatbot-select');
-                const modelSelect = document.getElementById('modal-model-select');
-                
-                if (chatbotSelect && modelSelect) {
-                    // If chatbot is not selected, select the first available chatbot
-                    if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
-                        chatbotSelect.value = chatbotSelect.options[1].value;
-                        // Trigger the change event to load models
-                        chatbotSelect.dispatchEvent(new Event('change'));
-                        
-                        // After models are loaded, select the default model
-                        setTimeout(() => {
+    const newChatBtn = document.getElementById('new-chat-btn');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', function() {
+            const chatbotSelect = document.getElementById('modal-chatbot-select');
+            const modelSelect = document.getElementById('modal-model-select');
+            const createChatBtn = document.getElementById('create-chat-btn');
+            
+            if (chatbotSelect) chatbotSelect.value = '';
+            if (modelSelect) modelSelect.value = '';
+            if (createChatBtn) createChatBtn.disabled = true;
+            
+            // Check if there's a default model selected and pre-select it
+            const defaultModelId = localStorage.getItem('defaultModelId');
+            if (defaultModelId) {
+                // Set a small delay to ensure the modal is fully loaded
+                setTimeout(() => {
+                    if (chatbotSelect && modelSelect) {
+                        // If chatbot is not selected, select the first available chatbot
+                        if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
+                            chatbotSelect.value = chatbotSelect.options[1].value;
+                            // Trigger the change event to load models
+                            chatbotSelect.dispatchEvent(new Event('change'));
+                            
+                            // After models are loaded, select the default model
+                            setTimeout(() => {
+                                // Check if the default model is available in the options
+                                for (let i = 0; i < modelSelect.options.length; i++) {
+                                    if (modelSelect.options[i].value === defaultModelId) {
+                                        modelSelect.value = defaultModelId;
+                                        checkModalSelections();
+                                        break;
+                                    }
+                                }
+                            }, 200);
+                        } else if (chatbotSelect.value) {
+                            // If chatbot is already selected, just select the default model
                             // Check if the default model is available in the options
                             for (let i = 0; i < modelSelect.options.length; i++) {
                                 if (modelSelect.options[i].value === defaultModelId) {
@@ -205,25 +232,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                     break;
                                 }
                             }
-                        }, 200);
-                    } else if (chatbotSelect.value) {
-                        // If chatbot is already selected, just select the default model
-                        // Check if the default model is available in the options
-                        for (let i = 0; i < modelSelect.options.length; i++) {
-                            if (modelSelect.options[i].value === defaultModelId) {
-                                modelSelect.value = defaultModelId;
-                                checkModalSelections();
-                                break;
-                            }
                         }
                     }
-                }
-            }, 100);
-        }
-        
-        const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
-        modal.show();
-    });
+                }, 100);
+            }
+            
+            const modalElement = document.getElementById('newChatModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        });
+    }
 
     // Floating Action Button for mobile - new chat
     const fabNewChat = document.getElementById('fab-new-chat');
@@ -281,65 +301,97 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Toggle sessions list
-    document.getElementById('toggle-sessions').addEventListener('click', toggleSessionsList);
+    const toggleSessionsBtn = document.getElementById('toggle-sessions');
+    if (toggleSessionsBtn) {
+        toggleSessionsBtn.addEventListener('click', toggleSessionsList);
+    }
     
     // Modal selection change listeners
-    document.getElementById('modal-chatbot-select').addEventListener('change', function() {
-        checkModalSelections();
-        // Load models based on chatbot type
-        const chatbotId = this.value;
-        if (chatbotId) {
-            loadModelsForChatbot(chatbotId);
-        }
-    });
+    const modalChatbotSelect = document.getElementById('modal-chatbot-select');
+    if (modalChatbotSelect) {
+        modalChatbotSelect.addEventListener('change', function() {
+            checkModalSelections();
+            // Load models based on chatbot type
+            const chatbotId = this.value;
+            if (chatbotId) {
+                loadModelsForChatbot(chatbotId);
+            }
+        });
+    }
 
-    document.getElementById('modal-model-select').addEventListener('change', function() {
-        checkModalSelections();
-        
-        // Check if the selected model has a cost multiplier > 1 and show warning
-        const selectedOption = this.options[this.selectedIndex];
-        const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
-        
-        if (costMultiplier > 1) {
-            // Show warning message in modal
-            showModalCostWarning(costMultiplier);
-        } else {
-            // Hide any existing warning
-            hideModalCostWarning();
-        }
-    });
+    const modalModelSelect = document.getElementById('modal-model-select');
+    if (modalModelSelect) {
+        modalModelSelect.addEventListener('change', function() {
+            checkModalSelections();
+            
+            // Check if the selected model has a cost multiplier > 1 and show warning
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption && selectedOption.dataset) {
+                const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+                
+                if (costMultiplier > 1) {
+                    // Show warning message in modal
+                    showModalCostWarning(costMultiplier);
+                } else {
+                    // Hide any existing warning
+                    hideModalCostWarning();
+                }
+            }
+        });
+    }
 
     // Modal create button
-    document.getElementById('create-chat-btn').addEventListener('click', createNewChat);
+    const createChatBtn = document.getElementById('create-chat-btn');
+    if (createChatBtn) {
+        createChatBtn.addEventListener('click', createNewChat);
+    }
     
     // Send message form submission
-    document.getElementById('chat-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        sendMessage();
-    });
+    const chatForm = document.getElementById('chat-form');
+    if (chatForm) {
+        chatForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            sendMessage();
+        });
+    }
     
     // Send message button (for direct click as well)
-    document.getElementById('send-button').addEventListener('click', function(event) {
-        event.preventDefault();
-        document.getElementById('chat-form').dispatchEvent(new Event('submit'));
-    });
+    const sendButton = document.getElementById('send-button');
+    if (sendButton && chatForm) {
+        sendButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    }
     
     // Enter key in message input
-    document.getElementById('message-input').addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            document.getElementById('chat-form').dispatchEvent(new Event('submit'));
-        }
-    });
+    const msgInput = document.getElementById('message-input');
+    if (msgInput && chatForm) {
+        msgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    }
     
     // Delete session button
-    document.getElementById('delete-session-btn').addEventListener('click', deleteSession);
+    const deleteSessionBtn = document.getElementById('delete-session-btn');
+    if (deleteSessionBtn) {
+        deleteSessionBtn.addEventListener('click', deleteSession);
+    }
     
     // Web search button
-    document.getElementById('web-search-btn').addEventListener('click', toggleWebSearch);
+    const webSearchBtn = document.getElementById('web-search-btn');
+    if (webSearchBtn) {
+        webSearchBtn.addEventListener('click', toggleWebSearch);
+    }
     
     // Image generation button
-    document.getElementById('image-generation-btn').addEventListener('click', toggleImageGeneration);
+    const imageGenerationBtn = document.getElementById('image-generation-btn');
+    if (imageGenerationBtn) {
+        imageGenerationBtn.addEventListener('click', toggleImageGeneration);
+    }
     
     // Mobile sidebar toggle - moved from base.html to here where sidebar exists
     if (mobileMenuToggle) {
@@ -366,27 +418,47 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Reset to default state
             currentSessionId = null;
-            document.getElementById('current-session-title').innerHTML = `
-                <i class="fas fa-comments"></i> چت را انتخاب کنید یا جدیدی ایجاد کنید
-            `;
-            document.getElementById('chat-container').innerHTML = `
-                <div class="text-center text-muted welcome-message" id="welcome-message">
-                    <i class="fas fa-robot fa-3x mb-3"></i>
-                    <h4>به چت‌بات MobixAI خوش آمدید</h4>
-                    <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
-                    <div class="web-search-toggle-container mt-3" id="welcome-web-search-container" style="display: none;">
-                        <button class="btn btn-outline-secondary" id="welcome-web-search-btn" type="button">
-                            <i class="fas fa-search"></i> جستجو وب
-                        </button>
-                        <small class="text-muted d-block mt-1">
-                            فعال کردن جستجوی اینترنتی برای پاسخ‌های به‌روز
-                        </small>
+            
+            const currentSessionTitle = document.getElementById('current-session-title');
+            if (currentSessionTitle) {
+                currentSessionTitle.innerHTML = `
+                    <i class="fas fa-comments"></i> چت را انتخاب کنید یا جدیدی ایجاد کنید
+                `;
+            }
+            
+            const chatContainer = document.getElementById('chat-container');
+            if (chatContainer) {
+                chatContainer.innerHTML = `
+                    <div class="text-center text-muted welcome-message" id="welcome-message">
+                        <i class="fas fa-robot fa-3x mb-3"></i>
+                        <h4>به چت‌بات MobixAI خوش آمدید</h4>
+                        <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
+                        <div class="web-search-toggle-container mt-3" id="welcome-web-search-container" style="display: none;">
+                            <button class="btn btn-outline-secondary" id="welcome-web-search-btn" type="button">
+                                <i class="fas fa-search"></i> جستجو وب
+                            </button>
+                            <small class="text-muted d-block mt-1">
+                                فعال کردن جستجوی اینترنتی برای پاسخ‌های به‌روز
+                            </small>
+                        </div>
                     </div>
-                </div>
-            `;
-            document.getElementById('message-input').disabled = true;
-            document.getElementById('send-button').disabled = true;
-            document.getElementById('delete-session-btn').style.display = 'none';
+                `;
+            }
+            
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.disabled = true;
+            }
+            
+            const sendButton = document.getElementById('send-button');
+            if (sendButton) {
+                sendButton.disabled = true;
+            }
+            
+            const deleteSessionBtn = document.getElementById('delete-session-btn');
+            if (deleteSessionBtn) {
+                deleteSessionBtn.style.display = 'none';
+            }
             
             // Reset global variables
             selectedModelForNewSession = null;
@@ -414,7 +486,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // On desktop, reload desktop menu items
             loadDesktopSidebarMenuItems();
         } else {
-            // On mobile, reload menu items
+            // On mobile, ensure sidebar and overlay are hidden and reload menu items
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            if (sidebar) {
+                sidebar.classList.remove('show');
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.remove('show');
+            }
             loadSidebarMenuItems();
         }
     });

@@ -158,19 +158,21 @@ html, body {
 /* For mobile, sidebar is hidden by default and shown when 'show' class is added */
 @media (max-width: 767.98px) {
   .sidebar {
-    display: none;
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    z-index: 10000; /* Updated to meet project specification requirement */
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
+    display: none !important;
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    height: 100vh !important;
+    z-index: 10000 !important; /* Updated to meet project specification requirement */
+    transform: translateX(100%) !important;
+    transition: transform 0.3s ease !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   
   /* Show sidebar when 'show' class is added */
   .sidebar.show {
-    display: flex;
+    display: flex !important;
     transform: translateX(0) !important;
   }
 }
@@ -1517,4 +1519,15 @@ option:disabled {
 
 .overlay.show {
   display: block;
+}
+
+/* Ensure overlay is hidden on mobile devices */
+@media (max-width: 767.98px) {
+  .overlay {
+    display: none !important;
+  }
+  
+  .overlay.show {
+    display: none !important;
+  }
 }

@@ -1065,7 +1065,25 @@ def send_message(request, session_id):
 @login_required
 def get_user_sessions(request):
     ChatSession = apps.get_model('chatbot', 'ChatSession')
-    sessions = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
+    
+    # Get pagination parameters
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 20))
+    
+    # Ensure page_size is within reasonable limits
+    page_size = min(page_size, 50)  # Maximum 50 sessions per page
+    
+    # Get sessions with pagination
+    sessions_queryset = ChatSession.objects.filter(user=request.user, is_active=True).order_by('-updated_at')
+    total_sessions = sessions_queryset.count()
+    
+    # Calculate start and end indices for pagination
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    
+    # Get paginated sessions
+    sessions = sessions_queryset[start_index:end_index]
+    
     session_list = []
     for session in sessions:
         # Determine session type and access level
@@ -1091,7 +1109,13 @@ def get_user_sessions(request):
         })
     
     
-    return JsonResponse({'sessions': session_list})
+    return JsonResponse({
+        'sessions': session_list,
+        'page': page,
+        'page_size': page_size,
+        'total_sessions': total_sessions,
+        'has_more': end_index < total_sessions
+    })
 
 @login_required
 def generate_chat_title(request):
