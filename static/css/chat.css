@@ -1254,6 +1254,31 @@ html, body {
   margin-top: 15px;
 }
 
+/* Model option images in select dropdown */
+#modal-model-select .model-option-image {
+    width: 20px;
+    height: 20px;
+    margin-left: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+/* Disabled model options */
+#modal-model-select .model-disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+}
+
+#modal-model-select .model-disabled:hover {
+    background-color: #f8f9fa !important;
+}
+
+#modal-model-select option:disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+    opacity: 0.6;
+}
+
 /* Model option styles */
 .model-option-free::after {
   content: " (رایگان)";
@@ -1464,45 +1489,359 @@ option:disabled {
   text-align: center;
 }
 
-/* New Chat Modal Styles */
+/* Custom Model Selection Dropdown */
+.custom-model-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.model-dropdown-selected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 50px;
+}
+
+.model-dropdown-selected:hover {
+    border-color: #007bff;
+}
+
+.model-dropdown-selected:focus,
+.model-dropdown-selected.active {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.15);
+    outline: 0;
+}
+
+.placeholder-text {
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.dropdown-arrow {
+    transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.rotated {
+    transform: rotate(180deg);
+}
+
+.model-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 0.25rem;
+}
+
+.model-dropdown-menu.show {
+    display: block;
+}
+
+.model-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.model-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.model-dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.model-dropdown-item.selected {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.model-dropdown-item.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+}
+
+.model-dropdown-item.disabled:hover {
+    background-color: #f8f9fa;
+}
+
+.model-dropdown-item-image {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-left: 0.75rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.model-dropdown-item-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.model-dropdown-item-name {
+    font-weight: 500;
+    color: #212529;
+    font-size: 0.95rem;
+}
+
+.model-dropdown-item-badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.badge-free {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-premium {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.model-dropdown-item.disabled .model-dropdown-item-name {
+    color: #6c757d;
+}
+
+/* Model option images in select dropdown */
+#modal-model-select .model-option-image {
+    width: 20px;
+    height: 20px;
+    margin-left: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+/* Disabled model options */
+#modal-model-select .model-disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+}
+
+#modal-model-select .model-disabled:hover {
+    background-color: #f8f9fa !important;
+}
+
+#modal-model-select option:disabled {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+    opacity: 0.6;
+}
+
+/* Enhanced New Chat Modal Styles */
 #newChatModal .modal-content {
-  border: none;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+#newChatModal .modal-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-bottom: none;
+    padding: 1rem 1.5rem;
+}
+
+#newChatModal .modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+#newChatModal .modal-title i {
+    font-size: 1.5rem;
 }
 
 #newChatModal .card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 #newChatModal .card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1) !important;
+    border-color: rgba(0, 123, 255, 0.3);
+}
+
+#newChatModal .card-header {
+    background: rgba(0, 123, 255, 0.05);
+    border-bottom: none;
+    font-weight: 600;
+    padding: 0.8rem 1rem;
+}
+
+#newChatModal .card-header i {
+    font-size: 1.2rem;
+}
+
+#newChatModal .form-select {
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 #newChatModal .form-select:focus {
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.15);
+    outline: 0;
+}
+
+#newChatModal .form-label {
+    color: #495057;
+    margin-bottom: 0.5rem;
 }
 
 #newChatModal .badge {
-  font-size: 0.7em;
-  vertical-align: middle;
+    font-size: 0.7em;
+    padding: 0.3em 0.6em;
+    font-weight: 600;
+    vertical-align: middle;
 }
 
 #newChatModal .alert {
-  border-radius: 0.375rem;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    border: none;
 }
 
 #newChatModal .alert-info {
-  background-color: #d1ecf1;
-  border-color: #bee5eb;
-  color: #0c5460;
+    background-color: rgba(23, 162, 184, 0.15);
+    color: #0c5460;
 }
 
 #newChatModal .alert-warning {
-  background-color: #fff3cd;
-  border-color: #ffeeba;
-  color: #856404;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #856404;
+}
+
+#newChatModal .alert i {
+    font-size: 1rem;
+}
+
+#newChatModal .bg-light {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+#newChatModal .modal-footer {
+    border-top: none;
+    padding: 1rem 1.5rem;
+}
+
+#newChatModal .btn {
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+#newChatModal .btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+    padding: 0.6rem 1.5rem;
+    font-weight: 600;
+}
+
+#newChatModal .btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 123, 255, 0.3);
+}
+
+#newChatModal .btn-outline-secondary {
+    border: 2px solid #e9ecef;
+    color: #6c757d;
+}
+
+#newChatModal .btn-outline-secondary:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+#newChatModal .btn i {
+    font-size: 0.9rem;
+}
+
+#newChatModal .btn:disabled {
+    opacity: 0.6;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    #newChatModal .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    #newChatModal .modal-body {
+        padding: 1rem;
+    }
+    
+    #newChatModal .row {
+        gap: 1rem;
+    }
+    
+    #newChatModal .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    #newChatModal .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation for card entrance */
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#newChatModal .card {
+    animation: cardEntrance 0.5s ease-out forwards;
+}
+
+#newChatModal .card:first-child {
+    animation-delay: 0.1s;
+}
+
+#newChatModal .card:last-child {
+    animation-delay: 0.2s;
 }
 
 /* Overlay for mobile sidebar */

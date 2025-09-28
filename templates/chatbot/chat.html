@@ -162,13 +162,13 @@
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title d-flex align-items-center">
                     <i class="fas fa-plus-circle me-2"></i>
-                    <span>ایجاد چت جدید</span>
+                    <span>چت جدید</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-4 text-center">
-                    <p class="text-muted mb-0">چت جدیدی را با چت‌بات و مدل دلخواه خود شروع کنید</p>
+                    <p class="text-muted mb-0">چت جدیدی بسازید</p>
                 </div>
                 
                 <div class="row g-4">
@@ -177,12 +177,12 @@
                             <div class="card-header bg-light py-3">
                                 <h6 class="mb-0 d-flex align-items-center">
                                     <i class="fas fa-robot text-primary me-2"></i>
-                                    <span>انتخاب چت‌بات</span>
+                                    <span>چت‌بات</span>
                                 </h6>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">چت‌بات مورد نظر خود را انتخاب کنید</label>
+                                    <label class="form-label fw-bold">چت‌بات خود را انتخاب کنید</label>
                                     <select class="form-select form-select-lg" id="modal-chatbot-select">
                                         <option value="" selected>انتخاب چت‌بات...</option>
                                         {% for chatbot in available_chatbots %}
@@ -195,7 +195,7 @@
                                 </div>
                                 <div class="alert alert-info d-flex align-items-center">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <small>چت‌بات‌ها تخصص‌های مختلفی دارند. چت‌بات مناسب نیاز خود را انتخاب کنید.</small>
+                                    <small>هر چت‌بات تخصص خاصی دارد</small>
                                 </div>
                             </div>
                         </div>
@@ -206,30 +206,27 @@
                             <div class="card-header bg-light py-3">
                                 <h6 class="mb-0 d-flex align-items-center">
                                     <i class="fas fa-microchip text-success me-2"></i>
-                                    <span>انتخاب مدل AI</span>
+                                    <span>مدل AI</span>
                                 </h6>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">مدل هوش مصنوعی را انتخاب کنید</label>
-                                    <select class="form-select form-select-lg" id="modal-model-select">
-                                        <option value="" selected>انتخاب مدل...</option>
-                                        {% for model in available_models %}
-                                            <option value="{{ model.model_id }}" 
-                                                    data-is-free="{{ model.is_free }}">
-                                                {{ model.name }}
-                                                {% if model.is_free %}
-                                                    <span class="badge bg-success ms-2">رایگان</span>
-                                                {% else %}
-                                                    <span class="badge bg-warning ms-2">ویژه</span>
-                                                {% endif %}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
+                                    <label class="form-label fw-bold">مدل هوش مصنوعی</label>
+                                    <!-- Custom model selection dropdown -->
+                                    <div class="custom-model-dropdown">
+                                        <div class="model-dropdown-selected" id="model-dropdown-selected">
+                                            <span class="placeholder-text">انتخاب مدل...</span>
+                                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                                        </div>
+                                        <div class="model-dropdown-menu" id="model-dropdown-menu">
+                                            <!-- Models will be loaded dynamically via JavaScript -->
+                                        </div>
+                                        <input type="hidden" id="modal-model-select" value="">
+                                    </div>
                                 </div>
                                 <div class="alert alert-warning d-flex align-items-center">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <small>برخی چت‌بات‌ها نیاز به انتخاب مدل دارند. مدل انتخابی برای چت جدید شما استفاده خواهد شد.</small>
+                                    <small>مدل انتخابی برای چت جدید استفاده می‌شود</small>
                                 </div>
                             </div>
                         </div>
@@ -239,12 +236,12 @@
                 <div class="mt-4 p-3 bg-light rounded">
                     <div class="d-flex align-items-center">
                         <i class="fas fa-lightbulb text-warning me-2"></i>
-                        <h6 class="mb-0">راهنمایی</h6>
+                        <h6 class="mb-0">نکات مهم</h6>
                     </div>
                     <ul class="mb-0 mt-2 small">
-                        <li>چت‌بات‌های مختلف برای کاربردهای خاص طراحی شده‌اند</li>
-                        <li>مدل‌های رایگان برای کاربردهای عمومی مناسب هستند</li>
-                        <li>مدل‌های ویژه برای پاسخ‌های پیشرفته‌تر</li>
+                        <li>چت‌بات‌ها برای کاربردهای خاص هستند</li>
+                        <li>مدل‌های رایگان برای کارهای عمومی</li>
+                        <li>مدل‌های ویژه برای پاسخ‌های بهتر</li>
                     </ul>
                 </div>
             </div>
@@ -255,7 +252,7 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="create-chat-btn" disabled>
                     <i class="fas fa-comment me-1"></i>
-                    <span>ایجاد چت</span>
+                    <span>ساخت چت</span>
                 </button>
             </div>
         </div>

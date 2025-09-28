@@ -213,9 +213,14 @@ function checkImageGenerationAccess(sessionId) {
 // Load models for a specific chatbot
 function loadModelsForChatbot(chatbotId) {
     const modelSelect = document.getElementById('modal-model-select');
+    const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+    const modelDropdownSelected = document.getElementById('model-dropdown-selected');
     
     // Clear current options
-    modelSelect.innerHTML = '<option value="">-- مدلی را انتخاب کنید --</option>';
+    modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">-- مدلی را انتخاب کنید --</span></div>';
+    
+    // Reset selected display
+    modelDropdownSelected.innerHTML = '<span class="placeholder-text">انتخاب مدل...</span><i class="fas fa-chevron-down dropdown-arrow"></i>';
     
     // Load models for this chatbot
     fetch(`/chat/chatbot/${chatbotId}/models/`)
@@ -229,31 +234,92 @@ function loadModelsForChatbot(chatbotId) {
             // Store model data in the select element for later use
             modelSelect.dataset.modelData = JSON.stringify(data.models);
             
-            // Populate model select
+            // Clear dropdown menu
+            modelDropdownMenu.innerHTML = '';
+            
+            // Populate model dropdown
             data.models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.model_id;
-                option.textContent = model.name;
-                option.dataset.tokenCostMultiplier = model.token_cost_multiplier; // Store cost multiplier
+                const item = document.createElement('div');
+                item.className = 'model-dropdown-item';
+                item.dataset.modelId = model.model_id;
+                item.dataset.tokenCostMultiplier = model.token_cost_multiplier;
+                item.dataset.userHasAccess = model.user_has_access;
                 
-                // Add badge for free/premium models
-                if (model.is_free) {
-                    option.innerHTML += ' <span class="badge bg-success">رایگان</span>';
-                } else {
-                    option.innerHTML += ' <span class="badge bg-warning">ویژه</span>';
+                // Add disabled class if user doesn't have access
+                if (!model.user_has_access) {
+                    item.classList.add('disabled');
                 }
                 
-                modelSelect.appendChild(option);
+                // Create item content
+                let imageHtml = '';
+                if (model.image_url) {
+                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.style.display='none'">`;
+                } else {
+                    // Placeholder for when no image is available
+                    imageHtml = `<div class="model-dropdown-item-image" style="background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 14px;"></i>
+                    </div>`;
+                }
+                
+                // Determine badge class
+                const badgeClass = model.is_free ? 'badge-free' : 'badge-premium';
+                const badgeText = model.is_free ? 'رایگان' : 'ویژه';
+                
+                item.innerHTML = `
+                    ${imageHtml}
+                    <div class="model-dropdown-item-content">
+                        <span class="model-dropdown-item-name">${model.name}</span>
+                        <span class="model-dropdown-item-badge ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+                
+                // Add click event if user has access
+                if (model.user_has_access) {
+                    item.addEventListener('click', function() {
+                        // Update hidden input value
+                        modelSelect.value = model.model_id;
+                        
+                        // Update selected display
+                        const selectedImage = this.querySelector('.model-dropdown-item-image').cloneNode(true);
+                        selectedImage.className = 'model-dropdown-item-image';
+                        selectedImage.style.width = '24px';
+                        selectedImage.style.height = '24px';
+                        
+                        modelDropdownSelected.innerHTML = `
+                            ${selectedImage.outerHTML}
+                            <span class="model-dropdown-item-name" style="margin: 0 8px;">${model.name}</span>
+                            <span class="model-dropdown-item-badge ${badgeClass}" style="font-size: 0.7rem; padding: 0.2em 0.4em;">${badgeText}</span>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        `;
+                        
+                        // Close dropdown
+                        modelDropdownMenu.classList.remove('show');
+                        modelDropdownSelected.classList.remove('active');
+                        
+                        // Trigger change event for validation
+                        checkModalSelections();
+                        
+                        // Check if the selected model has a cost multiplier > 1 and show warning
+                        const costMultiplier = parseFloat(model.token_cost_multiplier);
+                        if (costMultiplier > 1) {
+                            showModalCostWarning(costMultiplier);
+                        } else {
+                            hideModalCostWarning();
+                        }
+                    });
+                }
+                
+                modelDropdownMenu.appendChild(item);
             });
             
             // Check if there's a default model selected and pre-select it
             const defaultModelId = localStorage.getItem('defaultModelId');
             if (defaultModelId) {
-                // Check if the default model is available in the options
-                for (let i = 0; i < modelSelect.options.length; i++) {
-                    if (modelSelect.options[i].value === defaultModelId) {
-                        modelSelect.value = defaultModelId;
-                        checkModalSelections();
+                // Find and select the default model
+                const items = modelDropdownMenu.querySelectorAll('.model-dropdown-item:not(.disabled)');
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].dataset.modelId === defaultModelId) {
+                        items[i].click();
                         break;
                     }
                 }
@@ -261,6 +327,42 @@ function loadModelsForChatbot(chatbotId) {
         })
         .catch(error => console.error('Error loading models:', error));
 }
+
+// Initialize custom dropdown behavior
+document.addEventListener('DOMContentLoaded', function() {
+    const modelDropdownSelected = document.getElementById('model-dropdown-selected');
+    const modelDropdownMenu = document.getElementById('model-dropdown-menu');
+    const modelSelect = document.getElementById('modal-model-select');
+    
+    if (modelDropdownSelected && modelDropdownMenu) {
+        // Toggle dropdown on click
+        modelDropdownSelected.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('active');
+            modelDropdownMenu.classList.toggle('show');
+            
+            // Rotate arrow
+            const arrow = this.querySelector('.dropdown-arrow');
+            if (arrow) {
+                arrow.classList.toggle('rotated');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!modelDropdownSelected.contains(e.target) && !modelDropdownMenu.contains(e.target)) {
+                modelDropdownMenu.classList.remove('show');
+                modelDropdownSelected.classList.remove('active');
+                
+                // Rotate arrow back
+                const arrow = modelDropdownSelected.querySelector('.dropdown-arrow');
+                if (arrow) {
+                    arrow.classList.remove('rotated');
+                }
+            }
+        });
+    }
+});
 
 // Load models for the message input area dropdown
 function loadMessageInputModels(chatbotId) {
