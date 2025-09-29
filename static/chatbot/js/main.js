@@ -397,7 +397,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mobileMenuToggle) {
         mobileMenuToggle.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent event bubbling
-            toggleSidebar();
+            
+            // Check if we're on mobile view
+            if (window.innerWidth < 768) {
+                // On chat page, open the mobile menu container instead of sidebar
+                const mobileMenuContainer = document.getElementById('mobile-menu-container');
+                const mobileOverlay = document.getElementById('mobile-overlay');
+                
+                if (mobileMenuContainer) {
+                    mobileMenuContainer.classList.toggle('open');
+                    document.body.classList.toggle('mobile-menu-open');
+                    if (mobileOverlay) {
+                        mobileOverlay.classList.toggle('show');
+                    }
+                }
+            } else {
+                // On desktop, toggle the sidebar
+                toggleSidebar();
+            }
         });
     }
     

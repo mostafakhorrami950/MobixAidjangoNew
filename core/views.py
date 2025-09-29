@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.db.models import Count
@@ -13,8 +13,10 @@ from chatbot.models import SidebarMenuItem
 
 def home(request):
     """
-    Home page view
+    Home page view - redirect authenticated users to chat
     """
+    if request.user.is_authenticated:
+        return redirect('chat')
     return render(request, 'home.html')
 
 @login_required
@@ -127,7 +129,7 @@ def terms_and_conditions(request):
     terms = TermsAndConditions.get_active_terms()
     if not terms:
         # Create default terms if none exist
-        terms = TermsAndConditions.objects.create(
+        terms = TermsAndConditions(
             title="شرایط و قوانین استفاده",
             content="""
             شرایط و قوانین استفاده از سرویس MobixAI:
@@ -139,6 +141,7 @@ def terms_and_conditions(request):
             ۵. شرایط این قابل تغییر است.
             """.strip()
         )
+        terms.save()
     
     context = {
         'terms': terms

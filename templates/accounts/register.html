@@ -119,7 +119,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is already authenticated and redirect
     if (document.body.dataset.authenticated === 'true') {
-        window.location.href = '{% url "dashboard" %}';
+        window.location.href = '{% url "chat" %}';
         return;
     }
     const form = document.getElementById('registerForm');

@@ -97,6 +97,30 @@
         </div>
     </nav>
 
+    <!-- Mobile Menu Container -->
+    <div class="mobile-menu-container d-md-none" id="mobile-menu-container">
+        <div class="mobile-menu-header">
+            <div class="mobile-menu-brand">
+                <i class="fas fa-robot"></i>
+                <span>MobixAI</span>
+            </div>
+            <button class="mobile-menu-close" id="mobile-menu-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="mobile-menu-content">
+            <div class="mobile-menu-loading" id="mobile-menu-loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">در حال بارگذاری...</span>
+                </div>
+                <p>در حال بارگذاری منو...</p>
+            </div>
+            <div class="mobile-menu-sections" id="mobile-menu-sections" style="display: none;">
+                <!-- Menu items will be loaded here dynamically -->
+            </div>
+        </div>
+    </div>
+
     <main>
         {% block content %}
         {% endblock %}
@@ -137,19 +161,310 @@
             // Load desktop menu items
             loadDesktopMenuItems();
             
-            // Handle hamburger menu toggle specifically for chat page
-            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-            if (mobileMenuToggle) {
-                mobileMenuToggle.addEventListener('click', function(e) {
-                    if (isChatPage) {
-                        // On chat page, prevent default behavior and let mobile menu handle it
-                        e.preventDefault();
-                        e.stopPropagation();
+            // Load mobile menu items
+            loadMobileMenuItems();
+        });
+        
+        // Load mobile menu items dynamically
+        function loadMobileMenuItems() {
+            const mobileMenuSections = document.getElementById('mobile-menu-sections');
+            const mobileMenuLoading = document.getElementById('mobile-menu-loading');
+            
+            if (!mobileMenuSections) {
+                return;
+            }
+            
+            // Fetch menu items from the server
+            fetch(BASE_URLS.getSidebarMenuItems)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error loading menu items:', data.error);
+                        showDefaultMobileMenuItems();
                         return;
                     }
+                    
+                    // Hide loading indicator
+                    if (mobileMenuLoading) {
+                        mobileMenuLoading.style.display = 'none';
+                    }
+                    
+                    // Show menu sections
+                    if (mobileMenuSections) {
+                        mobileMenuSections.style.display = 'flex';
+                    }
+                    
+                    // Check if user is authenticated
+                    const isAuthenticated = document.body.dataset.authenticated === 'true';
+                    
+                    // Clear existing content
+                    mobileMenuSections.innerHTML = '';
+                    
+                    // If user is authenticated AND on chat page, load chat sessions FIRST
+                    if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
+                        loadMobileChatSessions();
+                    }
+                    
+                    // Filter items based on user authentication status
+                    let menuItems = [];
+                    if (data.menu_items && data.menu_items.length > 0) {
+                        menuItems = data.menu_items.filter(item => {
+                            // Skip items that should only be shown to authenticated users if user is not authenticated
+                            if (item.show_only_for_authenticated && !isAuthenticated) {
+                                return false;
+                            }
+                            
+                            // Skip items that should only be shown to non-authenticated users if user is authenticated
+                            if (item.show_only_for_non_authenticated && isAuthenticated) {
+                                return false;
+                            }
+                            
+                            return true;
+                        });
+                    }
+                    
+                    // Create main menu section (AFTER sessions if on chat page)
+                    if (menuItems.length > 0) {
+                        const section = document.createElement('div');
+                        section.className = 'mobile-menu-section';
+                        
+                        const header = document.createElement('div');
+                        header.className = 'mobile-menu-section-header';
+                        header.innerHTML = '<h3>منو</h3>';
+                        section.appendChild(header);
+                        
+                        const content = document.createElement('div');
+                        content.className = 'mobile-menu-section-content';
+                        
+                        const itemsContainer = document.createElement('div');
+                        itemsContainer.className = 'mobile-menu-items';
+                        
+                        menuItems.forEach(item => {
+                            const menuItem = document.createElement('div');
+                            menuItem.className = 'mobile-menu-item';
+                            
+                            // Special handling for logout to show user name
+                            let itemName = item.name;
+                            if (item.name === 'خروج' && document.body.dataset.userName) {
+                                itemName = `خروج (${document.body.dataset.userName})`;
+                            }
+                            
+                            menuItem.innerHTML = `
+                                <a class="mobile-menu-link" href="${item.url}">
+                                    <i class="${item.icon_class}"></i>
+                                    <span>${itemName}</span>
+                                </a>
+                            `;
+                            itemsContainer.appendChild(menuItem);
+                        });
+                        
+                        content.appendChild(itemsContainer);
+                        section.appendChild(content);
+                        mobileMenuSections.appendChild(section);
+                    } else {
+                        showDefaultMobileMenuItems();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading menu items:', error);
+                    showDefaultMobileMenuItems();
                 });
+        }
+        
+        // Load chat sessions for mobile menu (only on chat page)
+        function loadMobileChatSessions() {
+            const mobileMenuSections = document.getElementById('mobile-menu-sections');
+            
+            if (!mobileMenuSections) {
+                return;
             }
-        });
+            
+            // Create sessions section
+            const section = document.createElement('div');
+            section.className = 'mobile-menu-section';
+            
+            const header = document.createElement('div');
+            header.className = 'mobile-menu-section-header';
+            header.innerHTML = '<h3>چت‌های من</h3>';
+            section.appendChild(header);
+            
+            const content = document.createElement('div');
+            content.className = 'mobile-menu-section-content';
+            
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'mobile-menu-items';
+            itemsContainer.id = 'mobile-sessions-list';
+            
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'mobile-menu-loading';
+            loadingDiv.innerHTML = `
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">در حال بارگذاری...</span>
+                </div>
+                <p>در حال بارگذاری چت‌ها...</p>
+            `;
+            itemsContainer.appendChild(loadingDiv);
+            
+            content.appendChild(itemsContainer);
+            section.appendChild(content);
+            // Insert the sessions section at the beginning
+            mobileMenuSections.insertBefore(section, mobileMenuSections.firstChild);
+            
+            // Fetch sessions
+            fetch('/chat/sessions/')
+                .then(response => response.json())
+                .then(data => {
+                    // Remove loading indicator
+                    itemsContainer.innerHTML = '';
+                    
+                    // Get current session ID from URL if we're on a session page
+                    let currentSessionId = null;
+                    const pathParts = window.location.pathname.split('/');
+                    if (pathParts.length >= 4 && pathParts[1] === 'chat' && pathParts[2] === 'session') {
+                        currentSessionId = parseInt(pathParts[3]);
+                    }
+                    
+                    if (data.sessions && data.sessions.length > 0) {
+                        data.sessions.forEach(session => {
+                            const menuItem = document.createElement('div');
+                            menuItem.className = 'mobile-menu-item session-item';
+                            
+                            // Add active class if this is the current session
+                            if (session.id == currentSessionId) {
+                                menuItem.classList.add('active');
+                            }
+                            
+                            // Format date
+                            const sessionDate = new Date(session.updated_at);
+                            const formattedDate = sessionDate.toLocaleDateString('fa-IR');
+                            
+                            menuItem.innerHTML = `
+                                <a class="mobile-menu-link" href="/chat/session/${session.id}/">
+                                    <div class="session-info">
+                                        <div class="session-title">${session.title}</div>
+                                        <div class="session-meta">
+                                            <span class="session-date">${formattedDate}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            `;
+                            itemsContainer.appendChild(menuItem);
+                        });
+                    } else {
+                        // No sessions message
+                        const noSessionsDiv = document.createElement('div');
+                        noSessionsDiv.className = 'mobile-menu-item empty';
+                        noSessionsDiv.innerHTML = `
+                            <div class="mobile-menu-link" style="justify-content: center; opacity: 0.7;">
+                                چتی وجود ندارد
+                            </div>
+                        `;
+                        itemsContainer.appendChild(noSessionsDiv);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading chat sessions:', error);
+                    // Remove loading indicator
+                    itemsContainer.innerHTML = '';
+                    
+                    // Show error message
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'mobile-menu-item error';
+                    errorDiv.innerHTML = `
+                        <div class="mobile-menu-link" style="justify-content: center; color: #dc3545;">
+                            خطا در بارگذاری چت‌ها
+                        </div>
+                    `;
+                    itemsContainer.appendChild(errorDiv);
+                });
+        }
+        
+        // Show default mobile menu items if there's an error
+        function showDefaultMobileMenuItems() {
+            const mobileMenuSections = document.getElementById('mobile-menu-sections');
+            const mobileMenuLoading = document.getElementById('mobile-menu-loading');
+            
+            if (!mobileMenuSections) {
+                return;
+            }
+            
+            // Hide loading indicator
+            if (mobileMenuLoading) {
+                mobileMenuLoading.style.display = 'none';
+            }
+            
+            // Show menu sections
+            if (mobileMenuSections) {
+                mobileMenuSections.style.display = 'flex';
+            }
+            
+            // Check if user is authenticated
+            const isAuthenticated = document.body.dataset.authenticated === 'true';
+            
+            // Clear existing content
+            mobileMenuSections.innerHTML = '';
+            
+            // If user is authenticated AND on chat page, load chat sessions FIRST
+            if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
+                loadMobileChatSessions();
+            }
+            
+            // Create default menu items
+            const section = document.createElement('div');
+            section.className = 'mobile-menu-section';
+            
+            const header = document.createElement('div');
+            header.className = 'mobile-menu-section-header';
+            header.innerHTML = '<h3>منو</h3>';
+            section.appendChild(header);
+            
+            const content = document.createElement('div');
+            content.className = 'mobile-menu-section-content';
+            
+            const itemsContainer = document.createElement('div');
+            itemsContainer.className = 'mobile-menu-items';
+            
+            // Default menu items based on authentication status
+            const defaultItems = [];
+            
+            if (isAuthenticated) {
+                defaultItems.push(
+                    { name: 'چت', url: '/chat/', icon_class: 'fas fa-comments' },
+                    { name: 'تراکنش‌های مالی', url: '/financial-transactions/', icon_class: 'fas fa-credit-card' },
+                    { name: 'خرید اشتراک', url: '/subscriptions/purchase/', icon_class: 'fas fa-shopping-cart' },
+                    { name: 'خروج', url: '/accounts/logout/', icon_class: 'fas fa-sign-out-alt' }
+                );
+            } else {
+                defaultItems.push(
+                    { name: 'خانه', url: '/', icon_class: 'fas fa-home' },
+                    { name: 'ورود', url: '/accounts/login/', icon_class: 'fas fa-sign-in-alt' }
+                );
+            }
+            
+            defaultItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'mobile-menu-item';
+                
+                // Special handling for logout to show user name
+                let itemName = item.name;
+                if (item.name === 'خروج' && document.body.dataset.userName) {
+                    itemName = `خروج (${document.body.dataset.userName})`;
+                }
+                
+                menuItem.innerHTML = `
+                    <a class="mobile-menu-link" href="${item.url}">
+                        <i class="${item.icon_class}"></i>
+                        <span>${itemName}</span>
+                    </a>
+                `;
+                itemsContainer.appendChild(menuItem);
+            });
+            
+            content.appendChild(itemsContainer);
+            section.appendChild(content);
+            mobileMenuSections.appendChild(section);
+        }
         
         // Load desktop menu items dynamically
         function loadDesktopMenuItems() {
@@ -307,7 +622,7 @@
             
             if (isAuthenticated) {
                 rightItems.push(
-                    { name: 'داشبورد', url: '/dashboard/', icon_class: 'fas fa-tachometer-alt' },
+                    { name: 'چت', url: '/chat/', icon_class: 'fas fa-comments' },
                     { name: 'تراکنش‌های مالی', url: '/financial-transactions/', icon_class: 'fas fa-credit-card' },
                     { name: 'خرید اشتراک', url: '/subscriptions/purchase/', icon_class: 'fas fa-shopping-cart' },
                     { name: 'خروج', url: '/accounts/logout/', icon_class: 'fas fa-sign-out-alt' }
