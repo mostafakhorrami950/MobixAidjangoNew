@@ -164,10 +164,11 @@ function sendMessage() {
                     addMessageToChat(messageData);
                     hideTypingIndicator();
                     
-                    // Check if this is an image editing chatbot and we have images
+                    // Check if this session has generated images and needs to refresh
+                    // This applies to all image-capable chatbots, not just image editing ones
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
-                        // For image editing chatbots, refresh the page after image generation is complete
+                    if (hasImages) {
+                        // For any chatbot that generates images, refresh the page after image generation is complete
                         console.log('Image generated successfully, refreshing page...');
                         
                         // Show a brief success notification before refresh
@@ -176,20 +177,6 @@ function sendMessage() {
                         // Refresh the page after a short delay to show the notification
                         setTimeout(() => {
                             console.log('Refreshing page after image generation completion');
-                            window.location.reload();
-                        }, 1500); // 1.5 seconds delay to show notification
-                    } 
-                    // Check if this is a regular chatbot with image generation enabled and we have images
-                    else if (hasImages && sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true') {
-                        // For regular chatbots with image generation enabled, refresh the page after image generation is complete
-                        console.log('Image generated successfully in regular chatbot, refreshing page...');
-                        
-                        // Show a brief success notification before refresh
-                        showImageGenerationSuccess();
-                        
-                        // Refresh the page after a short delay to show the notification
-                        setTimeout(() => {
-                            console.log('Refreshing page after image generation completion in regular chatbot');
                             window.location.reload();
                         }, 1500); // 1.5 seconds delay to show notification
                     } else if (hasImages) {
@@ -435,7 +422,7 @@ function sendMessage() {
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                    if (hasImages) {
                         shouldRefresh = true;
                         console.log('Image generated via abort, refreshing page...');
                     }
@@ -518,14 +505,9 @@ function sendMessage() {
             
             // Check if this is an image editing chatbot and we have images
             const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-            if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+            if (hasImages) {
                 shouldRefresh = true;
                 console.log('Image generated via catch abort, refreshing page...');
-            }
-            // Check if this is a regular chatbot with image generation enabled
-            else if (hasImages && sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true') {
-                shouldRefresh = true;
-                console.log('Image generated via catch abort in regular chatbot, refreshing page...');
             }
             
             // Re-enable input and reset button state after streaming is complete
