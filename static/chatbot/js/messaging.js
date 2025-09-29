@@ -178,6 +178,20 @@ function sendMessage() {
                             console.log('Refreshing page after image generation completion');
                             window.location.reload();
                         }, 1500); // 1.5 seconds delay to show notification
+                    } 
+                    // Check if this is a regular chatbot with image generation enabled and we have images
+                    else if (hasImages && sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true') {
+                        // For regular chatbots with image generation enabled, refresh the page after image generation is complete
+                        console.log('Image generated successfully in regular chatbot, refreshing page...');
+                        
+                        // Show a brief success notification before refresh
+                        showImageGenerationSuccess();
+                        
+                        // Refresh the page after a short delay to show the notification
+                        setTimeout(() => {
+                            console.log('Refreshing page after image generation completion in regular chatbot');
+                            window.location.reload();
+                        }, 1500); // 1.5 seconds delay to show notification
                     } else if (hasImages) {
                         // For any other chatbot with images, ensure they're visible
                         setTimeout(() => {
@@ -507,6 +521,11 @@ function sendMessage() {
             if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                 shouldRefresh = true;
                 console.log('Image generated via catch abort, refreshing page...');
+            }
+            // Check if this is a regular chatbot with image generation enabled
+            else if (hasImages && sessionStorage.getItem(`imageGen_${currentSessionId}`) === 'true') {
+                shouldRefresh = true;
+                console.log('Image generated via catch abort in regular chatbot, refreshing page...');
             }
             
             // Re-enable input and reset button state after streaming is complete
