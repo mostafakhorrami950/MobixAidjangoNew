@@ -164,21 +164,19 @@ function sendMessage() {
                     addMessageToChat(messageData);
                     hideTypingIndicator();
                     
-                    // Check if this session has generated images and needs to refresh
-                    // This applies to all image-capable chatbots, not just image editing ones
+                    // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    if (hasImages) {
-                        // For any chatbot that generates images, refresh the page after image generation is complete
-                        console.log('Image generated successfully, refreshing page...');
+                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                        // For image editing chatbots, show success notification and display image immediately
+                        console.log('Image generated successfully, displaying image without page refresh...');
                         
-                        // Show a brief success notification before refresh
+                        // Show a brief success notification
                         showImageGenerationSuccess();
                         
-                        // Refresh the page after a short delay to show the notification
+                        // Instead of refreshing the page, scroll to show the newly added image
                         setTimeout(() => {
-                            console.log('Refreshing page after image generation completion');
-                            window.location.reload();
-                        }, 1500); // 1.5 seconds delay to show notification
+                            scrollToBottom();
+                        }, 500); // Small delay to ensure image is rendered
                     } else if (hasImages) {
                         // For any other chatbot with images, ensure they're visible
                         setTimeout(() => {
@@ -422,7 +420,7 @@ function sendMessage() {
                     
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    if (hasImages) {
+                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                         shouldRefresh = true;
                         console.log('Image generated via abort, refreshing page...');
                     }
@@ -505,7 +503,7 @@ function sendMessage() {
             
             // Check if this is an image editing chatbot and we have images
             const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-            if (hasImages) {
+            if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                 shouldRefresh = true;
                 console.log('Image generated via catch abort, refreshing page...');
             }

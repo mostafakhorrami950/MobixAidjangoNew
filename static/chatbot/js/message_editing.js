@@ -397,19 +397,24 @@ function handleEditStreamingResponse(response) {
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
-                        // For image editing chatbots, refresh the page after successful image generation
-                        console.log('Image generated successfully during editing, refreshing page...');
+                        // For image editing chatbots, show success notification and display image immediately
+                        console.log('Image generated successfully during editing, displaying image without page refresh...');
+                        
+                        // Show a brief success notification
+                        showImageGenerationSuccess();
+                        
+                        // Instead of refreshing the page, scroll to show the newly added image
                         setTimeout(() => {
-                            location.reload();
-                        }, 2000); // Refresh after 2 seconds to allow user to see the message
+                            scrollToBottom();
+                        }, 500); // Small delay to ensure image is rendered
                         return;
                     }
                     
-                    // For all other chatbots, refresh the page to ensure clean UI state after editing
-                    console.log('Message editing completed successfully, refreshing page for clean UI...');
+                    // For all other chatbots, just scroll to bottom to show the edited message
+                    console.log('Message editing completed successfully, scrolling to show message...');
                     setTimeout(() => {
-                        location.reload();
-                    }, 1500); // Refresh after 1.5 seconds to show success message first
+                        scrollToBottom();
+                    }, 500); // Small delay to ensure message is rendered
                     
                     return;
                 }
