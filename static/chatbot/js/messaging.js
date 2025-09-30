@@ -49,7 +49,7 @@ function sendMessage() {
         displayMessage += ` (فایل‌ها: ${fileNames})`;
     }
 
-    // Add user message to chat immediately
+    // Add user message to chat immediately with Markdown support
     // Note: We'll replace this temporary message with the one from the server later
     const tempUserMessage = {
         type: 'user',
@@ -961,6 +961,18 @@ function updateUserMessageWithServerData(userData) {
         if (userData.id) {
             lastUserMessage.dataset.messageId = userData.id;
             console.log('Updated user message with server ID:', userData.id);
+        }
+        
+        // Update the message content with Markdown support
+        const contentDiv = lastUserMessage.querySelector('.message-content');
+        if (contentDiv && userData.content) {
+            try {
+                contentDiv.innerHTML = md.render(userData.content);
+            } catch (e) {
+                console.error('Error rendering markdown for user message:', e);
+                // Fallback to plain text if markdown rendering fails
+                contentDiv.textContent = userData.content;
+            }
         }
         
         // Add uploaded files display if files are present in server data

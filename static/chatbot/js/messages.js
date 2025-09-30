@@ -148,8 +148,8 @@ function addMessageToChat(message) {
     // Create message content with metadata
     let messageContent = message.content;
     
-    // Render Markdown for assistant messages
-    if (message.type === 'assistant') {
+    // Render Markdown for both user and assistant messages
+    if (message.type === 'assistant' || message.type === 'user') {
         try {
             messageContent = md.render(message.content);
         } catch (e) {
