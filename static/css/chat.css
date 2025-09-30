@@ -1559,6 +1559,7 @@ option:disabled {
     cursor: pointer;
     transition: background-color 0.2s ease;
     border-bottom: 1px solid #f8f9fa;
+    min-height: 60px; /* Set proper height for each item */
 }
 
 .model-dropdown-item:last-child {
@@ -1584,25 +1585,30 @@ option:disabled {
 }
 
 .model-dropdown-item-image {
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     object-fit: cover;
     margin-left: 0.75rem;
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
+    flex-shrink: 0; /* Prevent image from shrinking */
 }
 
 .model-dropdown-item-content {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0; /* Allow text to truncate properly */
 }
 
 .model-dropdown-item-name {
     font-weight: 500;
     color: #212529;
     font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .model-dropdown-item-badge {
@@ -1611,6 +1617,7 @@ option:disabled {
     border-radius: 4px;
     font-weight: 600;
     margin-top: 0.25rem;
+    align-self: flex-start; /* Align badge to start */
 }
 
 .badge-free {

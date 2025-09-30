@@ -228,6 +228,8 @@ function loadModelsForChatbot(chatbotId) {
         .then(data => {
             if (data.error) {
                 console.error('Error loading models:', data.error);
+                // Show error in dropdown
+                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
                 return;
             }
             
@@ -237,8 +239,23 @@ function loadModelsForChatbot(chatbotId) {
             // Clear dropdown menu
             modelDropdownMenu.innerHTML = '';
             
+            // Check if there are any models
+            if (!data.models || data.models.length === 0) {
+                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">مدلی یافت نشد</span></div>';
+                return;
+            }
+            
+            // Sort models: free models first, then premium models
+            const sortedModels = [...data.models].sort((a, b) => {
+                // Free models come first
+                if (a.is_free && !b.is_free) return -1;
+                if (!a.is_free && b.is_free) return 1;
+                // Then sort by name
+                return a.name.localeCompare(b.name);
+            });
+            
             // Populate model dropdown
-            data.models.forEach(model => {
+            sortedModels.forEach(model => {
                 const item = document.createElement('div');
                 item.className = 'model-dropdown-item';
                 item.dataset.modelId = model.model_id;
@@ -253,11 +270,11 @@ function loadModelsForChatbot(chatbotId) {
                 // Create item content
                 let imageHtml = '';
                 if (model.image_url) {
-                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.style.display='none'">`;
+                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.src='/static/images/default-model.PNG'; this.onerror=null;">`;
                 } else {
                     // Placeholder for when no image is available
                     imageHtml = `<div class="model-dropdown-item-image" style="background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 14px;"></i>
+                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 16px;"></i>
                     </div>`;
                 }
                 
@@ -268,7 +285,7 @@ function loadModelsForChatbot(chatbotId) {
                 item.innerHTML = `
                     ${imageHtml}
                     <div class="model-dropdown-item-content">
-                        <span class="model-dropdown-item-name">${model.name}</span>
+                        <span class="model-dropdown-item-name" title="${model.name}">${model.name}</span>
                         <span class="model-dropdown-item-badge ${badgeClass}">${badgeText}</span>
                     </div>
                 `;
@@ -287,7 +304,7 @@ function loadModelsForChatbot(chatbotId) {
                         
                         modelDropdownSelected.innerHTML = `
                             ${selectedImage.outerHTML}
-                            <span class="model-dropdown-item-name" style="margin: 0 8px;">${model.name}</span>
+                            <span class="model-dropdown-item-name" style="margin: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${model.name}</span>
                             <span class="model-dropdown-item-badge ${badgeClass}" style="font-size: 0.7rem; padding: 0.2em 0.4em;">${badgeText}</span>
                             <i class="fas fa-chevron-down dropdown-arrow"></i>
                         `;
@@ -296,8 +313,15 @@ function loadModelsForChatbot(chatbotId) {
                         modelDropdownMenu.classList.remove('show');
                         modelDropdownSelected.classList.remove('active');
                         
+                        // Rotate arrow back
+                        const arrow = modelDropdownSelected.querySelector('.dropdown-arrow');
+                        if (arrow) {
+                            arrow.classList.remove('rotated');
+                        }
+                        
                         // Trigger change event for validation
-                        checkModalSelections();
+                        const changeEvent = new Event('change');
+                        modelSelect.dispatchEvent(changeEvent);
                         
                         // Check if the selected model has a cost multiplier > 1 and show warning
                         const costMultiplier = parseFloat(model.token_cost_multiplier);
@@ -325,7 +349,11 @@ function loadModelsForChatbot(chatbotId) {
                 }
             }
         })
-        .catch(error => console.error('Error loading models:', error));
+        .catch(error => {
+            console.error('Error loading models:', error);
+            // Show error in dropdown
+            modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
+        });
 }
 
 // Initialize custom dropdown behavior
