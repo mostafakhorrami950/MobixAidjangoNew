@@ -3,7 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}هوش مصنوعی, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند, MobixAI, هوش مصنوعی فارسی{% endblock %}">
+    <meta name="author" content="MobixAI">
+    <meta name="robots" content="{% block meta_robots %}index, follow{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}MobixAI{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% block og_image %}/static/images/og-image.jpg{% endblock %}">
+    <meta property="og:locale" content="fa_IR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}MobixAI{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}/static/images/twitter-image.jpg{% endblock %}">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <title>{% block title %}MobixAI{% endblock %}</title>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "MobixAI",
+      "url": "https://mobixai.ir/",
+      "description": "پلتفرم هوش مصنوعی پیشرفته فارسی برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "MobixAI",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://mobixai.ir/static/images/logo.png"
+        }
+      },
+      "inLanguage": "fa"
+    }
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Vazir Font -->

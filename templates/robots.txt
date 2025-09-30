@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /accounts/register/
+Allow: /accounts/login/
+Allow: /home/
+Disallow: /admin/
+Disallow: /chat/
+Disallow: /accounts/profile/
+Disallow: /accounts/logout/
+Disallow: /subscriptions/
+Disallow: /financial/
+Disallow: /api/
+
+Sitemap: https://mobixai.ir/sitemap.xml
+
+Host: mobixai.ir

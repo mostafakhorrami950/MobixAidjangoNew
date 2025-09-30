@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}ثبت نام - MobixAI{% endblock %}
+{% block title %}ثبت نام در MobixAI - عضویت رایگان در پلتفرم هوش مصنوعی{% endblock %}
+{% block meta_description %}عضویت رایگان در MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
+{% block meta_keywords %}ثبت نام, عضویت, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند{% endblock %}
+{% block meta_robots %}noindex, follow{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
@@ -14,6 +17,30 @@
             </div>
             <h2 class="auth-title">عضویت در MobixAI</h2>
             <p class="auth-subtitle">به جمع کاربران هوش مصنوعی بپیوندید</p>
+            
+            <!-- Structured data for SEO -->
+            <script type="application/ld+json">
+            {
+              "@context": "https://schema.org",
+              "@type": "WebPage",
+              "name": "ثبت نام در MobixAI",
+              "description": "عضویت رایگان در پلتفرم هوش مصنوعی پیشرفته فارسی MobixAI برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
+              "breadcrumb": {
+                "@type": "BreadcrumbList",
+                "itemListElement": [{
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "خانه",
+                  "item": "https://mobixai.ir/"
+                },{
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": "ثبت نام",
+                  "item": "https://mobixai.ir/accounts/register/"
+                }]
+              }
+            }
+            </script>
         </div>
         
         <div class="auth-body">
@@ -44,9 +71,11 @@
                             value="{{ form.name.value|default:'' }}"
                             placeholder="مثال: علی احمدی"
                             required
+                            aria-describedby="name-help"
                         >
                         <i class="fas fa-id-card"></i>
                     </div>
+                    <small id="name-help" class="form-text text-muted">نام واقعی شما فقط برای احراز هویت استفاده می‌شود و برای کاربران دیگر قابل مشاهده نیست.</small>
                     {% if form.name.errors %}
                         {% for error in form.name.errors %}
                             <span class="field-error">{{ error }}</span>
@@ -69,9 +98,11 @@
                             pattern="09[0-9]{9}"
                             maxlength="11"
                             required
+                            aria-describedby="phone-help"
                         >
                         <i class="fas fa-mobile-alt"></i>
                     </div>
+                    <small id="phone-help" class="form-text text-muted">شماره تلفن برای احراز هویت و ارسال کد تأیید استفاده می‌شود.</small>
                     {% if form.phone_number.errors %}
                         {% for error in form.phone_number.errors %}
                             <span class="field-error">{{ error }}</span>
