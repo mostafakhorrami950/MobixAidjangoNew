@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('purchase/', views.purchase_subscription, name='purchase_subscription'),
+    path('comparison/', views.public_subscription_comparison, name='public_subscription_comparison'),
     path('apply-discount/', views.apply_discount_code, name='apply_discount_code'),
     path('payment/<int:subscription_id>/', views.initiate_payment, name='initiate_payment'),
     path('callback/', views.payment_callback, name='payment_callback'),

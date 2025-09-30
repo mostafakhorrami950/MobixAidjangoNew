@@ -867,3 +867,18 @@ def test_subscription_calculation(request):
         
     except Exception as e:
         return JsonResponse({'error': f'Unexpected error: {e}'})
+
+def public_subscription_comparison(request):
+    """Display subscription comparison for non-logged in users"""
+    # Exclude free subscriptions from the comparison page
+    SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
+    subscriptions = SubscriptionType.objects.filter(is_active=True).exclude(price=0).prefetch_related(
+        'file_upload_settings',
+        'ai_models__ai_model',
+        'websearchsettings_set'
+    )
+    
+    context = {
+        'subscriptions': subscriptions,
+    }
+    return render(request, 'subscriptions/public_comparison.html', context)

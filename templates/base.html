@@ -293,6 +293,23 @@
                             itemsContainer.appendChild(menuItem);
                         });
                         
+                        // For non-authenticated users, add the comparison link if it's not already in the menu items
+                        if (!isAuthenticated) {
+                            // Check if comparison link is already in menuItems
+                            const hasComparisonLink = menuItems.some(item => item.url === '/subscriptions/comparison/');
+                            if (!hasComparisonLink) {
+                                const menuItem = document.createElement('div');
+                                menuItem.className = 'mobile-menu-item';
+                                menuItem.innerHTML = `
+                                    <a class="mobile-menu-link" href="/subscriptions/comparison/">
+                                        <i class="fas fa-table"></i>
+                                        <span>مقایسه پلن‌ها</span>
+                                    </a>
+                                `;
+                                itemsContainer.appendChild(menuItem);
+                            }
+                        }
+                        
                         content.appendChild(itemsContainer);
                         section.appendChild(content);
                         mobileMenuSections.appendChild(section);
@@ -466,6 +483,7 @@
             
             if (isAuthenticated) {
                 defaultItems.push(
+                    { name: 'خانه', url: '/', icon_class: 'fas fa-home' },
                     { name: 'چت', url: '/chat/', icon_class: 'fas fa-comments' },
                     { name: 'تراکنش‌های مالی', url: '/financial-transactions/', icon_class: 'fas fa-credit-card' },
                     { name: 'خرید اشتراک', url: '/subscriptions/purchase/', icon_class: 'fas fa-shopping-cart' },
@@ -474,6 +492,7 @@
             } else {
                 defaultItems.push(
                     { name: 'خانه', url: '/', icon_class: 'fas fa-home' },
+                    { name: 'مقایسه پلن‌ها', url: '/subscriptions/comparison/', icon_class: 'fas fa-table' },
                     { name: 'ورود', url: '/accounts/login/', icon_class: 'fas fa-sign-in-alt' }
                 );
             }
@@ -575,6 +594,22 @@
                         desktopNavLeft.appendChild(li);
                     });
                     
+                    // For non-authenticated users, add the comparison link if it's not already in the menu items
+                    if (!isAuthenticated) {
+                        // Check if comparison link is already in leftItems
+                        const hasComparisonLink = leftItems.some(item => item.url === '/subscriptions/comparison/');
+                        if (!hasComparisonLink) {
+                            const li = document.createElement('li');
+                            li.className = 'nav-item';
+                            li.innerHTML = `
+                                <a class="nav-link" href="/subscriptions/comparison/">
+                                    <i class="fas fa-table"></i> مقایسه پلن‌ها
+                                </a>
+                            `;
+                            desktopNavLeft.appendChild(li);
+                        }
+                    }
+                    
                     // Add right menu items (user-related items)
                     rightItems.forEach(item => {
                         const li = document.createElement('li');
@@ -635,6 +670,11 @@
                     name: 'چت',
                     url: '/chat/',
                     icon_class: 'fas fa-comments'
+                },
+                {
+                    name: 'مقایسه پلن‌ها',
+                    url: '/subscriptions/comparison/',
+                    icon_class: 'fas fa-table'
                 }
             ];
             
