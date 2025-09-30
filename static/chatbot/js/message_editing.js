@@ -394,10 +394,19 @@ function handleEditStreamingResponse(response) {
                     console.log('Adding final assistant message to chat:', messageData);
                     addMessageToChat(messageData);
                     
-                    // Check if this is an image editing chatbot and we have images
+                    // Check if this is an image editing chatbot
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
-                    if (sessionData.chatbot_type === 'image_editing' && hasImages) {
-                        // For image editing chatbots, show success notification and refresh page
+                    if (sessionData.chatbot_type === 'image_editing') {
+                        // For image editing chatbots, refresh page after every AI message
+                        console.log('AI message received in image editing chatbot, refreshing page...');
+                        
+                        // Refresh the page after a short delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000); // 1 second delay
+                        return;
+                    } else if (sessionData.chatbot_type === 'image_editing' && hasImages) {
+                        // For image editing chatbots with images, show success notification and refresh page
                         console.log('Image generated successfully during editing, refreshing page...');
                         
                         // Show a brief success notification
