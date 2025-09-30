@@ -397,16 +397,16 @@ function handleEditStreamingResponse(response) {
                     // Check if this is an image editing chatbot and we have images
                     const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
                     if (sessionData.chatbot_type === 'image_editing' && hasImages) {
-                        // For image editing chatbots, show success notification and display image immediately
-                        console.log('Image generated successfully during editing, displaying image without page refresh...');
+                        // For image editing chatbots, show success notification and refresh page
+                        console.log('Image generated successfully during editing, refreshing page...');
                         
                         // Show a brief success notification
                         showImageGenerationSuccess();
                         
-                        // Instead of refreshing the page, scroll to show the newly added image
+                        // Refresh the page after a short delay to show the notification
                         setTimeout(() => {
-                            scrollToBottom();
-                        }, 500); // Small delay to ensure image is rendered
+                            window.location.reload();
+                        }, 1500); // 1.5 second delay to show notification
                         return;
                     }
                     
@@ -415,6 +415,12 @@ function handleEditStreamingResponse(response) {
                     setTimeout(() => {
                         scrollToBottom();
                     }, 500); // Small delay to ensure message is rendered
+                    
+                    // Refresh page after successful message completion
+                    console.log('Message editing completed successfully, refreshing page...');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000); // 1 second delay
                     
                     return;
                 }
