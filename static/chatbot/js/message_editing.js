@@ -416,12 +416,6 @@ function handleEditStreamingResponse(response) {
                         scrollToBottom();
                     }, 500); // Small delay to ensure message is rendered
                     
-                    // Refresh page after successful message completion
-                    console.log('Message editing completed successfully, refreshing page...');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000); // 1 second delay
-                    
                     return;
                 }
                 

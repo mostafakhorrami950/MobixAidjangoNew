@@ -189,12 +189,6 @@ function sendMessage() {
                     messageInput.disabled = false;
                     messageInput.focus();
                     setButtonState(false);
-                    
-                    // Refresh page after successful message completion
-                    console.log('Message completed successfully, refreshing page...');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000); // 1 second delay
                     return;
                 }
 
