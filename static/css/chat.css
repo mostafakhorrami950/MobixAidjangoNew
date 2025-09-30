@@ -1522,6 +1522,7 @@ option:disabled {
 .placeholder-text {
     color: #6c757d;
     font-size: 1rem;
+    font-style: italic;
 }
 
 .dropdown-arrow {
@@ -1538,14 +1539,15 @@ option:disabled {
     left: 0;
     right: 0;
     background-color: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
+    border: 2px solid #007bff;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     z-index: 1000;
     max-height: 300px;
     overflow-y: auto;
     display: none;
-    margin-top: 0.25rem;
+    margin-top: -2px; /* Overlap border */
 }
 
 .model-dropdown-menu.show {
@@ -1557,9 +1559,10 @@ option:disabled {
     align-items: center;
     padding: 0.75rem 1rem;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f8f9fa;
-    min-height: 60px; /* Set proper height for each item */
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #e9ecef;
+    min-height: 70px; /* Increased height for better touch targets */
+    position: relative;
 }
 
 .model-dropdown-item:last-child {
@@ -1568,10 +1571,13 @@ option:disabled {
 
 .model-dropdown-item:hover {
     background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .model-dropdown-item.selected {
     background-color: rgba(0, 123, 255, 0.1);
+    border-left: 3px solid #007bff;
 }
 
 .model-dropdown-item.disabled {
@@ -1582,17 +1588,28 @@ option:disabled {
 
 .model-dropdown-item.disabled:hover {
     background-color: #f8f9fa;
+    transform: none;
+    box-shadow: none;
 }
 
 .model-dropdown-item-image {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
     object-fit: cover;
-    margin-left: 0.75rem;
+    margin-left: 1rem;
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
-    flex-shrink: 0; /* Prevent image from shrinking */
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.model-dropdown-item-image i {
+    font-size: 20px;
+    color: #6c757d;
 }
 
 .model-dropdown-item-content {
@@ -1603,21 +1620,22 @@ option:disabled {
 }
 
 .model-dropdown-item-name {
-    font-weight: 500;
+    font-weight: 600;
     color: #212529;
-    font-size: 0.95rem;
+    font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
 }
 
 .model-dropdown-item-badge {
     font-size: 0.75rem;
-    padding: 0.25em 0.5em;
-    border-radius: 4px;
+    padding: 0.25em 0.6em;
+    border-radius: 12px;
     font-weight: 600;
-    margin-top: 0.25rem;
-    align-self: flex-start; /* Align badge to start */
+    align-self: flex-start;
+    display: inline-block;
 }
 
 .badge-free {
@@ -1687,6 +1705,7 @@ option:disabled {
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, 0.08);
+    height: 100%;
 }
 
 #newChatModal .card:hover {
@@ -1706,6 +1725,12 @@ option:disabled {
     font-size: 1.2rem;
 }
 
+#newChatModal .card-body {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
 #newChatModal .form-select {
     border: 2px solid #e9ecef;
     padding: 0.75rem 1rem;
@@ -1722,6 +1747,7 @@ option:disabled {
 #newChatModal .form-label {
     color: #495057;
     margin-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 #newChatModal .badge {
@@ -1736,6 +1762,7 @@ option:disabled {
     padding: 0.75rem 1rem;
     font-size: 0.85rem;
     border: none;
+    margin-top: auto;
 }
 
 #newChatModal .alert-info {
@@ -1793,12 +1820,6 @@ option:disabled {
 
 #newChatModal .btn i {
     font-size: 0.9rem;
-}
-
-#newChatModal .btn:disabled {
-    opacity: 0.6;
-    transform: none !important;
-    box-shadow: none !important;
 }
 
 /* Responsive adjustments for mobile */

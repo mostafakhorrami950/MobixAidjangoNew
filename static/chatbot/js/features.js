@@ -220,7 +220,7 @@ function loadModelsForChatbot(chatbotId) {
     modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">-- مدلی را انتخاب کنید --</span></div>';
     
     // Reset selected display
-    modelDropdownSelected.innerHTML = '<span class="placeholder-text">انتخاب مدل...</span><i class="fas fa-chevron-down dropdown-arrow"></i>';
+    modelDropdownSelected.innerHTML = '<span class="placeholder-text" style="color: #6c757d; font-style: italic;">انتخاب مدل...</span><i class="fas fa-chevron-down dropdown-arrow"></i>';
     
     // Load models for this chatbot
     fetch(`/chat/chatbot/${chatbotId}/models/`)
@@ -229,7 +229,7 @@ function loadModelsForChatbot(chatbotId) {
             if (data.error) {
                 console.error('Error loading models:', data.error);
                 // Show error in dropdown
-                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
+                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled" style="justify-content: center;"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
                 return;
             }
             
@@ -241,17 +241,18 @@ function loadModelsForChatbot(chatbotId) {
             
             // Check if there are any models
             if (!data.models || data.models.length === 0) {
-                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">مدلی یافت نشد</span></div>';
+                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled" style="justify-content: center;"><span class="model-dropdown-item-name">مدلی یافت نشد</span></div>';
                 return;
             }
             
             // Sort models: free models first, then premium models
+            // Then sort by name within each group
             const sortedModels = [...data.models].sort((a, b) => {
                 // Free models come first
                 if (a.is_free && !b.is_free) return -1;
                 if (!a.is_free && b.is_free) return 1;
-                // Then sort by name
-                return a.name.localeCompare(b.name);
+                // Then sort alphabetically by name
+                return a.name.localeCompare(b.name, 'fa', { numeric: true });
             });
             
             // Populate model dropdown
@@ -270,11 +271,11 @@ function loadModelsForChatbot(chatbotId) {
                 // Create item content
                 let imageHtml = '';
                 if (model.image_url) {
-                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.src='/static/images/default-model.PNG'; this.onerror=null;">`;
+                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.parentElement.innerHTML='<div class=\'model-dropdown-item-image\' style=\'background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;\'><i class=\'fas fa-microchip\' style=\'color: #6c757d; font-size: 20px;\'></i></div>';">`;
                 } else {
                     // Placeholder for when no image is available
                     imageHtml = `<div class="model-dropdown-item-image" style="background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 16px;"></i>
+                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 20px;"></i>
                     </div>`;
                 }
                 
@@ -282,11 +283,20 @@ function loadModelsForChatbot(chatbotId) {
                 const badgeClass = model.is_free ? 'badge-free' : 'badge-premium';
                 const badgeText = model.is_free ? 'رایگان' : 'ویژه';
                 
+                // Add lock icon for models user doesn't have access to
+                const lockIcon = model.user_has_access ? '' : '<i class="fas fa-lock" style="margin-right: 5px; font-size: 0.8rem;"></i>';
+                
                 item.innerHTML = `
                     ${imageHtml}
                     <div class="model-dropdown-item-content">
-                        <span class="model-dropdown-item-name" title="${model.name}">${model.name}</span>
-                        <span class="model-dropdown-item-badge ${badgeClass}">${badgeText}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span class="model-dropdown-item-name" title="${model.name}">${model.name}</span>
+                            <span class="model-dropdown-item-badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; font-size: 0.8rem; color: #6c757d; margin-top: 4px;">
+                            ${lockIcon}
+                            <span>ضریب هزینه: ${model.token_cost_multiplier}</span>
+                        </div>
                     </div>
                 `;
                 
@@ -299,13 +309,21 @@ function loadModelsForChatbot(chatbotId) {
                         // Update selected display
                         const selectedImage = this.querySelector('.model-dropdown-item-image').cloneNode(true);
                         selectedImage.className = 'model-dropdown-item-image';
-                        selectedImage.style.width = '24px';
-                        selectedImage.style.height = '24px';
+                        selectedImage.style.width = '30px';
+                        selectedImage.style.height = '30px';
+                        selectedImage.style.marginLeft = '0.75rem';
                         
                         modelDropdownSelected.innerHTML = `
                             ${selectedImage.outerHTML}
-                            <span class="model-dropdown-item-name" style="margin: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${model.name}</span>
-                            <span class="model-dropdown-item-badge ${badgeClass}" style="font-size: 0.7rem; padding: 0.2em 0.4em;">${badgeText}</span>
+                            <div style="flex: 1; display: flex; flex-direction: column; margin: 0 0.75rem; min-width: 0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span class="model-dropdown-item-name" style="font-size: 0.95rem; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${model.name}</span>
+                                    <span class="model-dropdown-item-badge ${badgeClass}" style="font-size: 0.7rem; padding: 0.2em 0.4em;">${badgeText}</span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: #6c757d; margin-top: 2px;">
+                                    ضریب هزینه: ${model.token_cost_multiplier}
+                                </div>
+                            </div>
                             <i class="fas fa-chevron-down dropdown-arrow"></i>
                         `;
                         
