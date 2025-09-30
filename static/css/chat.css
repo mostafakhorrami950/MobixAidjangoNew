@@ -1544,7 +1544,7 @@ option:disabled {
     border-radius: 0 0 8px 8px;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    max-height: 300px;
+    max-height: 800px;
     overflow-y: auto;
     display: none;
     margin-top: -2px; /* Overlap border */
