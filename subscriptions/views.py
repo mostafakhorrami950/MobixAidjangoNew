@@ -74,7 +74,11 @@ def purchase_subscription(request):
     """Display available subscriptions for purchase"""
     # Exclude free subscriptions from the purchase page
     SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
-    subscriptions = SubscriptionType.objects.filter(is_active=True).exclude(price=0)
+    subscriptions = SubscriptionType.objects.filter(is_active=True).exclude(price=0).prefetch_related(
+        'file_upload_settings',
+        'ai_models__ai_model',
+        'websearchsettings_set'
+    )
     
     # Get comprehensive usage statistics for the user
     usage_stats = UserUsageStatsService.get_user_usage_statistics(request.user)

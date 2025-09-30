@@ -228,6 +228,267 @@
         </div>
         {% endif %}
         
+        <!-- Subscription Comparison Table -->
+        <div class="comparison-section">
+            <div class="comparison-header">
+                <h2 class="comparison-title">مقایسه جامع پلن‌های اشتراک</h2>
+                <p class="comparison-subtitle">برای انتخاب بهترین پلن، تمام ویژگی‌ها و محدودیت‌های هر پلن را مقایسه کنید</p>
+            </div>
+            
+            <div class="comparison-table-container">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th class="feature-header">ویژگی‌ها</th>
+                            {% for subscription in subscriptions %}
+                            <th class="plan-header">{{ subscription.name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Token Limits -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-coins"></i>
+                                    <span>حداکثر توکن</span>
+                                </div>
+                                <div class="feature-description">مقدار توکن اختصاص یافته به هر کاربر</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.max_tokens > 0 %}
+                                    {{ subscription.max_tokens|floatformat:0 }}
+                                {% else %}
+                                    <span class="unlimited">نامحدود</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- File Upload Settings -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-file-upload"></i>
+                                    <span>حداکثر حجم فایل</span>
+                                </div>
+                                <div class="feature-description">حداکثر حجم فایل قابل آپلود</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.file_upload_settings %}
+                                    {% if subscription.file_upload_settings.max_file_size > 0 %}
+                                        {{ subscription.file_upload_settings.max_file_size|filesizeformat }}
+                                    {% else %}
+                                        <span class="unlimited">نامحدود</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="na">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>حداکثر فایل در روز</span>
+                                </div>
+                                <div class="feature-description">تعداد فایل‌های قابل آپلود در روز</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.file_upload_settings %}
+                                    {% if subscription.file_upload_settings.daily_file_limit > 0 %}
+                                        {{ subscription.file_upload_settings.daily_file_limit }}
+                                    {% else %}
+                                        <span class="unlimited">نامحدود</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="na">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-file-medical"></i>
+                                    <span>حداکثر فایل در ماه</span>
+                                </div>
+                                <div class="feature-description">تعداد فایل‌های قابل آپلود در ماه</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.file_upload_settings %}
+                                    {% if subscription.file_upload_settings.monthly_file_limit > 0 %}
+                                        {{ subscription.file_upload_settings.monthly_file_limit }}
+                                    {% else %}
+                                        <span class="unlimited">نامحدود</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="na">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- AI Model Access -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-robot"></i>
+                                    <span>مدل‌های هوش مصنوعی</span>
+                                </div>
+                                <div class="feature-description">مدل‌های هوش مصنوعی قابل دسترسی</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value model-list">
+                                {% if subscription.ai_models.all %}
+                                    {% for model_subscription in subscription.ai_models.all %}
+                                        <div class="model-item">
+                                            {% if model_subscription.ai_model.image %}
+                                                <img src="{{ model_subscription.ai_model.image.url }}" alt="{{ model_subscription.ai_model.name }}" class="model-image">
+                                            {% endif %}
+                                            <span class="model-name">{{ model_subscription.ai_model.name }}</span>
+                                            {% if model_subscription.ai_model.is_free %}
+                                                <span class="badge free">رایگان</span>
+                                            {% else %}
+                                                <span class="badge premium">ویژه</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="na">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Web Search Settings -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-search"></i>
+                                    <span>قابلیت جستجوی وب</span>
+                                </div>
+                                <div class="feature-description">دسترسی به اطلاعات آنلاین در زمان واقعی</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.websearchsettings_set.all %}
+                                    <span class="available">
+                                        <i class="fas fa-check-circle"></i>
+                                        دارد
+                                    </span>
+                                {% else %}
+                                    <span class="unavailable">
+                                        <i class="fas fa-times-circle"></i>
+                                        ندارد
+                                    </span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Image Generation Limits -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-image"></i>
+                                    <span>تولید تصویر روزانه</span>
+                                </div>
+                                <div class="feature-description">تعداد تصاویر قابل تولید در روز</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.daily_image_generation_limit > 0 %}
+                                    {{ subscription.daily_image_generation_limit }}
+                                {% else %}
+                                    <span class="unlimited">نامحدود</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-images"></i>
+                                    <span>تولید تصویر ماهانه</span>
+                                </div>
+                                <div class="feature-description">تعداد تصاویر قابل تولید در ماه</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.monthly_image_generation_limit > 0 %}
+                                    {{ subscription.monthly_image_generation_limit }}
+                                {% else %}
+                                    <span class="unlimited">نامحدود</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Message Limits -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-comments"></i>
+                                    <span>پیام‌های روزانه</span>
+                                </div>
+                                <div class="feature-description">حداکثر تعداد پیام در روز</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {% if subscription.daily_max_messages > 0 %}
+                                    {{ subscription.daily_max_messages }}
+                                {% else %}
+                                    <span class="unlimited">نامحدود</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Duration -->
+                        <tr>
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-clock"></i>
+                                    <span>مدت اشتراک</span>
+                                </div>
+                                <div class="feature-description">مدت زمان اعتبار اشتراک</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value">
+                                {{ subscription.duration_days }} روز
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        
+                        <!-- Price -->
+                        <tr class="price-row">
+                            <td class="feature-name">
+                                <div class="feature-info">
+                                    <i class="fas fa-tag"></i>
+                                    <span>قیمت</span>
+                                </div>
+                                <div class="feature-description">هزینه اشتراک</div>
+                            </td>
+                            {% for subscription in subscriptions %}
+                            <td class="feature-value price">
+                                {{ subscription.price|floatformat:0 }} تومان
+                            </td>
+                            {% endfor %}
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
         <!-- Purchase Guide Sidebar -->
         <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; margin-top: 3rem;">
             <div></div>
@@ -717,6 +978,213 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .usage-stat {
         padding: 1rem;
+    }
+}
+
+
+/* Subscription Comparison Table Styles */
+.comparison-section {
+    margin-top: 4rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #1a2a6c, #2c3e50);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.comparison-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.comparison-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.comparison-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.comparison-table-container {
+    overflow-x: auto;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    min-width: 800px;
+}
+
+.comparison-table thead {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.feature-header {
+    padding: 1.5rem;
+    text-align: right;
+    font-weight: 600;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.plan-header {
+    padding: 1.5rem;
+    text-align: center;
+    font-weight: 700;
+    color: #333;
+    font-size: 1.2rem;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.feature-name {
+    padding: 1.2rem 1.5rem;
+    text-align: right;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background: #f8f9fa;
+    width: 30%;
+}
+
+.feature-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.feature-info i {
+    color: #667eea;
+}
+
+.feature-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: normal;
+}
+
+.feature-value {
+    padding: 1.2rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+}
+
+.feature-value:last-child {
+    border-left: none;
+}
+
+.feature-value.model-list {
+    padding: 1rem 1.5rem;
+    text-align: right;
+}
+
+.model-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f1f3f5;
+    border-radius: 8px;
+}
+
+.model-item:last-child {
+    margin-bottom: 0;
+}
+
+.model-image {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.model-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge.free {
+    background: #10b981;
+    color: white;
+}
+
+.badge.premium {
+    background: #8b5cf6;
+    color: white;
+}
+
+.available {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.unavailable {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.unlimited {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.na {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.price-row {
+    background: #f0f4f8;
+}
+
+.price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+@media (max-width: 768px) {
+    .comparison-section {
+        padding: 1rem;
+    }
+    
+    .comparison-title {
+        font-size: 1.5rem;
+    }
+    
+    .comparison-subtitle {
+        font-size: 1rem;
+    }
+    
+    .feature-name {
+        padding: 1rem;
+    }
+    
+    .feature-value {
+        padding: 1rem;
+    }
+    
+    .model-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
     }
 }
 </style>
