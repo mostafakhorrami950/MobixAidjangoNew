@@ -1705,7 +1705,7 @@ option:disabled {
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    height: 100%;
+    
 }
 
 #newChatModal .card:hover {
