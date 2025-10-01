@@ -145,25 +145,17 @@ class OpenRouterService:
         
         # Add web search options if enabled
         if web_search:
-            # Use the :online suffix approach as it's equivalent to the web plugin
-            payload["model"] = f"{ai_model.model_id}:online"
-            # Also add web search options as fallback
-            payload["web_search_options"] = {
-                "search_context_size": "medium"
-            }
+            payload["transforms"] = ["web-search"]
         
-        # Add modalities for image generation
+        # Add modalities if provided
         if modalities:
             payload["modalities"] = modalities
-        
-        # Add plugins for PDF processing
+            
+        # Add plugins if provided
         if plugins:
             payload["plugins"] = plugins
         
-        try:
-            headers = self.get_headers()
-        except ValueError as e:
-            return {"error": str(e)}
+        headers = self.get_headers()
         
         try:
             if stream:
@@ -196,70 +188,90 @@ class OpenRouterService:
             if isinstance(response, dict) and 'error' in response:
                 return response
             
-            # Check if response is a requests.Response object
-            if not hasattr(response, 'iter_content'):
+            # Check if response is a requests.Response object with iter_lines method
+            if not (hasattr(response, 'iter_lines') and callable(getattr(response, 'iter_lines', None))):
                 return {"error": "Invalid response object for streaming"}
+            
+            # Type check to satisfy linter
+            from requests import Response
+            if not isinstance(response, Response):
+                return {"error": "Invalid response type for streaming"}
             
             def generate():
                 buffer = ""
                 usage_data = None
                 try:
-                    # Type check: ensure response has iter_content method
-                    if not isinstance(response, requests.Response):
-                        yield "Error: Invalid response object for streaming"
-                        return
-                    
-                    for chunk in response.iter_content(chunk_size=1024):
-                        if chunk:
-                            # Decode chunk with UTF-8
-                            try:
-                                chunk_str = chunk.decode('utf-8')
-                                buffer += chunk_str
-                            except UnicodeDecodeError:
-                                # Try different encodings if UTF-8 fails
-                                try:
-                                    chunk_str = chunk.decode('latin-1')
-                                    buffer += chunk_str
-                                except UnicodeDecodeError:
-                                    continue
+                    # Use iter_lines with decode_unicode=True for proper text handling
+                    # Make sure we're not calling iter_lines multiple times
+                    lines_iterator = response.iter_lines(decode_unicode=True)
+                    for line in lines_iterator:
+                        if line:
+                            line_str = line.decode('utf-8') if isinstance(line, bytes) else line
                             
-                            # Process SSE events
-                            while '\n' in buffer:
-                                line_end = buffer.find('\n')
-                                line = buffer[:line_end].strip()
-                                buffer = buffer[line_end + 1:]
+                            # Skip empty lines and SSE comments
+                            if line_str.startswith(':') or not line_str.strip():
+                                continue
+                            
+                            # Remove SSE data prefix if present
+                            if line_str.startswith('data: '):
+                                line_str = line_str[6:]  # Remove 'data: ' prefix
+                            
+                            # Handle completion
+                            if line_str.strip() == '[DONE]':
+                                # Send any remaining buffer
+                                if buffer:
+                                    yield buffer
+                                    buffer = ""
+                                break
+                            
+                            try:
+                                data_obj = json.loads(line_str)
                                 
-                                if line.startswith('data: '):
-                                    data = line[6:]  # Remove 'data: ' prefix
-                                    if data == '[DONE]':
-                                        # Send usage data at the end
-                                        if usage_data:
-                                            yield f"\n\n[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
-                                        break
-                                    try:
-                                        data_obj = json.loads(data)
-                                        # Capture usage data if present
-                                        if 'usage' in data_obj:
-                                            usage_data = data_obj['usage']
-                                        if 'choices' in data_obj and len(data_obj['choices']) > 0:
-                                            delta = data_obj['choices'][0].get('delta', {})
-                                            content = delta.get('content', '')
+                                # Handle errors in the stream
+                                if 'error' in data_obj:
+                                    error_msg = data_obj['error'].get('message', 'Unknown error')
+                                    yield f"Error: {error_msg}"
+                                    break
+                                
+                                # Extract usage data if present
+                                if 'usage' in data_obj:
+                                    usage_data = data_obj['usage']
+                                    # Send usage data separately
+                                    yield f"[USAGE_DATA]{json.dumps(usage_data)}[USAGE_DATA_END]"
+                                    continue
+                                
+                                # Process choices
+                                if 'choices' in data_obj and len(data_obj['choices']) > 0:
+                                    delta = data_obj['choices'][0].get('delta', {})
+                                    content = delta.get('content', '')
+                                    
+                                    # Handle image responses
+                                    images = delta.get('images', [])
+                                    if images:
+                                        # Send image data separately
+                                        yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
+                                    
+                                    if content:
+                                        # Buffer content to reduce number of yields
+                                        buffer += content
+                                        # Yield buffer when it reaches a certain size to prevent excessive buffering
+                                        if len(buffer) > 50:  # Yield in chunks of 50 characters
+                                            yield buffer
+                                            buffer = ""
                                             
-                                            # Handle image responses
-                                            images = delta.get('images', [])
-                                            if images:
-                                                # Send image data separately
-                                                yield f"\n\n[IMAGES]{json.dumps(images)}[IMAGES_END]"
-                                            
-                                            if content:
-                                                yield content
-                                    except json.JSONDecodeError:
-                                        # Skip invalid JSON
-                                        continue
+                            except json.JSONDecodeError:
+                                # Skip invalid JSON
+                                continue
+                    
+                    # Send any remaining buffer
+                    if buffer:
+                        yield buffer
+                        
                 except Exception as e:
                     yield f"Error in streaming: {str(e)}"
             
-            return generate()
+            # Return the generator directly, not a dict
+            return generate()  # Return the generator function itself, not calling it
         except Exception as e:
             return {"error": f"Streaming error: {str(e)}"}
     
@@ -275,51 +287,52 @@ class OpenRouterService:
             if url and url.startswith("data:"):
                 # Extract mime type and base64 data
                 try:
-                    header, b64data = url.split(",", 1)
-                    mime = header.split(";")[0].split(":")[1]
+                    # Split data URL to get mime type and base64 data
+                    header, base64_data = url.split(',', 1)
+                    mime_type = header.split(':')[1].split(';')[0]
                     
-                    # Determine file extension
-                    ext = "png"  # default
-                    if mime == "image/png":
-                        ext = "png"
-                    elif mime == "image/jpeg":
-                        ext = "jpg"
-                    elif mime == "image/webp":
-                        ext = "webp"
-                    elif mime == "image/gif":
-                        ext = "gif"
+                    # Decode base64 data
+                    image_data = base64.b64decode(base64_data)
                     
                     # Generate unique filename
-                    from uuid import uuid4
-                    filename = f"{uuid4().hex}.{ext}"
+                    from django.utils.crypto import get_random_string
+                    file_extension = mimetypes.guess_extension(mime_type) or '.png'
+                    filename = f"ai_generated_{get_random_string(12)}{file_extension}"
+                    
+                    # Save image to media directory
+                    from django.core.files.base import ContentFile
+                    from django.core.files.storage import default_storage
+                    
+                    # Create uploads directory if it doesn't exist
+                    upload_dir = os.path.join(default_storage.location, 'uploads')
+                    os.makedirs(upload_dir, exist_ok=True)
                     
                     # Save file
-                    from django.core.files.storage import default_storage
-                    from django.core.files.base import ContentFile
-                    import base64
+                    file_path = os.path.join(upload_dir, filename)
+                    with open(file_path, 'wb') as f:
+                        f.write(image_data)
                     
-                    file_path = os.path.join('uploads', filename)
-                    file_content = base64.b64decode(b64data)
-                    path = default_storage.save(file_path, ContentFile(file_content))
-                    
-                    # Save to database
-                    img_record = UploadedFile(
+                    # Create UploadedFile record using _default_manager to avoid linter issues
+                    uploaded_file = UploadedFile._default_manager.create(
                         user=session.user,
                         session=session,
                         filename=filename,
-                        original_filename=f"generated_image.{ext}",
-                        mimetype=mime,
-                        size=len(file_content)
+                        original_filename=f"generated_image{file_extension}",
+                        mimetype=mime_type,
+                        size=len(image_data)
                     )
-                    img_record.save()
                     
-                    saved_image_ids.append(img_record.pk)
+                    # Add to saved images
                     saved_image_urls.append(f"/media/uploads/{filename}")
+                    saved_image_ids.append(uploaded_file.id)
+                    
                 except Exception as e:
-                    print(f"Error processing image: {e}")
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error processing generated image: {str(e)}", exc_info=True)
                     continue
-            else:
-                # If it's a public URL, just add it to the list
+            elif url:
+                # Handle direct URLs (not base64 encoded)
                 saved_image_urls.append(url)
         
         return saved_image_urls, saved_image_ids
