@@ -13,6 +13,7 @@ urlpatterns = [
     path('session/<int:session_id>/delete/', views.delete_session, name='delete_session'),
     path('generate-title/', views.generate_chat_title, name='generate_chat_title'),
     path('chatbot/<int:chatbot_id>/models/', views.get_available_models_for_chatbot, name='get_available_models_for_chatbot'),
+    path('chatbots/<str:type>/', views.get_available_chatbots, name='get_available_chatbots'),
     path('session/<int:session_id>/update-title/', views.update_session_title, name='update_session_title'),
     path('session/<int:session_id>/web-search-access/', views.check_web_search_access, name='check_web_search_access'),
     path('web-search-access/', views.check_web_search_access_no_session, name='check_web_search_access_no_session'),

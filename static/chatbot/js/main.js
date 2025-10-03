@@ -191,51 +191,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const newChatBtn = document.getElementById('new-chat-btn');
     if (newChatBtn) {
         newChatBtn.addEventListener('click', function() {
-            const chatbotSelect = document.getElementById('modal-chatbot-select');
-            const modelSelect = document.getElementById('modal-model-select');
-            const createChatBtn = document.getElementById('create-chat-btn');
+            // Reset modal to step 1
+            showStep(1);
             
-            if (chatbotSelect) chatbotSelect.value = '';
-            if (modelSelect) modelSelect.value = '';
-            if (createChatBtn) createChatBtn.disabled = true;
-            
-            // Check if there's a default model selected and pre-select it
-            const defaultModelId = localStorage.getItem('defaultModelId');
-            if (defaultModelId) {
-                // Set a small delay to ensure the modal is fully loaded
-                setTimeout(() => {
-                    if (chatbotSelect && modelSelect) {
-                        // If chatbot is not selected, select the first available chatbot
-                        if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
-                            chatbotSelect.value = chatbotSelect.options[1].value;
-                            // Trigger the change event to load models
-                            chatbotSelect.dispatchEvent(new Event('change'));
-                            
-                            // After models are loaded, select the default model
-                            setTimeout(() => {
-                                // Check if the default model is available in the options
-                                for (let i = 0; i < modelSelect.options.length; i++) {
-                                    if (modelSelect.options[i].value === defaultModelId) {
-                                        modelSelect.value = defaultModelId;
-                                        checkModalSelections();
-                                        break;
-                                    }
-                                }
-                            }, 200);
-                        } else if (chatbotSelect.value) {
-                            // If chatbot is already selected, just select the default model
-                            // Check if the default model is available in the options
-                            for (let i = 0; i < modelSelect.options.length; i++) {
-                                if (modelSelect.options[i].value === defaultModelId) {
-                                    modelSelect.value = defaultModelId;
-                                    checkModalSelections();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }, 100);
+            // Reset selections
+            const chatbotContainer = document.getElementById('modal-chatbot-select');
+            if (chatbotContainer) {
+                const current = chatbotContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">چت‌بات را انتخاب کنید</div>';
+                }
+                const options = chatbotContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete chatbotContainer.dataset.selected;
+                chatbotContainer.classList.remove('open');
             }
+            
+            const modelContainer = document.getElementById('modal-model-select');
+            if (modelContainer) {
+                const current = modelContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">مدل را انتخاب کنید</div>';
+                }
+                const options = modelContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete modelContainer.dataset.selected;
+                modelContainer.classList.remove('open');
+            }
+            
+            // Reset interaction type buttons
+            document.querySelectorAll('.interaction-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             
             const modalElement = document.getElementById('newChatModal');
             if (modalElement) {
@@ -249,101 +242,488 @@ document.addEventListener('DOMContentLoaded', function() {
     const fabNewChat = document.getElementById('fab-new-chat');
     if (fabNewChat) {
         fabNewChat.addEventListener('click', function() {
-            document.getElementById('modal-chatbot-select').value = '';
-            document.getElementById('modal-model-select').value = '';
-            document.getElementById('create-chat-btn').disabled = true;
+            // Reset modal to step 1
+            showStep(1);
             
-            // Check if there's a default model selected and pre-select it
-            const defaultModelId = localStorage.getItem('defaultModelId');
-            if (defaultModelId) {
-                // Set a small delay to ensure the modal is fully loaded
-                setTimeout(() => {
-                    const chatbotSelect = document.getElementById('modal-chatbot-select');
-                    const modelSelect = document.getElementById('modal-model-select');
+            // Reset selections
+            const chatbotContainer = document.getElementById('modal-chatbot-select');
+            if (chatbotContainer) {
+                const current = chatbotContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">چت‌بات را انتخاب کنید</div>';
+                }
+                const options = chatbotContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete chatbotContainer.dataset.selected;
+                chatbotContainer.classList.remove('open');
+            }
+            
+            const modelContainer = document.getElementById('modal-model-select');
+            if (modelContainer) {
+                const current = modelContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">مدل را انتخاب کنید</div>';
+                }
+                const options = modelContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete modelContainer.dataset.selected;
+                modelContainer.classList.remove('open');
+            }
+            
+            // Reset interaction type buttons
+            document.querySelectorAll('.interaction-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            
+            const modalElement = document.getElementById('newChatModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        });
+    }
+    
+    // Next step button
+    const nextBtn = document.getElementById('next-step-btn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            const currentStep = document.querySelector('.modal-step.active');
+            if (!currentStep) return;
+            
+            const stepNumber = parseInt(currentStep.id.split('-')[1]);
+            
+            if (stepNumber === 1) {
+                // Validate interaction type selection
+                const activeBtn = document.querySelector('.interaction-type-btn.active');
+                if (!activeBtn) {
+                    showConfirmationMessage('لطفاً نوع تعامل را انتخاب کنید.', 'warning');
+                    return;
+                }
+                
+                const interactionType = activeBtn.dataset.interactionType;
+                loadChatbotsByType(interactionType);
+                showStep(2);
+            } else if (stepNumber === 2) {
+                // Validate chatbot selection
+                const chatbotContainer = document.getElementById('modal-chatbot-select');
+                if (!chatbotContainer || !chatbotContainer.dataset.selected) {
+                    showConfirmationMessage('لطفاً چت‌بات را انتخاب کنید.', 'warning');
+                    return;
+                }
+                
+                showStep(3);
+            }
+        });
+    }
+    
+    // Previous step button
+    const prevBtn = document.getElementById('prev-step-btn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            const currentStep = document.querySelector('.modal-step.active');
+            if (!currentStep) return;
+            
+            const stepNumber = parseInt(currentStep.id.split('-')[1]);
+            showStep(stepNumber - 1);
+        });
+    }
+    
+    // Initialize enhanced select behavior when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeEnhancedSelect();
+        initializeInteractionTypeSelection();
+    });
+    
+    // Function to load chatbots by type with images
+    window.loadChatbotsByType = function(type) {
+        console.log('Loading chatbots for type:', type);
+        const chatbotContainer = document.getElementById('modal-chatbot-select');
+        if (!chatbotContainer) return;
+        
+        // Show loading state
+        const loadingEl = chatbotContainer.querySelector('.select-loading');
+        const emptyEl = chatbotContainer.querySelector('.select-empty');
+        const optionsList = chatbotContainer.querySelector('.select-options-list');
+        
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        if (emptyEl) emptyEl.classList.add('d-none');
+        if (optionsList) optionsList.innerHTML = '';
+        
+        fetch(`/chat/chatbots/${type}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Chatbots data received:', data);
+                const chatbots = data.chatbots || [];
+                
+                // Hide loading state
+                if (loadingEl) loadingEl.classList.add('d-none');
+                
+                if (chatbots.length === 0) {
+                    if (emptyEl) emptyEl.classList.remove('d-none');
+                    return;
+                }
+                
+                let html = '';
+                chatbots.forEach(chatbot => {
+                    const hasAccess = chatbot.has_access;
+                    const badgeClass = hasAccess ? 'free' : 'premium';
+                    const badgeText = hasAccess ? 'رایگان' : 'نیاز به اشتراک';
                     
-                    if (chatbotSelect && modelSelect) {
-                        // If chatbot is not selected, select the first available chatbot
-                        if (!chatbotSelect.value && chatbotSelect.options.length > 1) {
-                            chatbotSelect.value = chatbotSelect.options[1].value;
-                            // Trigger the change event to load models
-                            chatbotSelect.dispatchEvent(new Event('change'));
+                    html += `
+                        <div class="enhanced-option chatbot-option" 
+                             data-chatbot-id="${chatbot.id}" 
+                             data-image="${chatbot.image || ''}"
+                             data-name="${chatbot.name}"
+                             data-description="${chatbot.description || ''}"
+                             data-has-access="${hasAccess}">
+                            <img src="${chatbot.image ? chatbot.image : '/static/images/default-chatbot.png'}" 
+                                 alt="${chatbot.name}" 
+                                 class="enhanced-option-img" 
+                                 onerror="this.src='/static/images/default-chatbot.png'">
+                            <div class="enhanced-option-content">
+                                <span class="enhanced-option-text">${chatbot.name}</span>
+                                <small class="enhanced-option-desc">${chatbot.description || ''}</small>
+                            </div>
+                            <span class="enhanced-option-badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                    `;
+                });
+                
+                if (optionsList) optionsList.innerHTML = html;
+                
+                // Add click listeners for options
+                document.querySelectorAll('.chatbot-option').forEach(option => {
+                    option.addEventListener('click', function() {
+                        // Remove selected class from all options
+                        document.querySelectorAll('.chatbot-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        
+                        // Add selected class to clicked option
+                        this.classList.add('selected');
+                        
+                        // Get data attributes
+                        const chatbotId = this.dataset.chatbotId;
+                        const imgSrc = this.dataset.image ? this.dataset.image : '/static/images/default-chatbot.png';
+                        const name = this.dataset.name;
+                        const description = this.dataset.description;
+                        const hasAccess = this.dataset.hasAccess === 'true';
+                        
+                        // Update select display
+                        const display = chatbotContainer.querySelector('.select-display');
+                        const placeholder = chatbotContainer.querySelector('.select-placeholder');
+                        const value = chatbotContainer.querySelector('.select-value');
+                        
+                        if (display && placeholder && value) {
+                            placeholder.classList.add('d-none');
+                            value.classList.remove('d-none');
+                            value.innerHTML = `
+                                <img src="${imgSrc}" alt="${name}" class="select-value-img" onerror="this.src='/static/images/default-chatbot.png'">
+                                <span>${name}</span>
+                            `;
+                        }
+                        
+                        // Hide dropdown
+                        const dropdown = chatbotContainer.querySelector('.select-dropdown');
+                        if (dropdown) {
+                            dropdown.style.display = 'none';
+                        }
+                        chatbotContainer.classList.remove('open');
+                        chatbotContainer.setAttribute('aria-expanded', 'false');
+                        
+                        // Update chatbot details card
+                        const detailsCard = document.querySelector('.chatbot-details-card');
+                        const detailImg = detailsCard?.querySelector('.chatbot-detail-img');
+                        const detailName = detailsCard?.querySelector('.chatbot-detail-name');
+                        const detailDesc = detailsCard?.querySelector('.chatbot-detail-desc');
+                        const detailBadge = detailsCard?.querySelector('.chatbot-access-badge');
+                        
+                        if (detailsCard) {
+                            detailsCard.classList.remove('d-none');
                             
-                            // After models are loaded, select the default model
-                            setTimeout(() => {
-                                // Check if the default model is available in the options
-                                for (let i = 0; i < modelSelect.options.length; i++) {
-                                    if (modelSelect.options[i].value === defaultModelId) {
-                                        modelSelect.value = defaultModelId;
-                                        checkModalSelections();
-                                        break;
-                                    }
-                                }
-                            }, 200);
-                        } else if (chatbotSelect.value) {
-                            // If chatbot is already selected, just select the default model
-                            // Check if the default model is available in the options
-                            for (let i = 0; i < modelSelect.options.length; i++) {
-                                if (modelSelect.options[i].value === defaultModelId) {
-                                    modelSelect.value = defaultModelId;
-                                    checkModalSelections();
-                                    break;
+                            if (detailImg) {
+                                detailImg.src = imgSrc;
+                                detailImg.alt = name;
+                                detailImg.onerror = function() {
+                                    this.src = '/static/images/default-chatbot.png';
+                                };
+                            }
+                            
+                            if (detailName) detailName.textContent = name;
+                            if (detailDesc) detailDesc.textContent = description || 'بدون توضیح';
+                            
+                            if (detailBadge) {
+                                detailBadge.textContent = hasAccess ? 'رایگان' : 'نیاز به اشتراک';
+                                detailBadge.className = 'chatbot-access-badge badge ' + (hasAccess ? 'free' : 'premium');
+                            }
+                        }
+                        
+                        // Store selected chatbot ID
+                        chatbotContainer.dataset.selected = chatbotId;
+                        
+                        // Load models for this chatbot
+                        loadModelsForChatbot(chatbotId);
+                        
+                        // Automatically proceed to step 3
+                        setTimeout(() => showStep(3), 300);
+                    });
+                });
+                
+                // Add keyboard navigation
+                addKeyboardNavigation(chatbotContainer);
+            })
+            .catch(error => {
+                console.error('Error loading chatbots:', error);
+                
+                // Hide loading state and show error
+                if (loadingEl) loadingEl.classList.add('d-none');
+                if (emptyEl) {
+                    emptyEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i><span>خطا در بارگذاری چت‌بات‌ها</span>';
+                    emptyEl.classList.remove('d-none');
+                }
+            });
+    };
+    
+    // Function to add keyboard navigation to select
+    function addKeyboardNavigation(selectElement) {
+        const options = selectElement.querySelectorAll('.enhanced-option');
+        if (options.length === 0) return;
+        
+        let currentIndex = -1;
+        
+        selectElement.addEventListener('keydown', function(e) {
+            if (!selectElement.classList.contains('open')) return;
+            
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    currentIndex = (currentIndex + 1) % options.length;
+                    highlightOption(options, currentIndex);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    currentIndex = currentIndex <= 0 ? options.length - 1 : currentIndex - 1;
+                    highlightOption(options, currentIndex);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (currentIndex >= 0 && currentIndex < options.length) {
+                        options[currentIndex].click();
+                    }
+                    break;
+                case 'Escape':
+                    selectElement.classList.remove('open');
+                    selectElement.setAttribute('aria-expanded', 'false');
+                    const dropdown = selectElement.querySelector('.select-dropdown');
+                    if (dropdown) dropdown.style.display = 'none';
+                    break;
+            }
+        });
+        
+        // Reset index when dropdown is closed
+        selectElement.addEventListener('blur', function() {
+            setTimeout(() => {
+                if (!selectElement.matches(':focus')) {
+                    currentIndex = -1;
+                }
+            }, 100);
+        });
+    }
+    
+    function highlightOption(options, index) {
+        options.forEach((option, i) => {
+            if (i === index) {
+                option.classList.add('selected');
+                option.scrollIntoView({ block: 'nearest' });
+            } else {
+                option.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Modified loadModelsForChatbot to use enhanced select with images
+    window.loadModelsForChatbot = function(chatbotId) {
+        console.log('Loading models for chatbot:', chatbotId);
+        const modelContainer = document.getElementById('modal-model-select');
+        if (!modelContainer) return;
+        
+        // Show loading state
+        const loadingEl = modelContainer.querySelector('.select-loading');
+        const emptyEl = modelContainer.querySelector('.select-empty');
+        const optionsList = modelContainer.querySelector('.select-options-list');
+        
+        if (loadingEl) loadingEl.classList.remove('d-none');
+        if (emptyEl) emptyEl.classList.add('d-none');
+        if (optionsList) optionsList.innerHTML = '';
+        
+        fetch(`/chat/chatbot/${chatbotId}/models/`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Models data received:', data);
+                const models = data.models || [];
+                
+                // Hide loading state
+                if (loadingEl) loadingEl.classList.add('d-none');
+                
+                if (models.length === 0) {
+                    if (emptyEl) emptyEl.classList.remove('d-none');
+                    return;
+                }
+                
+                let html = '';
+                models.forEach(model => {
+                    const isFree = model.is_free;
+                    const badgeClass = isFree ? 'free' : 'premium';
+                    const badgeText = isFree ? 'رایگان' : 'ویژه';
+                    const costMultiplier = parseFloat(model.token_cost_multiplier || 1);
+                    
+                    html += `
+                        <div class="enhanced-option model-option" 
+                             data-model-id="${model.model_id}" 
+                             data-token-cost-multiplier="${costMultiplier}"
+                             data-image="${model.image_url || ''}"
+                             data-name="${model.name}"
+                             data-description="${model.description || ''}"
+                             data-is-free="${isFree}">
+                            <img src="${model.image_url ? model.image_url : '/static/images/default-model.png'}" 
+                                 alt="${model.name}" 
+                                 class="enhanced-option-img" 
+                                 onerror="this.src='/static/images/default-model.png'">
+                            <div class="enhanced-option-content">
+                                <span class="enhanced-option-text">${model.name}</span>
+                                <small class="enhanced-option-desc">${model.description || ''}</small>
+                            </div>
+                            <span class="enhanced-option-badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                    `;
+                });
+                
+                if (optionsList) optionsList.innerHTML = html;
+                
+                // Add click listeners for options
+                const modelOptions = document.querySelectorAll('.model-option');
+                modelOptions.forEach(option => {
+                    option.addEventListener('click', function() {
+                        // Remove selected class from all options
+                        modelOptions.forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        
+                        // Add selected class to clicked option
+                        this.classList.add('selected');
+                        
+                        // Get data attributes
+                        const modelId = this.dataset.modelId;
+                        const imgSrc = this.dataset.image ? this.dataset.image : '/static/images/default-model.png';
+                        const name = this.dataset.name;
+                        const description = this.dataset.description;
+                        const isFree = this.dataset.isFree === 'true';
+                        const costMultiplier = parseFloat(this.dataset.tokenCostMultiplier || 1);
+                        
+                        // Update select display
+                        const display = modelContainer.querySelector('.select-display');
+                        const placeholder = modelContainer.querySelector('.select-placeholder');
+                        const value = modelContainer.querySelector('.select-value');
+                        
+                        if (display && placeholder && value) {
+                            placeholder.classList.add('d-none');
+                            value.classList.remove('d-none');
+                            value.innerHTML = `
+                                <img src="${imgSrc}" alt="${name}" class="select-value-img" onerror="this.src='/static/images/default-model.png'">
+                                <span>${name}</span>
+                            `;
+                        }
+                        
+                        // Hide dropdown
+                        const dropdown = modelContainer.querySelector('.select-dropdown');
+                        if (dropdown) {
+                            dropdown.style.display = 'none';
+                        }
+                        modelContainer.classList.remove('open');
+                        modelContainer.setAttribute('aria-expanded', 'false');
+                        
+                        // Update model details card
+                        const detailsCard = document.querySelector('.model-details-card');
+                        const detailImg = detailsCard?.querySelector('.model-detail-img');
+                        const detailName = detailsCard?.querySelector('.model-detail-name');
+                        const detailDesc = detailsCard?.querySelector('.model-detail-desc');
+                        const detailBadge = detailsCard?.querySelector('.model-access-badge');
+                        const costWarning = detailsCard?.querySelector('.model-cost-warning');
+                        const warningText = detailsCard?.querySelector('.warning-text');
+                        
+                        if (detailsCard) {
+                            detailsCard.classList.remove('d-none');
+                            
+                            if (detailImg) {
+                                detailImg.src = imgSrc;
+                                detailImg.alt = name;
+                                detailImg.onerror = function() {
+                                    this.src = '/static/images/default-model.png';
+                                };
+                            }
+                            
+                            if (detailName) detailName.textContent = name;
+                            if (detailDesc) detailDesc.textContent = description || 'بدون توضیح';
+                            
+                            if (detailBadge) {
+                                detailBadge.textContent = isFree ? 'رایگان' : 'ویژه';
+                                detailBadge.className = 'model-access-badge badge ' + (isFree ? 'free' : 'premium');
+                            }
+                            
+                            // Show cost warning if applicable
+                            if (costWarning && warningText) {
+                                if (costMultiplier > 1) {
+                                    costWarning.classList.remove('d-none');
+                                    warningText.textContent = `این مدل دارای ضریب هزینه ${costMultiplier} است`;
+                                } else {
+                                    costWarning.classList.add('d-none');
                                 }
                             }
                         }
-                    }
-                }, 100);
-            }
-            
-            const modalElement = document.getElementById('newChatModal');
-            const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
-            modal.show();
-        });
-    }
-    
-    // Toggle sessions list
-    const toggleSessionsBtn = document.getElementById('toggle-sessions');
-    if (toggleSessionsBtn) {
-        toggleSessionsBtn.addEventListener('click', toggleSessionsList);
-    }
-    
-    // Modal selection change listeners
-    const modalChatbotSelect = document.getElementById('modal-chatbot-select');
-    if (modalChatbotSelect) {
-        modalChatbotSelect.addEventListener('change', function() {
-            checkModalSelections();
-            // Load models based on chatbot type
-            const chatbotId = this.value;
-            if (chatbotId) {
-                loadModelsForChatbot(chatbotId);
-            }
-        });
-    }
-
-    const modalModelSelect = document.getElementById('modal-model-select');
-    if (modalModelSelect) {
-        modalModelSelect.addEventListener('change', function() {
-            checkModalSelections();
-            
-            // Check if the selected model has a cost multiplier > 1 and show warning
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.dataset) {
-                const costMultiplier = parseFloat(selectedOption.dataset.tokenCostMultiplier);
+                        
+                        // Store selected model ID
+                        modelContainer.dataset.selected = modelId;
+                        
+                        // Enable the create chat button
+                        const createBtn = document.getElementById('create-chat-btn');
+                        if (createBtn) {
+                            createBtn.disabled = false;
+                        }
+                        
+                        // Automatically show the create chat button
+                        const nextBtn = document.getElementById('next-step-btn');
+                        const prevBtn = document.getElementById('prev-step-btn');
+                        if (nextBtn) nextBtn.style.display = 'none';
+                        if (prevBtn) prevBtn.style.display = 'block';
+                        if (createBtn) createBtn.style.display = 'block';
+                    });
+                });
                 
-                if (costMultiplier > 1) {
-                    // Show warning message in modal
-                    showModalCostWarning(costMultiplier);
-                } else {
-                    // Hide any existing warning
-                    hideModalCostWarning();
+                // Add keyboard navigation
+                addKeyboardNavigation(modelContainer);
+            })
+            .catch(error => {
+                console.error('Error loading models:', error);
+                
+                // Hide loading state and show error
+                if (loadingEl) loadingEl.classList.add('d-none');
+                if (emptyEl) {
+                    emptyEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i><span>خطا در بارگذاری مدل‌ها</span>';
+                    emptyEl.classList.remove('d-none');
                 }
-            }
-        });
-    }
-
-    // Modal create button
-    const createChatBtn = document.getElementById('create-chat-btn');
-    if (createChatBtn) {
-        createChatBtn.addEventListener('click', createNewChat);
+            });
     }
     
     // Send message form submission
@@ -896,4 +1276,254 @@ function hideModalCostWarning() {
     if (warningElement) {
         warningElement.style.display = 'none';
     }
+}
+
+// Interaction Type Selection (Step 1)
+function initializeInteractionTypeSelection() {
+    console.log('Initializing interaction type selection');
+    
+    // Use event delegation to handle clicks on interaction type options
+    const step1 = document.getElementById('step-1');
+    if (step1) {
+        console.log('Step 1 element found, adding event listener');
+        step1.addEventListener('click', function(e) {
+            console.log('Click event triggered on step 1');
+            // Check if clicked element or its parent has the interaction-type-option class
+            let target = e.target;
+            while (target && target !== step1) {
+                if (target.classList.contains('interaction-type-option')) {
+                    console.log('Interaction type option clicked:', target);
+                    const interactionType = target.dataset.interactionType;
+                    console.log('Interaction type:', interactionType);
+                    
+                    // Remove active class from all options
+                    document.querySelectorAll('.interaction-type-option').forEach(opt => {
+                        opt.querySelector('.interaction-type-btn').classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked option
+                    target.querySelector('.interaction-type-btn').classList.add('active');
+                    
+                    // Automatically proceed to step 2
+                    console.log('Loading chatbots and showing step 2');
+                    setTimeout(() => {
+                        loadChatbotsByType(interactionType);
+                        showStep(2);
+                    }, 300);
+                    break;
+                }
+                target = target.parentElement;
+            }
+        });
+    } else {
+        console.log('Step 1 element not found');
+    }
+}
+
+// Reset modal when it's opened
+const newChatModal = document.getElementById('newChatModal');
+if (newChatModal) {
+    newChatModal.addEventListener('show.bs.modal', function () {
+        // Reset to step 1
+        showStep(1);
+        
+        // Reset all selects
+        document.querySelectorAll('.enhanced-select').forEach(select => {
+            // Reset display
+            const placeholder = select.querySelector('.select-placeholder');
+            const value = select.querySelector('.select-value');
+            if (placeholder && value) {
+                placeholder.classList.remove('d-none');
+                value.classList.add('d-none');
+                value.innerHTML = '';
+            }
+            
+            // Close dropdown
+            const dropdown = select.querySelector('.select-dropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            select.classList.remove('open');
+            select.setAttribute('aria-expanded', 'false');
+            
+            // Clear selections
+            delete select.dataset.selected;
+            
+            // Clear options
+            const optionsList = select.querySelector('.select-options-list');
+            if (optionsList) optionsList.innerHTML = '';
+            
+            // Show placeholder elements
+            const emptyEl = select.querySelector('.select-empty');
+            if (emptyEl) emptyEl.classList.add('d-none');
+        });
+        
+        // Hide detail cards
+        document.querySelectorAll('.chatbot-details-card, .model-details-card').forEach(card => {
+            card.classList.add('d-none');
+        });
+        
+        // Reset interaction type buttons
+        document.querySelectorAll('.interaction-type-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Hide create chat button
+        const createBtn = document.getElementById('create-chat-btn');
+        const nextBtn = document.getElementById('next-step-btn');
+        if (createBtn) {
+            createBtn.style.display = 'none';
+            createBtn.disabled = true;
+        }
+        if (nextBtn) nextBtn.style.display = 'block';
+    });
+}
+
+// Initialize enhanced select behavior when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEnhancedSelect();
+    initializeInteractionTypeSelection();
+});
+
+// Function to show confirmation messages
+function showConfirmationMessage(message, type = 'info') {
+    // Remove any existing confirmation messages
+    const existingMessage = document.querySelector('.confirmation-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create confirmation message element
+    const messageElement = document.createElement('div');
+    messageElement.className = `confirmation-message alert alert-${type} alert-dismissible fade show position-fixed`;
+    messageElement.style.cssText = `
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    messageElement.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Add to document
+    document.body.appendChild(messageElement);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (messageElement.parentNode) {
+            messageElement.parentNode.removeChild(messageElement);
+        }
+    }, 3000);
+}
+
+// Modal step navigation
+function showStep(step) {
+    // Hide all steps
+    document.querySelectorAll('.modal-step').forEach(stepElement => {
+        stepElement.classList.remove('active');
+    });
+    
+    // Show current step
+    const currentStep = document.getElementById(`step-${step}`);
+    if (currentStep) {
+        currentStep.classList.add('active');
+    }
+    
+    // Update button visibility
+    const prevBtn = document.getElementById('prev-step-btn');
+    const nextBtn = document.getElementById('next-step-btn');
+    const createBtn = document.getElementById('create-chat-btn');
+    
+    if (step === 1) {
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'block';
+        if (createBtn) createBtn.style.display = 'none';
+    } else if (step === 3) {
+        if (prevBtn) prevBtn.style.display = 'block';
+        if (nextBtn) nextBtn.style.display = 'none';
+        if (createBtn) createBtn.style.display = 'block';
+    } else {
+        if (prevBtn) prevBtn.style.display = 'block';
+        if (nextBtn) nextBtn.style.display = 'block';
+        if (createBtn) createBtn.style.display = 'none';
+    }
+}
+
+// Handle clicks outside of select elements
+function handleOutsideClick(e) {
+    if (!e.target.closest('.enhanced-select')) {
+        document.querySelectorAll('.enhanced-select.open').forEach(select => {
+            select.classList.remove('open');
+            select.setAttribute('aria-expanded', 'false');
+            const dropdown = select.querySelector('.select-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        });
+    }
+}
+
+// Initialize enhanced select behavior
+function initializeEnhancedSelect() {
+    const selectElements = document.querySelectorAll('.enhanced-select');
+    
+    selectElements.forEach(select => {
+        const trigger = select.querySelector('.select-trigger');
+        const dropdown = select.querySelector('.select-dropdown');
+        const searchInput = select.querySelector('.search-input');
+        
+        if (trigger) {
+            // Remove any existing event listeners to prevent duplicates
+            const newTrigger = trigger.cloneNode(true);
+            trigger.parentNode.replaceChild(newTrigger, trigger);
+            
+            // Add click event listener
+            newTrigger.addEventListener('click', function(e) {
+                // Prevent closing when clicking on search input
+                if (e.target.closest('.search-input')) return;
+                
+                // Toggle open state
+                select.classList.toggle('open');
+                const isOpen = select.classList.contains('open');
+                select.setAttribute('aria-expanded', isOpen.toString());
+                
+                // Show/hide dropdown
+                if (dropdown) {
+                    dropdown.style.display = isOpen ? 'block' : 'none';
+                }
+                
+                // Focus search input when opening
+                if (isOpen && searchInput) {
+                    setTimeout(() => searchInput.focus(), 100);
+                }
+                
+                console.log('Select clicked, isOpen:', isOpen);
+            });
+        }
+        
+        if (searchInput) {
+            // Remove any existing event listeners to prevent duplicates
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            
+            // Add input event listener
+            newSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const options = select.querySelectorAll('.enhanced-option');
+                
+                options.forEach(option => {
+                    const text = option.textContent.toLowerCase();
+                    option.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+                });
+            });
+        }
+    });
+    
+    // Close dropdown when clicking outside
+    document.removeEventListener('click', handleOutsideClick); // Remove previous listener
+    document.addEventListener('click', handleOutsideClick);
 }

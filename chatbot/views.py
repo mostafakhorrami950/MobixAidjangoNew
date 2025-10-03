@@ -184,6 +184,44 @@ def get_available_models_for_user(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
+def get_available_chatbots(request, type):
+    """
+    Get available chatbots for a specific interaction type (text or image)
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    try:
+        Chatbot = apps.get_model('chatbot', 'Chatbot')
+        user_subscription = request.user.get_subscription_type()
+        
+        # Filter chatbots based on type and active status
+        chatbots = Chatbot.objects.filter(is_active=True, chatbot_type=type)
+        
+        available_chatbots = []
+        for chatbot in chatbots:
+            has_access = False
+            if not chatbot.subscription_types.exists():
+                has_access = True  # Public chatbots
+            elif user_subscription:
+                has_access = chatbot.subscription_types.filter(id=user_subscription.id).exists()
+            
+            available_chatbots.append({
+                'id': chatbot.id,
+                'name': chatbot.name,
+                'description': chatbot.description or '',
+                'image': chatbot.image.url if chatbot.image else None,
+                'has_access': has_access,
+                'subscription_types': [str(st) for st in chatbot.subscription_types.all()] if has_access else []
+            })
+        
+        return JsonResponse({'chatbots': available_chatbots})
+    except Exception as e:
+        logger.error(f'Error fetching chatbots for type {type}: {str(e)}')
+        return JsonResponse({'error': 'Failed to fetch chatbots'}, status=500)
+
+
+@login_required
 def get_available_models_for_chatbot(request, chatbot_id):
     """
     Get available AI models for a specific chatbot based on its type

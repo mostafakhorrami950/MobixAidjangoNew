@@ -14,6 +14,7 @@ class Chatbot(models.Model):
     
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='chatbot_images/', blank=True, null=True, help_text='Image for this chatbot')
     subscription_types = models.ManyToManyField(SubscriptionType, blank=True, related_name='chatbots')
     is_active = models.BooleanField(default=True)
     system_prompt = models.TextField(blank=True, help_text="System prompt for the AI model")

@@ -190,8 +190,11 @@ function checkInitialSession() {
 
 // Create new chat
 async function createNewChat() {
-    const chatbotId = document.getElementById('modal-chatbot-select').value;
-    const modelId = document.getElementById('modal-model-select').value;
+    const chatbotContainer = document.getElementById('modal-chatbot-select');
+    const modelContainer = document.getElementById('modal-model-select');
+    
+    const chatbotId = chatbotContainer.dataset.selected;
+    const modelId = modelContainer.dataset.selected;
     
     // Validate selections
     if (!chatbotId || !modelId) {
@@ -229,7 +232,7 @@ async function createNewChat() {
         
         // Update the model selection button with the selected model name
         const modelSelect = document.getElementById('modal-model-select');
-        if (modelSelect && modelSelect.options[modelSelect.selectedIndex]) {
+        if (modelSelect && modelSelect.options && modelSelect.options[modelSelect.selectedIndex]) {
             const selectedModelName = modelSelect.options[modelSelect.selectedIndex].text;
             const currentModelName = document.getElementById('current-model-name');
             if (currentModelName) {
@@ -262,6 +265,18 @@ async function createNewChat() {
         alert('خطا در ایجاد چت: ' + error.message);
     });
 }
+
+// Add event listener for create chat button
+document.getElementById('create-chat-btn').addEventListener('click', function() {
+    // Validate model selection
+    const modelContainer = document.getElementById('modal-model-select');
+    if (!modelContainer.dataset.selected) {
+        showConfirmationMessage('لطفاً مدل را انتخاب کنید.', 'warning');
+        return;
+    }
+    
+    createNewChat();
+});
 
 // Delete session
 function deleteSession() {

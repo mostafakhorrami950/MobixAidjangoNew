@@ -14,7 +14,7 @@ class ChatbotAdmin(admin.ModelAdmin):
     list_editable = ('is_active',)
     filter_horizontal = ('subscription_types',)
     inlines = [ChatSessionInline]
-    fields = ('name', 'description', 'chatbot_type', 'is_active', 'system_prompt', 'subscription_types')
+    fields = ('name', 'description', 'image', 'chatbot_type', 'is_active', 'system_prompt', 'subscription_types')
 
 class ChatMessageInline(admin.TabularInline):
     model = ChatMessage

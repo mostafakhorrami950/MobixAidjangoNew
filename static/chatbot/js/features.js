@@ -212,15 +212,20 @@ function checkImageGenerationAccess(sessionId) {
 
 // Load models for a specific chatbot
 function loadModelsForChatbot(chatbotId) {
+    const modelOptions = document.getElementById('model-options');
+    if (!modelOptions) {
+        console.error('Model options element not found');
+        return;
+    }
     const modelSelect = document.getElementById('modal-model-select');
-    const modelDropdownMenu = document.getElementById('model-dropdown-menu');
-    const modelDropdownSelected = document.getElementById('model-dropdown-selected');
+    const selectCurrent = modelOptions.querySelector('.select-current');
+    const selectOptions = modelOptions.querySelector('.select-options');
     
     // Clear current options
-    modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">-- مدلی را انتخاب کنید --</span></div>';
+    selectOptions.innerHTML = '<div class="option-container disabled"><span class="option-text">-- مدلی را انتخاب کنید --</span></div>';
     
     // Reset selected display
-    modelDropdownSelected.innerHTML = '<span class="placeholder-text" style="color: #6c757d; font-style: italic;">انتخاب مدل...</span><i class="fas fa-chevron-down dropdown-arrow"></i>';
+    selectCurrent.innerHTML = '<span style="color: #6c757d; font-style: italic;">انتخاب مدل...</span>';
     
     // Load models for this chatbot
     fetch(`/chat/chatbot/${chatbotId}/models/`)
@@ -228,20 +233,22 @@ function loadModelsForChatbot(chatbotId) {
         .then(data => {
             if (data.error) {
                 console.error('Error loading models:', data.error);
-                // Show error in dropdown
-                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled" style="justify-content: center;"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
+                // Show error in options
+                selectOptions.innerHTML = '<div class="option-container disabled" style="justify-content: center;"><span class="option-text">خطا در بارگذاری مدل‌ها</span></div>';
                 return;
             }
             
             // Store model data in the select element for later use
-            modelSelect.dataset.modelData = JSON.stringify(data.models);
+            if (modelSelect) {
+                modelSelect.dataset.modelData = JSON.stringify(data.models);
+            }
             
-            // Clear dropdown menu
-            modelDropdownMenu.innerHTML = '';
+            // Clear options
+            selectOptions.innerHTML = '';
             
             // Check if there are any models
             if (!data.models || data.models.length === 0) {
-                modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled" style="justify-content: center;"><span class="model-dropdown-item-name">مدلی یافت نشد</span></div>';
+                selectOptions.innerHTML = '<div class="option-container disabled" style="justify-content: center;"><span class="option-text">مدلی یافت نشد</span></div>';
                 return;
             }
             
@@ -255,93 +262,73 @@ function loadModelsForChatbot(chatbotId) {
                 return a.name.localeCompare(b.name, 'fa', { numeric: true });
             });
             
-            // Populate model dropdown
+            // Populate model options
             sortedModels.forEach(model => {
-                const item = document.createElement('div');
-                item.className = 'model-dropdown-item';
-                item.dataset.modelId = model.model_id;
-                item.dataset.tokenCostMultiplier = model.token_cost_multiplier;
-                item.dataset.userHasAccess = model.user_has_access;
-                
-                // Add disabled class if user doesn't have access
+                const container = document.createElement('div');
+                container.className = 'option-container';
                 if (!model.user_has_access) {
-                    item.classList.add('disabled');
+                    container.classList.add('disabled');
                 }
+                container.dataset.modelId = model.model_id;
+                container.dataset.tokenCostMultiplier = model.token_cost_multiplier;
+                container.dataset.userHasAccess = model.user_has_access;
                 
-                // Create item content
+                // Create image element
                 let imageHtml = '';
                 if (model.image_url) {
-                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="model-dropdown-item-image" onerror="this.parentElement.innerHTML='<div class=\'model-dropdown-item-image\' style=\'background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;\'><i class=\'fas fa-microchip\' style=\'color: #6c757d; font-size: 20px;\'></i></div>';">`;
-                } else {
-                    // Placeholder for when no image is available
-                    imageHtml = `<div class="model-dropdown-item-image" style="background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-microchip" style="color: #6c757d; font-size: 20px;"></i>
-                    </div>`;
+                    imageHtml = `<img src="${model.image_url}" alt="${model.name}" class="option-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`;
                 }
+                imageHtml += `<div class="option-img-placeholder" style="display: none; width: 40px; height: 40px; border-radius: 50%; background-color: #f8f9fa; border: 1px solid #e9ecef; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0;">
+                    <i class="fas fa-microchip" style="color: #6c757d; font-size: 20px;"></i>
+                </div>`;
                 
-                // Determine badge class
-                const badgeClass = model.is_free ? 'badge-free' : 'badge-premium';
-                const badgeText = model.is_free ? 'رایگان' : 'ویژه';
+                // Determine badge
+                const badgeClass = model.is_free ? 'free-badge' : 'access-badge';
+                const badgeText = model.is_free ? 'رایگان' : 'ضریب: ' + model.token_cost_multiplier;
                 
-                // Add lock icon for models user doesn't have access to
-                const lockIcon = model.user_has_access ? '' : '<i class="fas fa-lock" style="margin-right: 5px; font-size: 0.8rem;"></i>';
+                // Lock icon if no access
+                const lockIcon = !model.user_has_access ? '<i class="fas fa-lock" style="margin-left: 0.5rem; color: #dc3545;"></i>' : '';
                 
-                item.innerHTML = `
+                container.innerHTML = `
                     ${imageHtml}
-                    <div class="model-dropdown-item-content">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span class="model-dropdown-item-name" title="${model.name}">${model.name}</span>
-                            <span class="model-dropdown-item-badge ${badgeClass}">${badgeText}</span>
-                        </div>
-                        <div style="display: flex; align-items: center; font-size: 0.8rem; color: #6c757d; margin-top: 4px;">
-                            ${lockIcon}
-                            <span>ضریب هزینه: ${model.token_cost_multiplier}</span>
-                        </div>
-                    </div>
+                    <div class="option-text">${model.name}${lockIcon}</div>
+                    <div class="option-desc">${model.description || ''}</div>
+                    <span class="${badgeClass}">${badgeText}</span>
                 `;
                 
                 // Add click event if user has access
                 if (model.user_has_access) {
-                    item.addEventListener('click', function() {
-                        // Update hidden input value
-                        modelSelect.value = model.model_id;
+                    container.addEventListener('click', function() {
+                        // Update hidden input
+                        if (modelSelect) {
+                            modelSelect.value = model.model_id;
+                        }
                         
-                        // Update selected display
-                        const selectedImage = this.querySelector('.model-dropdown-item-image').cloneNode(true);
-                        selectedImage.className = 'model-dropdown-item-image';
-                        selectedImage.style.width = '30px';
-                        selectedImage.style.height = '30px';
-                        selectedImage.style.marginLeft = '0.75rem';
+                        // Update current selection
+                        const img = this.querySelector('.option-img');
+                        let selectedImgHtml = '';
+                        if (img && img.src) {
+                            selectedImgHtml = `<img src="${img.src}" alt="${model.name}" class="option-img" style="width: 30px; height: 30px;">`;
+                        } else {
+                            selectedImgHtml = '<i class="fas fa-microchip" style="color: #6c757d; font-size: 20px; margin-right: 0.75rem;"></i>';
+                        }
                         
-                        modelDropdownSelected.innerHTML = `
-                            ${selectedImage.outerHTML}
-                            <div style="flex: 1; display: flex; flex-direction: column; margin: 0 0.75rem; min-width: 0;">
-                                <div style="display: flex; align-items: center; justify-content: space-between;">
-                                    <span class="model-dropdown-item-name" style="font-size: 0.95rem; margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${model.name}</span>
-                                    <span class="model-dropdown-item-badge ${badgeClass}" style="font-size: 0.7rem; padding: 0.2em 0.4em;">${badgeText}</span>
-                                </div>
-                                <div style="font-size: 0.75rem; color: #6c757d; margin-top: 2px;">
-                                    ضریب هزینه: ${model.token_cost_multiplier}
-                                </div>
-                            </div>
-                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        selectCurrent.innerHTML = `
+                            ${selectedImgHtml}
+                            <span style="font-weight: 500; flex: 1;">${model.name}</span>
+                            <span class="${badgeClass}" style="font-size: 0.75rem;">${badgeText}</span>
                         `;
                         
                         // Close dropdown
-                        modelDropdownMenu.classList.remove('show');
-                        modelDropdownSelected.classList.remove('active');
+                        modelOptions.classList.remove('open');
                         
-                        // Rotate arrow back
-                        const arrow = modelDropdownSelected.querySelector('.dropdown-arrow');
-                        if (arrow) {
-                            arrow.classList.remove('rotated');
+                        // Trigger change
+                        if (modelSelect) {
+                            const changeEvent = new Event('change');
+                            modelSelect.dispatchEvent(changeEvent);
                         }
                         
-                        // Trigger change event for validation
-                        const changeEvent = new Event('change');
-                        modelSelect.dispatchEvent(changeEvent);
-                        
-                        // Check if the selected model has a cost multiplier > 1 and show warning
+                        // Cost warning
                         const costMultiplier = parseFloat(model.token_cost_multiplier);
                         if (costMultiplier > 1) {
                             showModalCostWarning(costMultiplier);
@@ -351,17 +338,16 @@ function loadModelsForChatbot(chatbotId) {
                     });
                 }
                 
-                modelDropdownMenu.appendChild(item);
+                selectOptions.appendChild(container);
             });
             
-            // Check if there's a default model selected and pre-select it
+            // Pre-select default model
             const defaultModelId = localStorage.getItem('defaultModelId');
             if (defaultModelId) {
-                // Find and select the default model
-                const items = modelDropdownMenu.querySelectorAll('.model-dropdown-item:not(.disabled)');
-                for (let i = 0; i < items.length; i++) {
-                    if (items[i].dataset.modelId === defaultModelId) {
-                        items[i].click();
+                const items = selectOptions.querySelectorAll('.option-container:not(.disabled)');
+                for (let item of items) {
+                    if (item.dataset.modelId === defaultModelId) {
+                        item.click();
                         break;
                     }
                 }
@@ -369,8 +355,7 @@ function loadModelsForChatbot(chatbotId) {
         })
         .catch(error => {
             console.error('Error loading models:', error);
-            // Show error in dropdown
-            modelDropdownMenu.innerHTML = '<div class="model-dropdown-item disabled"><span class="model-dropdown-item-name">خطا در بارگذاری مدل‌ها</span></div>';
+            selectOptions.innerHTML = '<div class="option-container disabled"><span class="option-text">خطا در بارگذاری مدل‌ها</span></div>';
         });
 }
 
