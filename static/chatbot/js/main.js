@@ -23,6 +23,67 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat page - Sidebar overlay element:', sidebarOverlay);
     console.log('Chat page - Mobile menu toggle element:', mobileMenuToggle);
     
+    // Add event listener for the image editing button
+    const imageEditingBtn = document.getElementById('image-editing-btn');
+    if (imageEditingBtn) {
+        imageEditingBtn.addEventListener('click', function() {
+            // Reset modal to step 1
+            showStep(1);
+            
+            // Reset selections
+            const chatbotContainer = document.getElementById('modal-chatbot-select');
+            if (chatbotContainer) {
+                const current = chatbotContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">چت‌بات را انتخاب کنید</div>';
+                }
+                const options = chatbotContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete chatbotContainer.dataset.selected;
+                chatbotContainer.classList.remove('open');
+            }
+            
+            const modelContainer = document.getElementById('modal-model-select');
+            if (modelContainer) {
+                const current = modelContainer.querySelector('.select-current');
+                if (current) {
+                    current.innerHTML = '<div class="placeholder">مدل را انتخاب کنید</div>';
+                }
+                const options = modelContainer.querySelector('.select-options');
+                if (options) {
+                    options.innerHTML = '';
+                    options.style.display = 'none';
+                }
+                delete modelContainer.dataset.selected;
+                modelContainer.classList.remove('open');
+            }
+            
+            // Reset interaction type buttons
+            document.querySelectorAll('.interaction-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Open the new chat modal
+            const modalElement = document.getElementById('newChatModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                
+                // Automatically select the image interaction type after a short delay
+                setTimeout(() => {
+                    // Find and click the image interaction type button
+                    const imageInteractionBtn = document.querySelector('.interaction-type-btn[data-interaction-type="image"]');
+                    if (imageInteractionBtn) {
+                        imageInteractionBtn.click();
+                    }
+                }, 300);
+            }
+        });
+    }
+    
     // Ensure sidebar and overlay are hidden on mobile devices on page load
     if (window.innerWidth < 768) {
         if (sidebar) {
@@ -489,8 +550,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Load models for this chatbot
                         loadModelsForChatbot(chatbotId);
                         
-                        // Automatically proceed to step 3
-                        setTimeout(() => showStep(3), 300);
+                        // If there's only one chatbot, automatically proceed to step 3
+                        if (chatbots.length === 1) {
+                            setTimeout(() => showStep(3), 300);
+                        } else {
+                            // Automatically proceed to step 3
+                            setTimeout(() => showStep(3), 300);
+                        }
                     });
                 });
                 
@@ -506,6 +572,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         dropdown.style.display = 'block';
                     }
                 }, 100);
+                
+                // If there's only one chatbot, automatically select it
+                if (chatbots.length === 1) {
+                    setTimeout(() => {
+                        const firstOption = document.querySelector('.chatbot-option');
+                        if (firstOption) {
+                            firstOption.click();
+                        }
+                    }, 300);
+                }
             })
             .catch(error => {
                 console.error('Error loading chatbots:', error);
@@ -731,6 +807,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (nextBtn) nextBtn.style.display = 'none';
                         if (prevBtn) prevBtn.style.display = 'block';
                         if (createBtn) createBtn.style.display = 'block';
+                        
+                        // If there's only one model, automatically create the chat
+                        if (models.length === 1) {
+                            setTimeout(() => {
+                                if (createBtn) {
+                                    createBtn.click();
+                                }
+                            }, 300);
+                        }
                     });
                 });
                 
@@ -746,6 +831,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         dropdown.style.display = 'block';
                     }
                 }, 100);
+                
+                // If there's only one model, automatically select it
+                if (models.length === 1) {
+                    setTimeout(() => {
+                        const firstOption = document.querySelector('.model-option');
+                        if (firstOption) {
+                            firstOption.click();
+                        }
+                    }, 300);
+                }
             })
             .catch(error => {
                 console.error('Error loading models:', error);
