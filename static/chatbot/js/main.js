@@ -347,6 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const chatbotContainer = document.getElementById('modal-chatbot-select');
         if (!chatbotContainer) return;
         
+        // Map frontend interaction types to backend chatbot types
+        let backendType = type;
+        if (type === 'image') {
+            backendType = 'image_editing';  // Map image interaction type to image_editing chatbot type
+        }
+        
         // Show loading state
         const loadingEl = chatbotContainer.querySelector('.select-loading');
         const emptyEl = chatbotContainer.querySelector('.select-empty');
@@ -356,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (emptyEl) emptyEl.classList.add('d-none');
         if (optionsList) optionsList.innerHTML = '';
         
-        fetch(`/chat/chatbots/${type}/`)
+        fetch(`/chat/chatbots/${backendType}/`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
