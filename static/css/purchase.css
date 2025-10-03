@@ -889,6 +889,34 @@
   .discount-btn {
     width: 100%;
   }
+
+  .feature-value.model-list {
+    text-align: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .model-item {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-left: none;
+    border-top: 3px solid #3B82F6;
+  }
+
+  .model-image {
+    width: 30px;
+    height: 30px;
+  }
+
+  .model-name {
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  .badge {
+    align-self: center;
+    margin-top: 0.25rem;
+  }
 }
 
 /* Animation on load */
