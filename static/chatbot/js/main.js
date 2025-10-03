@@ -496,6 +496,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add keyboard navigation
                 addKeyboardNavigation(chatbotContainer);
+                
+                // Automatically open the chatbot selection dropdown
+                setTimeout(() => {
+                    chatbotContainer.classList.add('open');
+                    chatbotContainer.setAttribute('aria-expanded', 'true');
+                    const dropdown = chatbotContainer.querySelector('.select-dropdown');
+                    if (dropdown) {
+                        dropdown.style.display = 'block';
+                    }
+                }, 100);
             })
             .catch(error => {
                 console.error('Error loading chatbots:', error);
@@ -726,6 +736,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add keyboard navigation
                 addKeyboardNavigation(modelContainer);
+                
+                // Automatically open the model selection dropdown
+                setTimeout(() => {
+                    modelContainer.classList.add('open');
+                    modelContainer.setAttribute('aria-expanded', 'true');
+                    const dropdown = modelContainer.querySelector('.select-dropdown');
+                    if (dropdown) {
+                        dropdown.style.display = 'block';
+                    }
+                }, 100);
             })
             .catch(error => {
                 console.error('Error loading models:', error);
