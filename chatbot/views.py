@@ -553,6 +553,19 @@ def send_message(request, session_id):
                     limitation_msg = LimitationMessageService.get_token_limit_message()
                     return JsonResponse({'error': limitation_msg['message']}, status=403)
 
+                # Check OpenRouter cost limit before sending message
+                # Since we don't know the exact cost yet, we'll do a preliminary check
+                # with a small estimated cost to prevent users from exceeding their limit
+                within_limit, message = UsageService.check_openrouter_cost_limit(
+                    request.user, subscription_type, 0  # No additional cost for preliminary check
+                )
+                if not within_limit:
+                    # Use configurable limitation message for OpenRouter cost limit
+                    limitation_msg = LimitationMessageService.get_openrouter_cost_limit_message()
+                    return JsonResponse({'error': limitation_msg['message']}, status=403)
+
+                # We'll check the actual cost limit after we get the actual cost from the API response
+
             # Check image generation limits if requested
             if generate_image and subscription_type:
                 within_limit, message = UsageService.check_image_generation_limit(
@@ -922,12 +935,29 @@ def send_message(request, session_id):
                         prompt_tokens = 0
                         completion_tokens = 0
                         total_tokens_used = 0
+                        cost_per_million_tokens = None
+                        total_cost_usd = None
+                        generation_id = None
                         
                         if usage_data:
                             # از داده‌های API استفاده کنیم
                             prompt_tokens = usage_data.get('prompt_tokens', 0)
                             completion_tokens = usage_data.get('completion_tokens', 0)
                             total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                            
+                            # Extract cost information according to OpenRouter documentation
+                            if 'cost' in usage_data:
+                                total_cost_usd = usage_data.get('cost')
+                            elif 'total_cost_usd' in usage_data:
+                                total_cost_usd = usage_data.get('total_cost_usd')
+                            
+                            # Extract cost per million tokens if available
+                            if 'cost_per_million_tokens' in usage_data:
+                                cost_per_million_tokens = usage_data.get('cost_per_million_tokens')
+                            
+                            # Extract generation ID for more detailed cost information
+                            generation_id = usage_data.get('generation_id')
+                            
                             # ثبت فقط توکن‌های پاسخ دستیار برای پیام دستیار
                             assistant_message_obj.tokens_count = completion_tokens
                             logger.debug(f"توکن‌های ثبت شده برای پیام دستیار: {completion_tokens}")
@@ -939,6 +969,23 @@ def send_message(request, session_id):
                             # ثبت فقط توکن‌های پاسخ دستیار
                             assistant_message_obj.tokens_count = completion_tokens
                             logger.debug(f"توکن‌های محاسبه شده برای پیام دستیار: {completion_tokens}")
+                        
+                        # If we have a generation ID, fetch more detailed cost information
+                        if generation_id:
+                            try:
+                                generation_details = openrouter_service.get_generation_details(generation_id)
+                                if generation_details and 'data' in generation_details:
+                                    gen_data = generation_details['data']
+                                    # Extract more accurate cost information
+                                    if 'total_cost' in gen_data:
+                                        total_cost_usd = gen_data['total_cost']
+                                    if 'native_tokens_prompt' in gen_data and 'native_tokens_completion' in gen_data:
+                                        # Use native token counts for more accurate tracking
+                                        prompt_tokens = gen_data['native_tokens_prompt']
+                                        completion_tokens = gen_data['native_tokens_completion']
+                                        total_tokens_used = prompt_tokens + completion_tokens
+                            except Exception as e:
+                                logger.error(f"Error fetching generation details: {str(e)}")
                         
                         # If image data is available, save the URLs
                         images_saved = False
@@ -989,6 +1036,16 @@ def send_message(request, session_id):
                                     prompt_tokens = usage_data.get('prompt_tokens', 0)
                                     completion_tokens = usage_data.get('completion_tokens', 0)
                                     total_tokens_used = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                                    
+                                    # Extract cost information according to OpenRouter documentation
+                                    if 'cost' in usage_data:
+                                        total_cost_usd = usage_data.get('cost')
+                                    elif 'total_cost_usd' in usage_data:
+                                        total_cost_usd = usage_data.get('total_cost_usd')
+                                    
+                                    # Extract cost per million tokens if available
+                                    if 'cost_per_million_tokens' in usage_data:
+                                        cost_per_million_tokens = usage_data.get('cost_per_million_tokens')
                                     
                                     # Log token usage for debugging
                                     logger.info(f"Token usage from API - Prompt: {prompt_tokens}, Completion: {completion_tokens}, Total: {total_tokens_used}")
@@ -1049,6 +1106,46 @@ def send_message(request, session_id):
                                         logger.info(f"ChatSessionUsage updated - Session: {session.id}, {'Free' if is_free_model else 'Paid'} Tokens: {total_tokens_used}")
                                     except Exception as e:
                                         logger.error(f"Error updating ChatSessionUsage: {str(e)}")
+                            
+                            # Save OpenRouter request cost information
+                            try:
+                                # Calculate effective cost tokens with multiplier
+                                cost_multiplier = float(ai_model.token_cost_multiplier) if hasattr(ai_model, 'token_cost_multiplier') else 1.0
+                                effective_cost_tokens = int(total_tokens_used * cost_multiplier)
+                                
+                                # Check OpenRouter cost limit before saving
+                                # We need to check if total_cost_usd is defined and not None
+                                if 'total_cost_usd' in locals() and locals().get('total_cost_usd') and subscription_type:
+                                    cost_to_check = locals().get('total_cost_usd')
+                                    if cost_to_check is not None:
+                                        # Pass the cost as-is (Decimal or convertible value) without converting to float
+                                        within_limit, message = UsageService.check_openrouter_cost_limit(
+                                            request.user, subscription_type, cost_to_check
+                                        )
+                                        if not within_limit:
+                                            # Use configurable limitation message for OpenRouter cost limit
+                                            limitation_msg = LimitationMessageService.get_openrouter_cost_limit_message()
+                                            return JsonResponse({'error': limitation_msg['message']}, status=403)
+                                
+                                OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+                                OpenRouterRequestCost.objects.create(
+                                    user=request.user,
+                                    session=session,
+                                    subscription_type=subscription_type,
+                                    model_id=ai_model.model_id,
+                                    model_name=ai_model.name,
+                                    prompt_tokens=prompt_tokens,
+                                    completion_tokens=completion_tokens,
+                                    total_tokens=total_tokens_used,
+                                    token_cost_multiplier=cost_multiplier,
+                                    effective_cost_tokens=effective_cost_tokens,
+                                    cost_per_million_tokens=cost_per_million_tokens,
+                                    total_cost_usd=total_cost_usd if 'total_cost_usd' in locals() else None,
+                                    request_type='chat'
+                                )
+                                logger.info(f"OpenRouter request cost saved - User: {request.user.id}, Model: {ai_model.name}, Tokens: {total_tokens_used}")
+                            except Exception as e:
+                                logger.error(f"Error saving OpenRouter request cost: {str(e)}")
 
             return StreamingHttpResponse(
                 generate(),
@@ -1614,6 +1711,10 @@ def edit_message(request, session_id, message_id):
     """
     Edit a user message and regenerate subsequent assistant messages
     """
+    # Define logger at the function level to ensure it's accessible in all blocks
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
     
@@ -1830,8 +1931,6 @@ def edit_message(request, session_id, message_id):
                     yield chunk.encode('utf-8')
                     
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.error(f"Error in message editing stream: {str(e)}", exc_info=True)
                 yield f"Error: {str(e)}".encode('utf-8')
             
@@ -1841,10 +1940,48 @@ def edit_message(request, session_id, message_id):
                     prompt_tokens = usage_data.get('prompt_tokens', 0)
                     completion_tokens = usage_data.get('completion_tokens', 0)
                     total_tokens = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
+                    
+                    # Extract cost information according to OpenRouter documentation
+                    if 'cost' in usage_data:
+                        total_cost_usd = usage_data.get('cost')
+                    elif 'total_cost_usd' in usage_data:
+                        total_cost_usd = usage_data.get('total_cost_usd')
+                    else:
+                        total_cost_usd = None
+                    
+                    # Extract cost per million tokens if available
+                    cost_per_million_tokens = usage_data.get('cost_per_million_tokens', None)
+                    
+                    # Extract generation ID for more detailed cost information
+                    generation_id = usage_data.get('generation_id', None)
+                    
                     assistant_message.tokens_count = total_tokens
                 else:
                     # Fallback to character counting if API doesn't provide usage data
                     assistant_message.tokens_count = UsageService.calculate_tokens_for_message(full_response)
+                    prompt_tokens = 0
+                    completion_tokens = assistant_message.tokens_count
+                    total_tokens = completion_tokens
+                    cost_per_million_tokens = None
+                    total_cost_usd = None
+                    generation_id = None
+                
+                # If we have a generation ID, fetch more detailed cost information
+                if generation_id:
+                    try:
+                        generation_details = openrouter_service.get_generation_details(generation_id)
+                        if generation_details and 'data' in generation_details:
+                            gen_data = generation_details['data']
+                            # Extract more accurate cost information
+                            if 'total_cost' in gen_data:
+                                total_cost_usd = gen_data['total_cost']
+                            if 'native_tokens_prompt' in gen_data and 'native_tokens_completion' in gen_data:
+                                # Use native token counts for more accurate tracking
+                                prompt_tokens = gen_data['native_tokens_prompt']
+                                completion_tokens = gen_data['native_tokens_completion']
+                                total_tokens = prompt_tokens + completion_tokens
+                    except Exception as e:
+                        logger.error(f"Error fetching generation details: {str(e)}")
                 
                 # Process images if they were generated
                 images_saved = False
@@ -1859,6 +1996,13 @@ def edit_message(request, session_id, message_id):
                 
                 # Update usage counters - only for image editing chatbots if images were successfully generated
                 if subscription_type:
+                    # Initialize variables for cost tracking
+                    prompt_tokens = 0
+                    completion_tokens = 0
+                    total_tokens = 0
+                    cost_per_million_tokens = None
+                    total_cost_usd = None
+                    
                     # For image editing chatbots, increment usage (images are processed in the main send_message function)
                     # In edit_message, we don't generate new images, so we don't increment image usage here
                     if session.chatbot and session.chatbot.chatbot_type == 'image_editing':
@@ -1872,6 +2016,15 @@ def edit_message(request, session_id, message_id):
                             completion_tokens = usage_data.get('completion_tokens', 0)
                             total_tokens = usage_data.get('total_tokens', prompt_tokens + completion_tokens)
                             
+                            # Extract cost information according to OpenRouter documentation
+                            if 'cost' in usage_data:
+                                total_cost_usd = usage_data.get('cost')
+                            elif 'total_cost_usd' in usage_data:
+                                total_cost_usd = usage_data.get('total_cost_usd')
+                            
+                            # Extract cost per million tokens if available
+                            cost_per_million_tokens = usage_data.get('cost_per_million_tokens', None)
+                            
                             UsageService.increment_usage(
                                 request.user, subscription_type,
                                 messages_count=1,  # Only count one interaction
@@ -1884,9 +2037,11 @@ def edit_message(request, session_id, message_id):
                             # Don't re-calculate conversation history as it's already been paid for
                             assistant_output_tokens = assistant_message.tokens_count
                             # Estimate prompt tokens based on edited message + small context overhead
-                            edited_message_tokens = UsageService.calculate_tokens_for_message(new_content)
+                            edited_message_tokens = UsageService.calculate_tokens_for_message(full_response)
                             estimated_prompt_tokens = edited_message_tokens + 50  # Small overhead for system prompt
                             total_tokens = estimated_prompt_tokens + assistant_output_tokens
+                            prompt_tokens = estimated_prompt_tokens
+                            completion_tokens = assistant_output_tokens
                             
                             UsageService.increment_usage(
                                 request.user, subscription_type,
@@ -1895,6 +2050,32 @@ def edit_message(request, session_id, message_id):
                                 is_free_model=ai_model.is_free if ai_model else False,
                                 ai_model=ai_model  # Pass the AI model for cost calculation
                             )
+                    
+                    # Save OpenRouter request cost information
+                    try:
+                        # Calculate effective cost tokens with multiplier
+                        cost_multiplier = float(ai_model.token_cost_multiplier) if hasattr(ai_model, 'token_cost_multiplier') else 1.0
+                        effective_cost_tokens = int(total_tokens * cost_multiplier)
+                        
+                        OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+                        OpenRouterRequestCost.objects.create(
+                            user=request.user,
+                            session=session,
+                            subscription_type=subscription_type,
+                            model_id=ai_model.model_id,
+                            model_name=ai_model.name,
+                            prompt_tokens=prompt_tokens,
+                            completion_tokens=completion_tokens,
+                            total_tokens=total_tokens,
+                            token_cost_multiplier=cost_multiplier,
+                            effective_cost_tokens=effective_cost_tokens,
+                            cost_per_million_tokens=cost_per_million_tokens,
+                            total_cost_usd=total_cost_usd,
+                            request_type='edit'
+                        )
+                        logger.info(f"OpenRouter request cost saved - User: {request.user.id}, Model: {ai_model.name}, Tokens: {total_tokens}")
+                    except Exception as e:
+                        logger.error(f"Error saving OpenRouter request cost: {str(e)}")
         
         return StreamingHttpResponse(
             generate(),
@@ -1903,8 +2084,6 @@ def edit_message(request, session_id, message_id):
         )
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Error in edit_message: {str(e)}", exc_info=True)
         return JsonResponse({'error': 'Internal server error'}, status=500)
 

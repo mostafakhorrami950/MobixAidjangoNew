@@ -12,6 +12,14 @@ class SubscriptionType(models.Model):
     max_tokens = models.IntegerField(default=0, help_text="Maximum tokens allowed for this subscription (0 for unlimited)")
     max_tokens_free = models.IntegerField(default=0, help_text="Maximum free tokens allowed for this subscription (0 for unlimited)")
     
+    # Maximum OpenRouter API costs in USD
+    max_openrouter_cost_usd = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Maximum OpenRouter API cost in USD allowed for this subscription (0 for unlimited)"
+    )
+    
     # Usage limits for different time periods
     hourly_max_messages = models.IntegerField(default=0, help_text="Maximum messages per hour (0 for unlimited)")
     hourly_max_tokens = models.IntegerField(default=0, help_text="Maximum tokens per hour (0 for unlimited)")

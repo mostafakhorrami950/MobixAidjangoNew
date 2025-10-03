@@ -3,7 +3,7 @@ from .models import SubscriptionType, UserSubscription, UserUsage, DiscountCode,
 
 @admin.register(SubscriptionType)
 class SubscriptionTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'is_active', 'created_at')
+    list_display = ('name', 'price', 'max_openrouter_cost_usd', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'description')
     fieldsets = (
@@ -11,7 +11,7 @@ class SubscriptionTypeAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'price', 'is_active')
         }),
         ('Subscription Details', {
-            'fields': ('duration_days', 'sku', 'max_tokens', 'max_tokens_free')
+            'fields': ('duration_days', 'sku', 'max_tokens', 'max_tokens_free', 'max_openrouter_cost_usd')
         }),
         ('Usage Limits - Hourly', {
             'fields': ('hourly_max_messages', 'hourly_max_tokens'),

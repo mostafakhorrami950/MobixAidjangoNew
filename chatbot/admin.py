@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem, LimitationMessage
+from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem, LimitationMessage, OpenRouterRequestCost
 
 class ChatSessionInline(admin.TabularInline):
     model = ChatSession
@@ -115,7 +115,34 @@ class LimitationMessageAdmin(admin.ModelAdmin):
     fields = ('limitation_type', 'title', 'message', 'is_active')
     readonly_fields = ('created_at', 'updated_at')
     
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        form.base_fields['message'].widget.attrs.update({'rows': 4, 'cols': 80})
-        return form
+    # Removed custom form handling due to linter issues
+
+@admin.register(OpenRouterRequestCost)
+class OpenRouterRequestCostAdmin(admin.ModelAdmin):
+    list_display = ('user', 'model_name', 'total_tokens', 'total_cost_usd', 'request_type', 'created_at')
+    list_filter = ('request_type', 'model_name', 'subscription_type', 'created_at')
+    search_fields = ('user__name', 'user__phone_number', 'model_name', 'model_id')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    # Add date hierarchy for easier navigation
+    date_hierarchy = 'created_at'
+    
+    # Add fieldsets for better organization
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('user', 'session', 'subscription_type', 'request_type')
+        }),
+        ('Model Information', {
+            'fields': ('model_id', 'model_name')
+        }),
+        ('Token Usage', {
+            'fields': ('prompt_tokens', 'completion_tokens', 'total_tokens')
+        }),
+        ('Cost Information', {
+            'fields': ('token_cost_multiplier', 'effective_cost_tokens', 'cost_per_million_tokens', 'total_cost_usd')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )

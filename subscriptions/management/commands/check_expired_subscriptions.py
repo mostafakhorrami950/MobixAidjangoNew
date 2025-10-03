@@ -26,6 +26,9 @@ class Command(BaseCommand):
                 # Reset usage counters for this user
                 UsageService.reset_user_usage(subscription.user, subscription.subscription_type)
                 
+                # ALSO reset chat session usage to ensure tokens are properly reset
+                UsageService.reset_chat_session_usage(subscription.user, subscription.subscription_type)
+                
                 expired_count += 1
                 logger.info(f"Expired subscription deactivated and usage reset for user {subscription.user.name}")
             

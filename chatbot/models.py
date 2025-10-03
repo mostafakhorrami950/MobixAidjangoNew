@@ -416,6 +416,7 @@ class LimitationMessage(models.Model):
         ('subscription_required', 'Subscription Required'),
         ('model_access_denied', 'Model Access Denied'),
         ('general_limit', 'General Limit Reached'),
+        ('openrouter_cost_limit', 'OpenRouter Cost Limit Reached'),  # New limitation type for OpenRouter cost limits
     ]
     
     limitation_type = models.CharField(
@@ -438,3 +439,75 @@ class LimitationMessage(models.Model):
         verbose_name = "Limitation Message"
         verbose_name_plural = "Limitation Messages"
         ordering = ['limitation_type']
+
+
+class OpenRouterRequestCost(models.Model):
+    """
+    Model to track the cost of each OpenRouter API request
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='openrouter_costs')
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='openrouter_costs')
+    subscription_type = models.ForeignKey(SubscriptionType, on_delete=models.CASCADE)
+    
+    # Request details
+    model_id = models.CharField(max_length=100, help_text="OpenRouter model ID used for the request")
+    model_name = models.CharField(max_length=200, help_text="Human-readable model name")
+    
+    # Cost details from OpenRouter
+    prompt_tokens = models.IntegerField(default=0, help_text="Number of tokens in the prompt")
+    completion_tokens = models.IntegerField(default=0, help_text="Number of tokens in the completion")
+    total_tokens = models.IntegerField(default=0, help_text="Total tokens used")
+    
+    # Cost calculation
+    token_cost_multiplier = models.DecimalField(
+        max_digits=10, 
+        decimal_places=4, 
+        default=1.0000, 
+        help_text="Cost multiplier for the model (e.g., 1.5x)"
+    )
+    effective_cost_tokens = models.IntegerField(
+        default=0, 
+        help_text="Effective tokens after applying multiplier"
+    )
+    
+    # Pricing information from OpenRouter in USD
+    cost_per_million_tokens = models.DecimalField(
+        max_digits=10, 
+        decimal_places=6, 
+        null=True, 
+        blank=True,
+        help_text="Cost per million tokens (if available)"
+    )
+    total_cost_usd = models.DecimalField(
+        max_digits=10, 
+        decimal_places=6, 
+        null=True, 
+        blank=True,
+        help_text="Total cost of the request in USD (if calculable)"
+    )
+    
+    # Request metadata
+    request_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('chat', 'Chat Message'),
+            ('title', 'Title Generation'),
+            ('edit', 'Message Editing'),
+            ('vision', 'Vision Processing'),
+        ],
+        default='chat',
+        help_text="Type of request"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.user.name} - {self.model_name} - {self.total_tokens} tokens"
+    
+    class Meta:
+        db_table = 'openrouter_request_costs'
+        ordering = ['-created_at']
+        verbose_name = "OpenRouter Request Cost"
+        verbose_name_plural = "OpenRouter Request Costs"

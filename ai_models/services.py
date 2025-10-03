@@ -172,7 +172,24 @@ class OpenRouterService:
             else:
                 response = requests.post(url, headers=headers, json=payload)
                 response.raise_for_status()  # Raise an exception for bad status codes
-                return response.json()
+                response_data = response.json()
+                
+                # Extract usage and cost information if available
+                if 'usage' in response_data:
+                    usage_data = response_data['usage']
+                    # Extract cost information according to OpenRouter documentation
+                    if 'cost' in usage_data:
+                        # Convert cost to USD format (assuming it's in a compatible format)
+                        usage_data['total_cost_usd'] = usage_data['cost']
+                    # Add cost per million tokens if available
+                    # This would typically be calculated based on the model pricing
+                    response_data['usage'] = usage_data
+                
+                # Capture generation ID if available for more detailed cost information
+                if 'id' in response_data:
+                    response_data['generation_id'] = response_data['id']
+                
+                return response_data
         except requests.exceptions.RequestException as e:
             # Check if this is a web search error
             if web_search:
@@ -241,6 +258,20 @@ class OpenRouterService:
                                         # Capture usage data if present
                                         if 'usage' in data_obj:
                                             usage_data = data_obj['usage']
+                                            # Extract cost information according to OpenRouter documentation
+                                            if 'cost' in usage_data:
+                                                # Convert cost to USD format (assuming it's in a compatible format)
+                                                usage_data['total_cost_usd'] = usage_data['cost']
+                                            # Extract additional cost information if available
+                                            if 'cost_per_million_tokens' in data_obj:
+                                                usage_data['cost_per_million_tokens'] = data_obj['cost_per_million_tokens']
+                                            if 'total_cost_usd' in data_obj:
+                                                usage_data['total_cost_usd'] = data_obj['total_cost_usd']
+                                        # Capture generation ID if present
+                                        if 'id' in data_obj:
+                                            if usage_data is None:
+                                                usage_data = {}
+                                            usage_data['generation_id'] = data_obj['id']
                                         if 'choices' in data_obj and len(data_obj['choices']) > 0:
                                             delta = data_obj['choices'][0].get('delta', {})
                                             content = delta.get('content', '')
@@ -323,3 +354,25 @@ class OpenRouterService:
                 saved_image_urls.append(url)
         
         return saved_image_urls, saved_image_ids
+    
+    def get_generation_details(self, generation_id):
+        """
+        Fetch detailed generation information from OpenRouter generation API
+        This provides more accurate cost information including native token counts
+        """
+        if not generation_id:
+            return None
+            
+        url = f"{self.base_url}/generation?id={generation_id}"
+        
+        try:
+            headers = self.get_headers()
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            # Log the error but don't fail the entire process
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error fetching generation details: {str(e)}")
+            return None

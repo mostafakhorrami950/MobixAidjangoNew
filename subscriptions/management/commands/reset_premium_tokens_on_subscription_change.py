@@ -40,6 +40,10 @@ class Command(BaseCommand):
                 # Reset premium tokens for this user and subscription type
                 # This method resets counters without deleting data as requested
                 UsageService.reset_user_usage(user_subscription.user, user_subscription.subscription_type)
+                
+                # ALSO reset chat session usage to ensure tokens are properly reset
+                UsageService.reset_chat_session_usage(user_subscription.user, user_subscription.subscription_type)
+                
                 reset_count += 1
                 
                 self.stdout.write(

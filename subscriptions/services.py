@@ -476,6 +476,69 @@ class UsageService:
         logger.debug("Image generation usage incremented successfully")
 
     @staticmethod
+    def check_openrouter_cost_limit(user, subscription_type, cost_usd=0.0):
+        """
+        Check if user has exceeded the maximum OpenRouter API cost limit for their subscription
+        Returns (within_limit, message)
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Checking OpenRouter cost limit for user {user.id}, cost: ${cost_usd}")
+        
+        # If max cost is 0, it means unlimited
+        if subscription_type.max_openrouter_cost_usd <= 0:
+            logger.debug("Max OpenRouter cost is unlimited (0)")
+            return True, ""
+        
+        # Calculate total cost used by user for this subscription
+        total_cost_used = UsageService.get_user_total_openrouter_cost(user, subscription_type)
+        logger.debug(f"Total OpenRouter cost used: ${total_cost_used}, Max allowed: ${subscription_type.max_openrouter_cost_usd}")
+        
+        # Convert cost_usd to Decimal for consistent arithmetic operations
+        from decimal import Decimal
+        cost_usd_decimal = Decimal(str(cost_usd)) if not isinstance(cost_usd, Decimal) else cost_usd
+        
+        # Check if adding new cost would exceed the limit
+        if total_cost_used + cost_usd_decimal > subscription_type.max_openrouter_cost_usd:
+            remaining_cost = subscription_type.max_openrouter_cost_usd - total_cost_used
+            message = f"شما به حد مجاز هزینه API OpenRouter (${subscription_type.max_openrouter_cost_usd}) رسیده‌اید. هزینه باقیمانده: ${max(Decimal('0'), remaining_cost):.2f}"
+            logger.info(f"OpenRouter cost limit exceeded: {message}")
+            return False, message
+        
+        logger.info("OpenRouter cost limit is within acceptable range")
+        return True, ""
+    
+    @staticmethod
+    def get_user_total_openrouter_cost(user, subscription_type):
+        """
+        Get total OpenRouter API cost used by user for a subscription type
+        Returns total cost in USD as Decimal
+        """
+        import logging
+        from decimal import Decimal
+        logger = logging.getLogger(__name__)
+        
+        OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+        
+        # Sum all costs for this user and subscription type
+        cost_data = OpenRouterRequestCost.objects.filter(
+            user=user,
+            subscription_type=subscription_type
+        ).aggregate(
+            total_cost=Sum('total_cost_usd')
+        )
+        
+        # Convert to Decimal and handle None values
+        total_cost = cost_data['total_cost']
+        if total_cost is None:
+            total_cost = Decimal('0')
+        elif not isinstance(total_cost, Decimal):
+            total_cost = Decimal(str(total_cost))
+            
+        logger.debug(f"Total OpenRouter cost for user {user.id}: ${total_cost}")
+        return total_cost
+    
+    @staticmethod
     def comprehensive_check(user, ai_model, subscription_type):
         """
         Comprehensive check before sending any message to AI

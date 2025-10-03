@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}هزینه‌های استفاده از هوش مصنوعی{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">آمار هزینه‌های استفاده از هوش مصنوعی</h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">تعداد کل درخواست‌ها</h5>
+                            <p class="card-text display-6">{{ total_requests }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">مجموع توکن‌ها</h5>
+                            <p class="card-text display-6">{{ total_tokens|floatformat:0 }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">مجموع توکن‌های مؤثر</h5>
+                            <p class="card-text display-6">{{ total_effective_cost_tokens|floatformat:0 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Model Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">آمار بر اساس مدل‌های هوش مصنوعی</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>نام مدل</th>
+                                    <th>تعداد درخواست</th>
+                                    <th>مجموع توکن‌ها</th>
+                                    <th>مجموع توکن‌های مؤثر</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model_name, stats in model_stats.items %}
+                                <tr>
+                                    <td>{{ model_name }}</td>
+                                    <td>{{ stats.count }}</td>
+                                    <td>{{ stats.total_tokens|floatformat:0 }}</td>
+                                    <td>{{ stats.effective_cost_tokens|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Subscription Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">آمار بر اساس نوع اشتراک</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>نوع اشتراک</th>
+                                    <th>تعداد درخواست</th>
+                                    <th>مجموع توکن‌ها</th>
+                                    <th>مجموع توکن‌های مؤثر</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subscription_name, stats in subscription_stats.items %}
+                                <tr>
+                                    <td>{{ subscription_name }}</td>
+                                    <td>{{ stats.count }}</td>
+                                    <td>{{ stats.total_tokens|floatformat:0 }}</td>
+                                    <td>{{ stats.effective_cost_tokens|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Request Type Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">آمار بر اساس نوع درخواست</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>نوع درخواست</th>
+                                    <th>تعداد درخواست</th>
+                                    <th>مجموع توکن‌ها</th>
+                                    <th>مجموع توکن‌های مؤثر</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request_type, stats in request_type_stats.items %}
+                                <tr>
+                                    <td>{{ request_type }}</td>
+                                    <td>{{ stats.count }}</td>
+                                    <td>{{ stats.total_tokens|floatformat:0 }}</td>
+                                    <td>{{ stats.effective_cost_tokens|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Request List -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">لیست جزئیات درخواست‌ها</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>تاریخ</th>
+                                    <th>نام مدل</th>
+                                    <th>نوع درخواست</th>
+                                    <th>جلسه</th>
+                                    <th>توکن‌های ورودی</th>
+                                    <th>توکن‌های خروجی</th>
+                                    <th>مجموع توکن‌ها</th>
+                                    <th>ضریب هزینه</th>
+                                    <th>توکن‌های مؤثر</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cost in costs %}
+                                <tr>
+                                    <td>{{ cost.created_at|date:"Y/m/d H:i" }}</td>
+                                    <td>{{ cost.model_name }}</td>
+                                    <td>{{ cost.get_request_type_display }}</td>
+                                    <td>{{ cost.session.title|truncatechars:30 }}</td>
+                                    <td>{{ cost.prompt_tokens|floatformat:0 }}</td>
+                                    <td>{{ cost.completion_tokens|floatformat:0 }}</td>
+                                    <td>{{ cost.total_tokens|floatformat:0 }}</td>
+                                    <td>{{ cost.token_cost_multiplier|floatformat:2 }}</td>
+                                    <td>{{ cost.effective_cost_tokens|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

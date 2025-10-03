@@ -882,3 +882,79 @@ def public_subscription_comparison(request):
         'subscriptions': subscriptions,
     }
     return render(request, 'subscriptions/public_comparison.html', context)
+
+
+@login_required
+def user_openrouter_costs(request):
+    """Display OpenRouter API usage costs for the logged-in user"""
+    try:
+        # Get the user's OpenRouter request costs
+        OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+        costs = OpenRouterRequestCost.objects.filter(user=request.user).select_related(
+            'session', 'subscription_type'
+        ).order_by('-created_at')
+        
+        # Calculate summary statistics
+        total_requests = costs.count()
+        total_tokens = sum(cost.total_tokens for cost in costs)
+        total_effective_cost_tokens = sum(cost.effective_cost_tokens for cost in costs)
+        
+        # Group by model
+        model_stats = {}
+        for cost in costs:
+            if cost.model_name not in model_stats:
+                model_stats[cost.model_name] = {
+                    'count': 0,
+                    'total_tokens': 0,
+                    'effective_cost_tokens': 0,
+                    'model_id': cost.model_id,
+                    'requests': []
+                }
+            model_stats[cost.model_name]['count'] += 1
+            model_stats[cost.model_name]['total_tokens'] += cost.total_tokens
+            model_stats[cost.model_name]['effective_cost_tokens'] += cost.effective_cost_tokens
+            model_stats[cost.model_name]['requests'].append(cost)
+        
+        # Group by subscription type
+        subscription_stats = {}
+        for cost in costs:
+            subscription_name = cost.subscription_type.name if cost.subscription_type else "Unknown"
+            if subscription_name not in subscription_stats:
+                subscription_stats[subscription_name] = {
+                    'count': 0,
+                    'total_tokens': 0,
+                    'effective_cost_tokens': 0,
+                    'subscription_type': cost.subscription_type
+                }
+            subscription_stats[subscription_name]['count'] += 1
+            subscription_stats[subscription_name]['total_tokens'] += cost.total_tokens
+            subscription_stats[subscription_name]['effective_cost_tokens'] += cost.effective_cost_tokens
+        
+        # Group by request type
+        request_type_stats = {}
+        for cost in costs:
+            request_type = cost.get_request_type_display()
+            if request_type not in request_type_stats:
+                request_type_stats[request_type] = {
+                    'count': 0,
+                    'total_tokens': 0,
+                    'effective_cost_tokens': 0
+                }
+            request_type_stats[request_type]['count'] += 1
+            request_type_stats[request_type]['total_tokens'] += cost.total_tokens
+            request_type_stats[request_type]['effective_cost_tokens'] += cost.effective_cost_tokens
+        
+        context = {
+            'costs': costs,
+            'total_requests': total_requests,
+            'total_tokens': total_tokens,
+            'total_effective_cost_tokens': total_effective_cost_tokens,
+            'model_stats': model_stats,
+            'subscription_stats': subscription_stats,
+            'request_type_stats': request_type_stats,
+        }
+        return render(request, 'subscriptions/user_openrouter_costs.html', context)
+    except Exception as e:
+        logger.error(f"Error fetching user OpenRouter costs: {str(e)}")
+        messages.error(request, 'خطا در بارگذاری اطلاعات هزینه‌ها')
+        return redirect('purchase_subscription')

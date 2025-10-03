@@ -122,3 +122,11 @@ class LimitationMessageService:
             'general_limit',
             'شما به حد مجاز استفاده رسیده‌اید. لطفاً با پشتیبانی تماس بگیرید.'
         )
+    
+    @staticmethod
+    def get_openrouter_cost_limit_message():
+        """Get message for OpenRouter cost limit reached"""
+        return LimitationMessageService.get_limitation_message(
+            'openrouter_cost_limit',
+            'شما به حد مجاز هزینه API OpenRouter رسیده‌اید. برای ادامه استفاده، اشتراک خود را ارتقاء دهید.'
+        )

@@ -11,4 +11,5 @@ urlpatterns = [
     path('test-calculation/', views.test_subscription_calculation, name='test_subscription_calculation'),
     path('intelligent-upgrade/<int:new_subscription_id>/', views.intelligent_subscription_upgrade, name='intelligent_subscription_upgrade'),
     path('complete-upgrade/', views.complete_intelligent_upgrade, name='complete_intelligent_upgrade'),
+    path('costs/', views.user_openrouter_costs, name='user_openrouter_costs'),
 ]
