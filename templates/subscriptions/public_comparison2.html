@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پلن‌های اشتراک - MobixAi</title>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'IRANSans', system-ui, sans-serif;
+            background: #FFFFFF;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            padding: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #FFFFFF;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn-login {
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-login:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-signup {
+            background: #FFFFFF;
+            color: #007AFF;
+            text-decoration: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-signup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: #FFFFFF;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .discount-banner {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            padding: 12px 24px;
+            display: inline-block;
+            margin-bottom: 40px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .discount-text {
+            color: #FFFFFF;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        /* Plans Section */
+        .plans-section {
+            padding: 100px 0;
+            background: #FFFFFF;
+        }
+        
+        .plans-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            margin-bottom: 80px;
+        }
+        
+        .plan-card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid #F2F2F7;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .plan-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 48px rgba(0, 122, 255, 0.15);
+        }
+        
+        .plan-card.popular {
+            border-color: #007AFF;
+            transform: scale(1.05);
+        }
+        
+        .plan-card.popular::before {
+            content: 'محبوب‌ترین';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            color: #FFFFFF;
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .plan-card.popular .plan-header {
+            margin-top: 20px;
+        }
+        
+        .plan-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .plan-name {
+            font-size: 28px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 12px;
+        }
+        
+        .plan-description {
+            font-size: 16px;
+            color: #8E8E93;
+            margin-bottom: 24px;
+        }
+        
+        .plan-price {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .price-amount {
+            font-size: 48px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+        
+        .price-currency {
+            font-size: 20px;
+            color: #8E8E93;
+        }
+        
+        .price-period {
+            font-size: 16px;
+            color: #8E8E93;
+        }
+        
+        .price-note {
+            font-size: 14px;
+            color: #8E8E93;
+            text-align: center;
+        }
+        
+        .plan-features {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+        
+        .plan-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+        
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .feature-icon.included {
+            background: rgba(52, 199, 89, 0.1);
+            color: #34C759;
+        }
+        
+        .feature-icon.not-included {
+            background: rgba(142, 142, 147, 0.1);
+            color: #8E8E93;
+        }
+        
+        .feature-text {
+            font-size: 16px;
+            color: #000000;
+        }
+        
+        .feature-text.not-included {
+            color: #8E8E93;
+        }
+        
+        .plan-button {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .plan-button.primary {
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            color: #FFFFFF;
+        }
+        
+        .plan-button.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+        }
+        
+        .plan-button.secondary {
+            background: #F2F2F7;
+            color: #007AFF;
+            border: 2px solid #F2F2F7;
+        }
+        
+        .plan-button.secondary:hover {
+            background: #FFFFFF;
+            border-color: #007AFF;
+        }
+        
+        /* Comparison Table */
+        .comparison-section {
+            padding: 100px 0;
+            background: #F8F9FA;
+        }
+        
+        .comparison-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 20px;
+        }
+        
+        .section-subtitle {
+            font-size: 20px;
+            color: #8E8E93;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .comparison-table {
+            background: #FFFFFF;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            color: #FFFFFF;
+            padding: 24px;
+        }
+        
+        .table-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .table-cell {
+            padding: 20px 24px;
+            text-align: center;
+        }
+        
+        .table-cell:first-child {
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .table-body .table-row {
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .table-body .table-row:last-child {
+            border-bottom: none;
+        }
+        
+        .table-body .table-row:nth-child(even) {
+            background: #F8F9FA;
+        }
+        
+        .check-icon {
+            color: #34C759;
+            font-size: 20px;
+        }
+        
+        .cross-icon {
+            color: #8E8E93;
+            font-size: 20px;
+        }
+        
+        /* FAQ Section */
+        .faq-section {
+            padding: 100px 0;
+            background: #FFFFFF;
+        }
+        
+        .faq-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .faq-item {
+            background: #FFFFFF;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .faq-question {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-question:hover {
+            background: #F8F9FA;
+        }
+        
+        .faq-question-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000000;
+        }
+        
+        .faq-icon {
+            font-size: 20px;
+            color: #007AFF;
+            transition: transform 0.3s ease;
+        }
+        
+        .faq-answer {
+            padding: 0 24px 24px;
+            color: #8E8E93;
+            font-size: 16px;
+            line-height: 1.6;
+            display: none;
+        }
+        
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            text-align: center;
+        }
+        
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .cta-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+        }
+        
+        .cta-description {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+        }
+        
+        .cta-button {
+            background: #FFFFFF;
+            color: #007AFF;
+            padding: 20px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #FFFFFF;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero-title {
+                font-size: 32px;
+            }
+            
+            .hero-subtitle {
+                font-size: 18px;
+            }
+            
+            .plans-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .plan-card.popular {
+                transform: none;
+            }
+            
+            .section-title {
+                font-size: 28px;
+            }
+            
+            .table-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .comparison-table {
+                display: none;
+            }
+            
+            .mobile-comparison {
+                display: block;
+            }
+            
+            .auth-buttons {
+                gap: 8px;
+            }
+            
+            .btn-signup {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-section {
+                padding: 60px 0;
+            }
+            
+            .plan-card {
+                padding: 24px;
+            }
+            
+            .price-amount {
+                font-size: 36px;
+            }
+            
+            .cta-title {
+                font-size: 28px;
+            }
+            
+            .nav-container {
+                padding: 0 16px;
+            }
+        }
+        
+        .mobile-comparison {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-comparison {
+                display: block;
+            }
+            
+            .mobile-plan-card {
+                background: #FFFFFF;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 24px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            }
+            
+            .mobile-plan-title {
+                font-size: 20px;
+                font-weight: 600;
+                color: #007AFF;
+                margin-bottom: 16px;
+                text-align: center;
+            }
+            
+            .mobile-feature-list {
+                list-style: none;
+            }
+            
+            .mobile-feature-list li {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 8px 0;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L20 6V18L12 22L4 18V6L12 2Z" fill="white" stroke="white" stroke-width="1.5"/>
+                        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="12" cy="12" r="2" fill="white"/>
+                    </svg>
+                </div>
+                <div class="logo-text">MobixAi</div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-link">خانه</a>
+                <a href="#" class="nav-link">ویژگی‌ها</a>
+                <a href="#" class="nav-link">قیمت‌گذاری</a>
+                <a href="#" class="nav-link">تماس</a>
+            </nav>
+            
+            <div class="auth-buttons">
+                <a href="#" class="btn-login" onclick="showLogin()">ورود</a>
+                <a href="#" class="btn-signup" onclick="showSignup()">ثبت نام رایگان</a>
+            </div>
+            
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-container">
+            <div class="discount-banner">
+                <span class="discount-text">🎉 تخفیف ویژه 30% برای کاربران جدید!</span>
+            </div>
+            <h1 class="hero-title">پلن مناسب خود را انتخاب کنید</h1>
+            <p class="hero-subtitle">از رایگان شروع کنید و با رشد کسب‌وکارتان ارتقا دهید</p>
+        </div>
+    </section>
+
+    <!-- Plans Section -->
+    <section class="plans-section">
+        <div class="plans-container">
+            <div class="plans-grid">
+                <!-- Free Plan -->
+                <div class="plan-card">
+                    <div class="plan-header">
+                        <h3 class="plan-name">رایگان</h3>
+                        <p class="plan-description">برای شروع و آشنایی با پلتفرم</p>
+                        <div class="plan-price">
+                            <span class="price-amount">0</span>
+                            <span class="price-currency">تومان</span>
+                            <span class="price-period">/ ماه</span>
+                        </div>
+                        <p class="price-note">برای همیشه رایگان</p>
+                    </div>
+                    
+                    <ul class="plan-features">
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">تا 100 پیام در ماه</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">دسترسی به 3 چت‌بات</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">پشتیبانی ایمیلی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon not-included">✗</div>
+                            <span class="feature-text not-included">API دسترسی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon not-included">✗</div>
+                            <span class="feature-text not-included">گزارش‌های تحلیلی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon not-included">✗</div>
+                            <span class="feature-text not-included">یکپارچه‌سازی سفارشی</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="plan-button secondary" onclick="selectPlan('free')">شروع رایگان</button>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="plan-card popular">
+                    <div class="plan-header">
+                        <h3 class="plan-name">حرفه‌ای</h3>
+                        <p class="plan-description">برای کسب‌وکارهای در حال رشد</p>
+                        <div class="plan-price">
+                            <span class="price-amount">299,000</span>
+                            <span class="price-currency">تومان</span>
+                            <span class="price-period">/ ماه</span>
+                        </div>
+                        <p class="price-note">پرداخت سالانه 30% تخفیف</p>
+                    </div>
+                    
+                    <ul class="plan-features">
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">تا 10,000 پیام در ماه</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">دسترسی به تمام چت‌بات‌ها</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">پشتیبانی 24/7</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">API دسترسی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">گزارش‌های تحلیلی پیشرفته</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon not-included">✗</div>
+                            <span class="feature-text not-included">یکپارچه‌سازی سفارشی</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="plan-button primary" onclick="selectPlan('pro')">انتخاب پلن حرفه‌ای</button>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="plan-card">
+                    <div class="plan-header">
+                        <h3 class="plan-name">سازمانی</h3>
+                        <p class="plan-description">برای سازمان‌های بزرگ</p>
+                        <div class="plan-price">
+                            <span class="price-amount">تماس</span>
+                            <span class="price-currency">بگیرید</span>
+                        </div>
+                        <p class="price-note">قیمت‌گذاری سفارشی</p>
+                    </div>
+                    
+                    <ul class="plan-features">
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">پیام‌های نامحدود</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">چت‌بات‌های اختصاصی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">مدیر اختصاصی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">API کامل</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">گزارش‌های سفارشی</span>
+                        </li>
+                        <li>
+                            <div class="feature-icon included">✓</div>
+                            <span class="feature-text">یکپارچه‌سازی کامل</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="plan-button secondary" onclick="selectPlan('enterprise')">تماس با فروش</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section class="comparison-section">
+        <div class="comparison-container">
+            <div class="section-header">
+                <h2 class="section-title">مقایسه کامل پلن‌ها</h2>
+                <p class="section-subtitle">تمام ویژگی‌ها و محدودیت‌های هر پلن را ببینید</p>
+            </div>
+            
+            <div class="comparison-table">
+                <div class="table-header">
+                    <div class="table-row">
+                        <div class="table-cell">ویژگی</div>
+                        <div class="table-cell">رایگان</div>
+                        <div class="table-cell">حرفه‌ای</div>
+                        <div class="table-cell">سازمانی</div>
+                    </div>
+                </div>
+                
+                <div class="table-body">
+                    <div class="table-row">
+                        <div class="table-cell">تعداد پیام ماهانه</div>
+                        <div class="table-cell">100</div>
+                        <div class="table-cell">10,000</div>
+                        <div class="table-cell">نامحدود</div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">تعداد چت‌بات</div>
+                        <div class="table-cell">3</div>
+                        <div class="table-cell">25</div>
+                        <div class="table-cell">نامحدود</div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">API دسترسی</div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell"><span class="check-icon">✓</span></div>
+                        <div class="table-cell"><span class="check-icon">✓</span></div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">گزارش‌های تحلیلی</div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell"><span class="check-icon">✓</span></div>
+                        <div class="table-cell"><span class="check-icon">✓</span></div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">پشتیبانی</div>
+                        <div class="table-cell">ایمیل</div>
+                        <div class="table-cell">24/7</div>
+                        <div class="table-cell">اختصاصی</div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">یکپارچه‌سازی</div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell">محدود</div>
+                        <div class="table-cell">کامل</div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">چت‌بات سفارشی</div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell"><span class="check-icon">✓</span></div>
+                    </div>
+                    
+                    <div class="table-row">
+                        <div class="table-cell">SLA تضمینی</div>
+                        <div class="table-cell"><span class="cross-icon">✗</span></div>
+                        <div class="table-cell">99.5%</div>
+                        <div class="table-cell">99.9%</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Comparison -->
+            <div class="mobile-comparison">
+                <div class="mobile-plan-card">
+                    <h3 class="mobile-plan-title">پلن رایگان</h3>
+                    <ul class="mobile-feature-list">
+                        <li><span class="check-icon">✓</span> 100 پیام در ماه</li>
+                        <li><span class="check-icon">✓</span> 3 چت‌بات</li>
+                        <li><span class="cross-icon">✗</span> API دسترسی</li>
+                        <li><span class="cross-icon">✗</span> گزارش‌های تحلیلی</li>
+                        <li><span class="check-icon">✓</span> پشتیبانی ایمیلی</li>
+                    </ul>
+                </div>
+                
+                <div class="mobile-plan-card">
+                    <h3 class="mobile-plan-title">پلن حرفه‌ای</h3>
+                    <ul class="mobile-feature-list">
+                        <li><span class="check-icon">✓</span> 10,000 پیام در ماه</li>
+                        <li><span class="check-icon">✓</span> 25 چت‌بات</li>
+                        <li><span class="check-icon">✓</span> API دسترسی</li>
+                        <li><span class="check-icon">✓</span> گزارش‌های تحلیلی</li>
+                        <li><span class="check-icon">✓</span> پشتیبانی 24/7</li>
+                    </ul>
+                </div>
+                
+                <div class="mobile-plan-card">
+                    <h3 class="mobile-plan-title">پلن سازمانی</h3>
+                    <ul class="mobile-feature-list">
+                        <li><span class="check-icon">✓</span> پیام‌های نامحدود</li>
+                        <li><span class="check-icon">✓</span> چت‌بات‌های نامحدود</li>
+                        <li><span class="check-icon">✓</span> API کامل</li>
+                        <li><span class="check-icon">✓</span> گزارش‌های سفارشی</li>
+                        <li><span class="check-icon">✓</span> پشتیبانی اختصاصی</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="faq-container">
+            <div class="section-header">
+                <h2 class="section-title">سوالات متداول</h2>
+                <p class="section-subtitle">پاسخ سوالات رایج درباره پلن‌های اشتراک</p>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span class="faq-question-text">آیا می‌توانم پلن خود را تغییر دهم؟</span>
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    بله، شما می‌توانید در هر زمان پلن خود را ارتقا یا کاهش دهید. تغییرات از ابتدای دوره بعدی اعمال می‌شود.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span class="faq-question-text">آیا پرداخت سالانه تخفیف دارد؟</span>
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    بله، با انتخاب پرداخت سالانه 30% تخفیف دریافت خواهید کرد. این تخفیف برای تمام پلن‌های پولی اعمال می‌شود.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span class="faq-question-text">چه اتفاقی می‌افتد اگر از حد مجاز پیام عبور کنم؟</span>
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    در صورت عبور از حد مجاز، سرویس متوقف نمی‌شود اما برای پیام‌های اضافی هزینه جداگانه‌ای محاسبه می‌شود. توصیه می‌کنیم پلن مناسب‌تری انتخاب کنید.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span class="faq-question-text">آیا دوره آزمایشی رایگان وجود دارد؟</span>
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    پلن رایگان ما به عنوان دوره آزمایشی عمل می‌کند. همچنین برای پلن حرفه‌ای 14 روز آزمایشی رایگان ارائه می‌دهیم.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span class="faq-question-text">چگونه می‌توانم اشتراک خود را لغو کنم؟</span>
+                    <span class="faq-icon">▼</span>
+                </div>
+                <div class="faq-answer">
+                    شما می‌توانید در هر زمان از طریق داشبورد کاربری یا تماس با پشتیبانی، اشتراک خود را لغو کنید. لغو اشتراک در پایان دوره جاری اعمال می‌شود.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-container">
+            <h2 class="cta-title">آماده شروع هستید؟</h2>
+            <p class="cta-description">همین امروز پلن مناسب خود را انتخاب کنید و تجربه هوش مصنوعی را آغاز کنید</p>
+            <a href="#" class="cta-button" onclick="showSignup()">شروع رایگان کنید</a>
+        </div>
+    </section>
+
+    <script>
+        // Plan selection
+        function selectPlan(planType) {
+            const messages = {
+                'free': 'پلن رایگان انتخاب شد! در پیاده‌سازی واقعی، به صفحه ثبت نام هدایت می‌شوید.',
+                'pro': 'پلن حرفه‌ای انتخاب شد! در پیاده‌سازی واقعی، به صفحه پرداخت هدایت می‌شوید.',
+                'enterprise': 'پلن سازمانی انتخاب شد! در پیاده‌سازی واقعی، با تیم فروش تماس برقرار می‌شود.'
+            };
+            
+            alert(messages[planType]);
+        }
+
+        // FAQ toggle
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
+            
+            // Close all FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Open clicked item if it wasn't active
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
+        }
+
+        // Auth functions
+        function showLogin() {
+            alert('صفحه ورود - در پیاده‌سازی واقعی، به صفحه ورود هدایت می‌شوید');
+        }
+
+        function showSignup() {
+            alert('صفحه ثبت نام - در پیاده‌سازی واقعی، به صفحه ثبت نام هدایت می‌شوید');
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            alert('منوی موبایل - در پیاده‌سازی واقعی، منوی موبایل نمایش داده می‌شود');
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add scroll effect to header
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(0, 122, 255, 0.95)';
+                header.style.backdropFilter = 'blur(10px)';
+            } else {
+                header.style.background = 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)';
+                header.style.backdropFilter = 'none';
+            }
+        });
+
+        // Add hover effects to plan cards
+        document.querySelectorAll('.plan-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                if (!this.classList.contains('popular')) {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                }
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('popular')) {
+                    this.style.transform = 'translateY(0) scale(1)';
+                }
+            });
+        });
+
+        // Animate elements on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe plan cards for animation
+        document.querySelectorAll('.plan-card, .faq-item').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'988ade0ac0af2ef2',t:'MTc1OTQ3ODAyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

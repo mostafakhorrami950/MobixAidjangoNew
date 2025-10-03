@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobixAi - پلتفرم هوش مصنوعی</title>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'IRANSans', system-ui, sans-serif;
+            background: #FFFFFF;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            padding: 16px 0;
+            box-shadow: 0 4px 20px rgba(0, 122, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-text {
+            font-size: 20px;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #FFFFFF;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn-login {
+            color: #FFFFFF;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-login:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-signup {
+            background: #FFFFFF;
+            color: #007AFF;
+            text-decoration: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-signup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            padding: 80px 0 120px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: #FFFFFF;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+        
+        .cta-primary {
+            background: #FFFFFF;
+            color: #007AFF;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .cta-primary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(255, 255, 255, 0.4);
+        }
+        
+        .cta-secondary {
+            color: #FFFFFF;
+            padding: 16px 32px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .cta-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Stats Section */
+        .stats-section {
+            padding: 80px 0;
+            background: #F8F9FA;
+        }
+        
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            background: #FFFFFF;
+            padding: 40px 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 122, 255, 0.15);
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #007AFF;
+            margin-bottom: 16px;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 18px;
+            color: #000000;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .stat-description {
+            font-size: 14px;
+            color: #8E8E93;
+        }
+        
+        /* Features Section */
+        .features-section {
+            padding: 100px 0;
+            background: #FFFFFF;
+        }
+        
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .section-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 20px;
+        }
+        
+        .section-subtitle {
+            font-size: 20px;
+            color: #8E8E93;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+        
+        .feature-card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #F2F2F7;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 48px rgba(0, 122, 255, 0.15);
+            border-color: #007AFF;
+        }
+        
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        
+        .feature-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 16px;
+        }
+        
+        .feature-description {
+            font-size: 16px;
+            color: #8E8E93;
+            line-height: 1.6;
+        }
+        
+        /* Chatbots Section */
+        .chatbots-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
+        }
+        
+        .chatbots-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .chatbots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+        
+        .chatbot-card {
+            background: #FFFFFF;
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #F2F2F7;
+        }
+        
+        .chatbot-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 40px rgba(0, 122, 255, 0.15);
+        }
+        
+        .chatbot-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            color: #FFFFFF;
+        }
+        
+        .chatbot-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 12px;
+        }
+        
+        .chatbot-specialty {
+            font-size: 16px;
+            color: #8E8E93;
+            margin-bottom: 20px;
+        }
+        
+        .chatbot-users {
+            background: rgba(0, 122, 255, 0.1);
+            color: #007AFF;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            text-align: center;
+        }
+        
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .cta-title {
+            font-size: 40px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+        }
+        
+        .cta-description {
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 40px;
+        }
+        
+        .cta-button {
+            background: #FFFFFF;
+            color: #007AFF;
+            padding: 20px 40px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Footer */
+        .footer {
+            background: #000000;
+            color: #FFFFFF;
+            padding: 60px 0 30px;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-section h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #FFFFFF;
+        }
+        
+        .footer-section a {
+            color: #8E8E93;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 12px;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-section a:hover {
+            color: #007AFF;
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid #333333;
+            padding-top: 30px;
+            text-align: center;
+            color: #8E8E93;
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #FFFFFF;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .hero-title {
+                font-size: 32px;
+            }
+            
+            .hero-subtitle {
+                font-size: 18px;
+            }
+            
+            .hero-cta {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .section-title {
+                font-size: 28px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .feature-card {
+                padding: 24px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            
+            .chatbots-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .auth-buttons {
+                gap: 8px;
+            }
+            
+            .btn-signup {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-section {
+                padding: 60px 0 80px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-number {
+                font-size: 36px;
+            }
+            
+            .cta-title {
+                font-size: 28px;
+            }
+            
+            .nav-container {
+                padding: 0 16px;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-on-scroll {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L20 6V18L12 22L4 18V6L12 2Z" fill="white" stroke="white" stroke-width="1.5"/>
+                        <circle cx="12" cy="12" r="4" fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="12" cy="12" r="2" fill="white"/>
+                    </svg>
+                </div>
+                <div class="logo-text">MobixAi</div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#features" class="nav-link">ویژگی‌ها</a>
+                <a href="#chatbots" class="nav-link">چت‌بات‌ها</a>
+                <a href="#pricing" class="nav-link">قیمت‌گذاری</a>
+                <a href="#contact" class="nav-link">تماس</a>
+            </nav>
+            
+            <div class="auth-buttons">
+                <a href="#" class="btn-login" onclick="showLogin()">ورود</a>
+                <a href="#" class="btn-signup" onclick="showSignup()">ثبت نام رایگان</a>
+            </div>
+            
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-container">
+            <h1 class="hero-title">آینده هوش مصنوعی در دستان شماست</h1>
+            <p class="hero-subtitle">با MobixAi، قدرت چت‌بات‌های هوشمند را تجربه کنید و کسب‌وکار خود را متحول کنید</p>
+            
+            <div class="hero-cta">
+                <a href="#" class="cta-primary" onclick="showSignup()">شروع رایگان</a>
+                <a href="#features" class="cta-secondary">کشف ویژگی‌ها</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-container">
+            <div class="stats-grid">
+                <div class="stat-item animate-on-scroll">
+                    <span class="stat-number" data-target="50000">0</span>
+                    <div class="stat-label">کاربر فعال</div>
+                    <div class="stat-description">در سراسر جهان</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <span class="stat-number" data-target="25">0</span>
+                    <div class="stat-label">چت‌بات تخصصی</div>
+                    <div class="stat-description">برای حوزه‌های مختلف</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <span class="stat-number" data-target="1000000">0</span>
+                    <div class="stat-label">پیام پردازش شده</div>
+                    <div class="stat-description">در ماه گذشته</div>
+                </div>
+                <div class="stat-item animate-on-scroll">
+                    <span class="stat-number" data-target="99">0</span>
+                    <div class="stat-label">درصد رضایت</div>
+                    <div class="stat-description">کاربران ما</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="features-container">
+            <div class="section-header">
+                <h2 class="section-title">چرا MobixAi؟</h2>
+                <p class="section-subtitle">ویژگی‌های منحصر به فردی که تجربه شما را متفاوت می‌کند</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M9.663 17H4C2.895 17 2 16.105 2 15V5C2 3.895 2.895 3 4 3H20C21.105 3 22 3.895 22 5V15C22 16.105 21.105 17 20 17H14.337L12 21L9.663 17Z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">پاسخ‌گویی هوشمند</h3>
+                    <p class="feature-description">چت‌بات‌های ما با استفاده از آخرین تکنولوژی‌های هوش مصنوعی، پاسخ‌های دقیق و طبیعی ارائه می‌دهند</p>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">یادگیری مداوم</h3>
+                    <p class="feature-description">سیستم ما از هر مکالمه یاد می‌گیرد و روز به روز هوشمندتر و دقیق‌تر می‌شود</p>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17L10.5 10.84L11.92 12.25L15.92 8.25L18.42 10.75L21 9ZM3.5 5.75L9.25 11.5L12 8.75L6.25 3L3.5 5.75Z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">سرعت بالا</h3>
+                    <p class="feature-description">پاسخ‌گویی در کمتر از یک ثانیه و پردازش همزمان هزاران درخواست</p>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM10 17L6 13L7.41 11.59L10 14.17L16.59 7.58L18 9L10 17Z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">امنیت بالا</h3>
+                    <p class="feature-description">تمام اطلاعات شما با بالاترین استانداردهای امنیتی محافظت می‌شود</p>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M12 2L2 7L12 12L22 7L12 2ZM2 17L12 22L22 17M2 12L12 17L22 12"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">یکپارچه‌سازی آسان</h3>
+                    <p class="feature-description">به راحتی با وب‌سایت، اپلیکیشن و سیستم‌های موجود خود ادغام کنید</p>
+                </div>
+                
+                <div class="feature-card animate-on-scroll">
+                    <div class="feature-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                            <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">داشبورد تحلیلی</h3>
+                    <p class="feature-description">آمار و گزارش‌های تفصیلی از عملکرد چت‌بات‌های خود دریافت کنید</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chatbots Section -->
+    <section id="chatbots" class="chatbots-section">
+        <div class="chatbots-container">
+            <div class="section-header">
+                <h2 class="section-title">چت‌بات‌های تخصصی ما</h2>
+                <p class="section-subtitle">برای هر نیاز، یک متخصص هوشمند</p>
+            </div>
+            
+            <div class="chatbots-grid">
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">🏥</div>
+                    <h3 class="chatbot-name">دکتر هوشمند</h3>
+                    <p class="chatbot-specialty">مشاوره پزشکی و سلامت</p>
+                    <div class="chatbot-users">12,500+ کاربر</div>
+                </div>
+                
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">💼</div>
+                    <h3 class="chatbot-name">مشاور کسب‌وکار</h3>
+                    <p class="chatbot-specialty">راهنمایی کارآفرینی</p>
+                    <div class="chatbot-users">8,200+ کاربر</div>
+                </div>
+                
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">📚</div>
+                    <h3 class="chatbot-name">استاد آنلاین</h3>
+                    <p class="chatbot-specialty">آموزش و یادگیری</p>
+                    <div class="chatbot-users">15,800+ کاربر</div>
+                </div>
+                
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">⚖️</div>
+                    <h3 class="chatbot-name">مشاور حقوقی</h3>
+                    <p class="chatbot-specialty">راهنمایی قانونی</p>
+                    <div class="chatbot-users">6,400+ کاربر</div>
+                </div>
+                
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">💰</div>
+                    <h3 class="chatbot-name">مشاور مالی</h3>
+                    <p class="chatbot-specialty">سرمایه‌گذاری و مالی</p>
+                    <div class="chatbot-users">9,100+ کاربر</div>
+                </div>
+                
+                <div class="chatbot-card animate-on-scroll">
+                    <div class="chatbot-avatar">🎨</div>
+                    <h3 class="chatbot-name">مشاور خلاقیت</h3>
+                    <p class="chatbot-specialty">طراحی و هنر</p>
+                    <div class="chatbot-users">7,300+ کاربر</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-container">
+            <h2 class="cta-title">آماده شروع هستید؟</h2>
+            <p class="cta-description">همین امروز به جمع هزاران کاربر راضی ما بپیوندید</p>
+            <a href="#" class="cta-button" onclick="showSignup()">شروع رایگان کنید</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>محصولات</h3>
+                    <a href="#">چت‌بات‌های هوشمند</a>
+                    <a href="#">API توسعه‌دهندگان</a>
+                    <a href="#">داشبورد تحلیلی</a>
+                    <a href="#">یکپارچه‌سازی</a>
+                </div>
+                <div class="footer-section">
+                    <h3>شرکت</h3>
+                    <a href="#">درباره ما</a>
+                    <a href="#">تیم ما</a>
+                    <a href="#">اخبار و مقالات</a>
+                    <a href="#">فرصت‌های شغلی</a>
+                </div>
+                <div class="footer-section">
+                    <h3>پشتیبانی</h3>
+                    <a href="#">مرکز راهنمایی</a>
+                    <a href="#">تماس با ما</a>
+                    <a href="#">گزارش مشکل</a>
+                    <a href="#">وضعیت سرویس</a>
+                </div>
+                <div class="footer-section">
+                    <h3>قانونی</h3>
+                    <a href="#">حریم خصوصی</a>
+                    <a href="#">شرایط استفاده</a>
+                    <a href="#">قوانین و مقررات</a>
+                    <a href="#">امنیت</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 MobixAi. تمام حقوق محفوظ است.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Counter animation for stats
+        function animateCounter(element, target) {
+            let current = 0;
+            const increment = target / 100;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                
+                if (target >= 1000000) {
+                    element.textContent = (current / 1000000).toFixed(1) + 'M';
+                } else if (target >= 1000) {
+                    element.textContent = (current / 1000).toFixed(0) + 'K';
+                } else {
+                    element.textContent = Math.floor(current) + (target === 99 ? '%' : '');
+                }
+            }, 20);
+        }
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                    
+                    // Animate counters
+                    const statNumber = entry.target.querySelector('.stat-number');
+                    if (statNumber && !statNumber.classList.contains('animated')) {
+                        statNumber.classList.add('animated');
+                        const target = parseInt(statNumber.getAttribute('data-target'));
+                        animateCounter(statNumber, target);
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animated elements
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Auth functions
+        function showLogin() {
+            alert('صفحه ورود - در پیاده‌سازی واقعی، به صفحه ورود هدایت می‌شوید');
+        }
+
+        function showSignup() {
+            alert('صفحه ثبت نام - در پیاده‌سازی واقعی، به صفحه ثبت نام هدایت می‌شوید');
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            alert('منوی موبایل - در پیاده‌سازی واقعی، منوی موبایل نمایش داده می‌شود');
+        }
+
+        // Add scroll effect to header
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(0, 122, 255, 0.95)';
+                header.style.backdropFilter = 'blur(10px)';
+            } else {
+                header.style.background = 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)';
+                header.style.backdropFilter = 'none';
+            }
+        });
+
+        // Add hover effects to cards
+        document.querySelectorAll('.feature-card, .chatbot-card, .stat-item').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'988ad682c3d32ef2',t:'MTc1OTQ3NzcxNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>احراز هویت MobixAi</title>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'IRANSans', system-ui, sans-serif;
+            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .auth-container {
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 122, 255, 0.15);
+            width: 100%;
+            max-width: 400px;
+            padding: 32px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007AFF, #5AC8FA);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+        }
+        
+        .logo-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: #007AFF;
+            margin-bottom: 8px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #000000;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .page-description {
+            font-size: 16px;
+            color: #8E8E93;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #000000;
+            margin-bottom: 8px;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            height: 48px;
+            padding: 12px 16px 12px 48px;
+            border: 1px solid #E5E5EA;
+            border-radius: 12px;
+            background: #FFFFFF;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .form-input:focus {
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+        }
+        
+        .form-input.error {
+            border-color: #FF3B30;
+            box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.2);
+        }
+        
+        .form-input.ltr {
+            direction: ltr;
+            text-align: left;
+        }
+        
+        .input-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: #8E8E93;
+        }
+        
+        .error-message {
+            color: #FF3B30;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        
+        /* Django form errors */
+        .django-error {
+            color: #FF3B30;
+            font-size: 12px;
+            margin-top: 4px;
+            display: block;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: #007AFF;
+        }
+        
+        .checkbox-label {
+            font-size: 14px;
+            color: #000000;
+            line-height: 1.4;
+        }
+        
+        .checkbox-label a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+        
+        .checkbox-label a:hover {
+            text-decoration: underline;
+        }
+        
+        .submit-button {
+            width: 100%;
+            height: 48px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            border: none;
+            border-radius: 12px;
+            color: #FFFFFF;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.4);
+        }
+        
+        .submit-button:active {
+            transform: translateY(0);
+        }
+        
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #FFFFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .auth-links {
+            text-align: center;
+            font-size: 14px;
+            color: #8E8E93;
+        }
+        
+        .auth-links a {
+            color: #007AFF;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .auth-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .success-message {
+            background: #34C759;
+            color: #FFFFFF;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #F2F2F7;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: #8E8E93;
+        }
+        
+        .nav-tab.active {
+            background: #FFFFFF;
+            color: #007AFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 24px 20px;
+                margin: 10px;
+            }
+            
+            .logo-icon {
+                width: 56px;
+                height: 56px;
+            }
+            
+            .logo-text {
+                font-size: 24px;
+            }
+            
+            .page-title {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">
+            <div class="logo-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 2L28 8V24L16 30L4 24V8L16 2Z" fill="white" stroke="white" stroke-width="2"/>
+                    <circle cx="16" cy="16" r="6" fill="rgba(255,255,255,0.3)"/>
+                    <circle cx="16" cy="16" r="3" fill="white"/>
+                </svg>
+            </div>
+            <div class="logo-text">MobixAi</div>
+        </div>
+        
+        <div class="nav-tabs">
+            <div class="nav-tab {% if not login_active %}active{% endif %}" onclick="switchPage('signup')">ثبت نام</div>
+            <div class="nav-tab {% if login_active %}active{% endif %}" onclick="switchPage('login')">ورود</div>
+        </div>
+        
+        <!-- Signup Page -->
+        <div id="signup-page" class="page {% if not login_active %}active{% endif %}">
+            <h1 class="page-title">ثبت نام در MobixAi</h1>
+            <p class="page-description">به جمع کاربران هوشمند ما بپیوندید</p>
+            
+            <!-- Django non-field errors for signup -->
+            {% if signup_form.non_field_errors %}
+                <div class="django-error" style="display: block; background: #FFE5E5; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                    {{ signup_form.non_field_errors }}
+                </div>
+            {% endif %}
+            
+            <div class="success-message" id="signup-success">
+                ثبت نام با موفقیت انجام شد
+            </div>
+            
+            <form id="signup-form" method="post" action="{% url 'accounts:register' %}">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="signup">
+                
+                <div class="form-group">
+                    <label class="form-label" for="fullName">نام و نام خانوادگی</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="fullName" name="name" class="form-input" placeholder="مثال: علی رضایی" value="{{ signup_form.name.value|default:'' }}" required>
+                        <svg class="input-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                        </svg>
+                    </div>
+                    {% if signup_form.name.errors %}
+                        <div class="django-error">{{ signup_form.name.errors }}</div>
+                    {% endif %}
+                    <div class="error-message" id="fullName-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="phoneNumber">شماره موبایل</label>
+                    <div class="input-wrapper">
+                        <input type="tel" id="phoneNumber" name="phone_number" class="form-input ltr" placeholder="09123456789" value="{{ signup_form.phone_number.value|default:'' }}" required>
+                        <svg class="input-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                        </svg>
+                    </div>
+                    {% if signup_form.phone_number.errors %}
+                        <div class="django-error">{{ signup_form.phone_number.errors }}</div>
+                    {% endif %}
+                    <div class="error-message" id="phoneNumber-error"></div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" name="terms" class="checkbox-input" required>
+                    <label class="checkbox-label" for="terms">
+                        با <a href="#" onclick="showTerms()">قوانین و مقررات MobixAi</a> موافقم
+                    </label>
+                </div>
+                
+                <button type="submit" class="submit-button">
+                    <span class="button-text">ثبت نام</span>
+                    <span class="loading-spinner"></span>
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                قبلا ثبت نام کرده‌اید؟ <a href="#" onclick="switchPage('login')">ورود به حساب</a>
+            </div>
+        </div>
+        
+        <!-- Login Page -->
+        <div id="login-page" class="page {% if login_active %}active{% endif %}">
+            <h1 class="page-title">ورود به MobixAi</h1>
+            <p class="page-description">با شماره موبایل خود وارد شوید</p>
+            
+            <!-- Django non-field errors for login -->
+            {% if login_form.non_field_errors %}
+                <div class="django-error" style="display: block; background: #FFE5E5; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                    {{ login_form.non_field_errors }}
+                </div>
+            {% endif %}
+            
+            <div class="success-message" id="login-success">
+                ورود موفقیت‌آمیز
+            </div>
+            
+            <form id="login-form" method="post" action="{% url 'accounts:login' %}">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="login">
+                
+                <div class="form-group">
+                    <label class="form-label" for="loginPhone">شماره موبایل</label>
+                    <div class="input-wrapper">
+                        <input type="tel" id="loginPhone" name="phone_number" class="form-input ltr" placeholder="09123456789" value="{{ login_form.phone_number.value|default:'' }}" required>
+                        <svg class="input-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                        </svg>
+                    </div>
+                    {% if login_form.phone_number.errors %}
+                        <div class="django-error">{{ login_form.phone_number.errors }}</div>
+                    {% endif %}
+                    <div class="error-message" id="loginPhone-error"></div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="rememberMe" name="remember_me" class="checkbox-input">
+                    <label class="checkbox-label" for="rememberMe">مرا به خاطر بسپار</label>
+                </div>
+                
+                <button type="submit" class="submit-button">
+                    <span class="button-text">ورود</span>
+                    <span class="loading-spinner"></span>
+                </button>
+            </form>
+            
+            <div class="auth-links">
+                حساب کاربری ندارید؟ <a href="#" onclick="switchPage('signup')">ثبت نام</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Page switching functionality
+        function switchPage(page) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(page + '-page').classList.add('active');
+            
+            // Find and activate the correct tab
+            const tabs = document.querySelectorAll('.nav-tab');
+            if (page === 'signup') {
+                tabs[0].classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+            }
+            
+            // Clear forms
+            document.querySelectorAll('form').forEach(form => {
+                clearErrors(form);
+            });
+        }
+        
+        // Form validation functions
+        function validateFullName(value) {
+            const persianPattern = /^[\u0600-\u06FF\s]+$/;
+            if (!value) return 'لطفا نام خود را وارد کنید';
+            if (value.length < 3) return 'نام باید حداقل 3 حرف باشد';
+            if (value.length > 50) return 'نام نباید بیش از 50 حرف باشد';
+            if (!persianPattern.test(value)) return 'لطفا فقط از حروف فارسی استفاده کنید';
+            return null;
+        }
+        
+        function validatePhoneNumber(value) {
+            const phonePattern = /^09[0-9]{9}$/;
+            if (!value) return 'شماره موبایل الزامی است';
+            if (!phonePattern.test(value)) return 'شماره موبایل باید با 09 شروع شده و 11 رقم باشد';
+            return null;
+        }
+        
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            field.classList.add('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function clearError(fieldId) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            field.classList.remove('error');
+            errorDiv.style.display = 'none';
+        }
+        
+        function clearErrors(form) {
+            form.querySelectorAll('.form-input').forEach(input => {
+                input.classList.remove('error');
+            });
+            form.querySelectorAll('.error-message').forEach(error => {
+                error.style.display = 'none';
+            });
+        }
+        
+        function showLoading(button) {
+            const buttonText = button.querySelector('.button-text');
+            const spinner = button.querySelector('.loading-spinner');
+            button.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            if (button.closest('#signup-form')) {
+                buttonText.textContent = 'در حال ثبت نام...';
+            } else {
+                buttonText.textContent = 'در حال بررسی...';
+            }
+        }
+        
+        function hideLoading(button) {
+            const buttonText = button.querySelector('.button-text');
+            const spinner = button.querySelector('.loading-spinner');
+            button.disabled = false;
+            spinner.style.display = 'none';
+            
+            if (button.closest('#signup-form')) {
+                buttonText.textContent = 'ثبت نام';
+            } else {
+                buttonText.textContent = 'ورود';
+            }
+        }
+        
+        // Signup form handler
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            // Let Django handle the form submission, but add loading indicator
+            const submitButton = this.querySelector('.submit-button');
+            showLoading(submitButton);
+        });
+        
+        // Login form handler
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            // Let Django handle the form submission, but add loading indicator
+            const submitButton = this.querySelector('.submit-button');
+            showLoading(submitButton);
+        });
+        
+        // Real-time validation
+        document.getElementById('fullName').addEventListener('input', function() {
+            const error = validateFullName(this.value);
+            if (error) {
+                showError('fullName', error);
+            } else {
+                clearError('fullName');
+            }
+        });
+        
+        document.getElementById('phoneNumber').addEventListener('input', function() {
+            const error = validatePhoneNumber(this.value);
+            if (error) {
+                showError('phoneNumber', error);
+            } else {
+                clearError('phoneNumber');
+            }
+        });
+        
+        document.getElementById('loginPhone').addEventListener('input', function() {
+            const error = validatePhoneNumber(this.value);
+            if (error) {
+                showError('loginPhone', error);
+            } else {
+                clearError('loginPhone');
+            }
+        });
+        
+        // Terms modal (demo)
+        function showTerms() {
+            alert('این یک نمونه است. در پیاده‌سازی واقعی، قوانین و مقررات در یک مودال یا صفحه جداگانه نمایش داده می‌شود.');
+        }
+        
+        // Show success message if needed
+        window.addEventListener('DOMContentLoaded', function() {
+            // This will be handled by Django template context
+            // We'll check for a data attribute set by Django
+            const signupSuccess = document.body.getAttribute('data-signup-success');
+            if (signupSuccess === 'true') {
+                document.getElementById('signup-success').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('signup-success').style.display = 'none';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
