@@ -80,6 +80,10 @@
         color: #6c757d;
         font-size: 0.875rem;
         display: block;
+        /* Allow text to wrap to show full content */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
 
     .access-badge {
@@ -253,17 +257,20 @@
         font-weight: 500;
         margin-bottom: 0.25rem;
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* Allow text to wrap to show full content */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
 
     .enhanced-option-desc {
         color: #6c757d;
         font-size: 0.875rem;
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
+        /* Allow text to wrap to show full content */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
 
     .enhanced-option-badge {
@@ -302,6 +309,10 @@
 
     .chatbot-detail-desc, .model-detail-desc {
         font-size: 0.875rem;
+        /* Allow text to wrap to show full content */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
 
     .chatbot-access-badge.premium, .model-access-badge.premium {
