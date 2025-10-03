@@ -131,6 +131,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Check web search access for welcome screen (when no session is active)
+    if (!currentSessionId) {
+        checkWebSearchAccessForWelcome();
+    }
 
     // Add event listeners for automatic session creation
     // Message input box
@@ -958,14 +963,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-robot fa-3x mb-3"></i>
                         <h4>به چت‌بات MobixAI خوش آمدید</h4>
                         <p class="mb-0">چتی را انتخاب کنید یا چت جدیدی شروع کنید</p>
-                        <div class="web-search-toggle-container mt-3" id="welcome-web-search-container" style="display: none;">
-                            <button class="btn btn-outline-secondary" id="welcome-web-search-btn" type="button">
-                                <i class="fas fa-search"></i> جستجو وب
-                            </button>
-                            <small class="text-muted d-block mt-1">
-                                فعال کردن جستجوی اینترنتی برای پاسخ‌های به‌روز
-                            </small>
-                        </div>
                     </div>
                 `;
             }
@@ -1002,6 +999,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reload sidebar menu items
             loadDesktopSidebarMenuItems();
             loadSidebarMenuItems();
+            
+            // Check web search access for welcome screen
+            checkWebSearchAccessForWelcome();
         }
     });
     

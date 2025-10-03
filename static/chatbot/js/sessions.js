@@ -330,6 +330,9 @@ function deleteSession() {
                 
                 loadSessions();
                 
+                // Check web search access for welcome screen
+                checkWebSearchAccessForWelcome();
+                
                 // Hide sidebar on mobile
                 if (window.innerWidth < 768) {
                     const sidebar = document.getElementById('sidebar');
