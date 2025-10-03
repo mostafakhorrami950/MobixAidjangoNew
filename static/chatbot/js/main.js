@@ -427,6 +427,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         const description = this.dataset.description;
                         const hasAccess = this.dataset.hasAccess === 'true';
                         
+                        // Check if user has access to this chatbot
+                        if (!hasAccess) {
+                            // Show error message and prevent proceeding
+                            showConfirmationMessage('شما دسترسی لازم برای استفاده از این چت‌بات را ندارید. لطفاً اشتراک مناسب را تهیه کنید.', 'warning');
+                            return;
+                        }
+                        
                         // Update select display
                         const display = chatbotContainer.querySelector('.select-display');
                         const placeholder = chatbotContainer.querySelector('.select-placeholder');
