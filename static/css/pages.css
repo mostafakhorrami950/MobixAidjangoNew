@@ -1,0 +1,70 @@
+/* Terms and Conditions Page Styles */
+.terms-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.terms-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.terms-title {
+    color: #1f2937;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* Home2 Page Styles */
+body {
+    box-sizing: border-box;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Vazir', 'IRANSans', system-ui, sans-serif;
+    background: #FFFFFF;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* Global styles for public_comparison2.html */
+body {
+    box-sizing: border-box;
+    font-family: 'Vazir', 'IRANSans', system-ui, sans-serif;
+    background: #FFFFFF;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+    padding: 16px 0;
+    box-shadow: 0 4px 20px rgba(0, 122, 255, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Public Comparison2 Page Styles */
+/* Add styles for public_comparison2.html here */
+
+/* Chat Page Additional Styles */
+/* Add styles for chat.html here */

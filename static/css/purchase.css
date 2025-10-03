@@ -3,6 +3,340 @@
    Professional Design for MobixAI
    =========================================================== */
 
+/* Public Comparison Page Styles */
+.comparison-page {
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    min-height: 100vh;
+    padding: 3rem 0;
+    margin-top: 0;
+}
+
+/* Usage Overview Styles */
+.usage-overview {
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    color: white;
+    box-shadow: 0 25px 50px rgba(59, 130, 246, 0.3);
+}
+
+.usage-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.comparison-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.comparison-header {
+    text-align: center;
+    margin-bottom: 4rem;
+    color: white;
+}
+
+.comparison-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.comparison-subtitle {
+    font-size: 1.4rem;
+    opacity: 0.95;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Subscription Comparison Table Styles */
+.comparison-section {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.comparison-table-container {
+    overflow-x: auto;
+    border-radius: 24px;
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 900px;
+}
+
+.comparison-table thead {
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+}
+
+.feature-header {
+    padding: 2rem 2rem;
+    text-align: right;
+    font-weight: 700;
+    color: white;
+    font-size: 1.2rem;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: #3B82F6;
+    border-right: 2px solid white;
+}
+
+.plan-header {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    font-weight: 800;
+    color: white;
+    font-size: 1.4rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+}
+
+.comparison-table tbody tr {
+    transition: background 0.3s ease;
+}
+
+.comparison-table tbody tr:hover {
+    background: #EFF6FF;
+}
+
+.feature-name {
+    padding: 1.5rem 2rem;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    width: 35%;
+}
+
+.feature-name:hover {
+    background: #DBEAFE;
+}
+
+.feature-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.feature-info i {
+    color: #3B82F6;
+    font-size: 1.2rem;
+}
+
+.feature-description {
+    font-size: 0.95rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.feature-value {
+    padding: 1.5rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: background 0.3s ease;
+}
+
+.feature-value:hover {
+    background: #EFF6FF;
+}
+
+.feature-value:last-child {
+    border-right: none;
+}
+
+.feature-value.model-list {
+    padding: 1rem 1.5rem;
+    text-align: right;
+}
+
+.model-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: #DBEAFE;
+    border-radius: 12px;
+    border-left: 4px solid #3B82F6;
+}
+
+.model-item:last-child {
+    margin-bottom: 0;
+}
+
+.model-image {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #3B82F6;
+}
+
+.model-name {
+    flex: 1;
+    font-weight: 600;
+    color: #1E40AF;
+    font-size: 1rem;
+}
+
+.badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    min-width: 60px;
+    text-align: center;
+}
+
+.badge.free {
+    background: #BFDBFE;
+    color: #1E40AF;
+}
+
+.badge.premium {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.available {
+    color: #3B82F6;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.available i {
+    margin-left: 0.5rem;
+}
+
+.unavailable {
+    color: #ef4444;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.unavailable i {
+    margin-left: 0.5rem;
+}
+
+.unlimited {
+    color: #3B82F6;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.na {
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+.price-row {
+    background: #f0f9ff;
+}
+
+.price-row .feature-name {
+    background: #f0f9ff;
+}
+
+.price-row .feature-value {
+    background: #f0f9ff;
+    border-bottom: 3px solid #3B82F6;
+}
+
+.price {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #1D4ED8;
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Call to Action Section */
+.cta-section {
+    padding: 4rem 3rem;
+    text-align: center;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    border-top: 1px solid #BFDBFE;
+}
+
+.cta-content h3 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: #1E40AF;
+    line-height: 1.2;
+}
+
+.cta-content p {
+    font-size: 1.3rem;
+    color: #1E3A8A;
+    margin-bottom: 2.5rem;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.cta-button {
+    display: inline-block;
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    color: white;
+    padding: 1.2rem 3rem;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
+    color: white;
+}
+
+.cta-button:active {
+    transform: translateY(-1px);
+}
+
+.cta-button i {
+    margin-left: 0.5rem;
+}
+
 /* Purchase Container */
 .purchase-page {
   background: linear-gradient(135deg, #EFF6FF, #F8FAFC);

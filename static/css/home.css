@@ -11,7 +11,8 @@
   align-items: center;
   position: relative;
   overflow: hidden;
-  padding: var(--gap-xl) 0;
+  padding: 0;
+  margin-top: 0;
 }
 
 .hero-section::before {
@@ -619,4 +620,112 @@
 
 .feature-card:nth-child(3) {
   animation-delay: 0.4s;
+}
+
+/* FAQ Section Styles */
+.faq-section {
+  background: var(--surface-light);
+  border-radius: var(--radius-xl);
+  padding: var(--gap-xl);
+  margin-bottom: var(--gap-xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.faq-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: var(--gap-lg);
+  padding-bottom: var(--gap-sm);
+  border-bottom: 2px solid var(--border-light);
+  position: relative;
+}
+
+.faq-title::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+}
+
+.faq-item {
+  margin-bottom: var(--gap-lg);
+  padding: var(--gap);
+  background: var(--white);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--primary-blue);
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.faq-item:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateX(5px);
+  border-left-color: var(--secondary-blue);
+}
+
+.faq-item h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--gap-sm) 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-item h4::after {
+  content: '▼';
+  font-size: 0.75rem;
+  color: var(--primary-blue);
+  transition: transform 0.3s ease;
+  transform: rotate(0deg);
+}
+
+.faq-item h4.active::after {
+  transform: rotate(180deg);
+}
+
+.faq-item p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+  display: none;
+  margin-top: var(--gap-sm);
+  padding-left: var(--gap-sm);
+}
+
+.faq-item p.active {
+  display: block;
+}
+
+/* Responsive FAQ */
+@media (max-width: 768px) {
+  .faq-section {
+    padding: var(--gap-lg);
+    margin-bottom: var(--gap-lg);
+  }
+
+  .faq-title {
+    font-size: 1.5rem;
+  }
+
+  .faq-item {
+    padding: var(--gap);
+  }
+
+  .faq-item h4 {
+    font-size: 1rem;
+  }
 }

@@ -63,28 +63,6 @@
     
     <!-- Production-safe console utility (must load first) -->
     <script src="{% static 'js/console-production.js' %}"></script>
-    <style>
-        body {
-            background: var(--background);
-            font-family: 'Vazirmatn', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* Add margin top to content to account for navbar */
-        main {
-            margin-top: 80px;
-        }
-        
-        /* Hide navbar on chat page */
-        .chat-page .modern-navbar {
-            display: none !important;
-        }
-        
-        .chat-page main {
-            margin-top: 0;
-        }
-    </style>
 </head>
 <body {% if user.is_authenticated %}data-authenticated="true" data-user-name="{{ user.name }}"{% endif %}>
     <!-- Hamburger menu for mobile -->

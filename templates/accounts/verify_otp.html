@@ -209,38 +209,5 @@ function resendOTP() {
 }
 </script>
 
-<style>
-.resend-btn {
-    background: rgba(37, 99, 235, 0.1);
-    color: #9CA3AF;
-    border: 2px solid rgba(37, 99, 235, 0.2);
-    border-radius: 12px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: not-allowed;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
 
-.resend-btn.enabled {
-    background: linear-gradient(135deg, #2563EB, #3B82F6);
-    color: white;
-    cursor: pointer;
-    border-color: #2563EB;
-}
-
-.resend-btn.enabled:hover {
-    background: linear-gradient(135deg, #1D4ED8, #2563EB);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
-}
-
-.resend-section {
-    padding: 1rem 0;
-    border-top: 1px solid var(--border-light);
-}
-</style>
 {% endblock %}

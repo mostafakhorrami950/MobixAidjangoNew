@@ -64,6 +64,19 @@
   --transition-slow: all 0.3s ease;
 }
 
+/* Drag and drop styles */
+.drag-over {
+    border: 2px dashed #007bff !important;
+    background-color: #f8f9fa;
+    transform: scale(1.02);
+    transition: all 0.3s ease;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.3);
+}
+
+.file-preview {
+    transition: all 0.3s ease;
+}
+
 /* Hide the modern navbar on chat page for desktop */
 .modern-navbar.d-none.d-md-block {
   display: none !important;
@@ -446,7 +459,7 @@ html, body {
 
 /* Chat Messages Card */
 .chat-messages {
-  padding: var(--gap-xl);
+  padding: 5px;
   background: var(--surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
@@ -470,7 +483,7 @@ html, body {
   color: var(--white);
   padding: var(--gap-lg) var(--gap-xl);
   border-radius: 24px 24px 8px 24px;
-  max-width: 75%;
+  max-width: 99%;
   margin-left: auto;
   margin-bottom: var(--gap-xl);
   font-size: 15px;
@@ -609,7 +622,7 @@ html, body {
   color: var(--text-primary);
   padding: var(--gap-lg) var(--gap-xl);
   border-radius: 24px 24px 24px 8px;
-  max-width: 75%;
+  max-width: 99%;
   margin-right: auto;
   margin-bottom: var(--gap-xl);
   font-size: 15px;
