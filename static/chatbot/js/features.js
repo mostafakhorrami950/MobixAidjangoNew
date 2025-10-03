@@ -13,7 +13,7 @@ function toggleWebSearch() {
         // Disable web search
         webSearchBtn.classList.remove('btn-success');
         webSearchBtn.classList.add('btn-outline-secondary');
-        webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب';
+        webSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
         webSearchBtn.title = 'فعال کردن جستجو وب';
         // Store that web search is disabled for this session
         sessionStorage.setItem(`webSearch_${currentSessionId}`, 'false');
@@ -21,7 +21,7 @@ function toggleWebSearch() {
         // Enable web search
         webSearchBtn.classList.remove('btn-outline-secondary');
         webSearchBtn.classList.add('btn-success');
-        webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
+        webSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
         webSearchBtn.title = 'غیرفعال کردن جستجو وب';
         // Store that web search is enabled for this session
         sessionStorage.setItem(`webSearch_${currentSessionId}`, 'true');
@@ -94,13 +94,13 @@ function checkWebSearchAccess(sessionId) {
                     // Enable web search
                     webSearchBtn.classList.remove('btn-outline-secondary');
                     webSearchBtn.classList.add('btn-success');
-                    webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب فعال';
+                    webSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
                     webSearchBtn.title = 'غیرفعال کردن جستجو وب';
                 } else {
                     // Disable web search
                     webSearchBtn.classList.remove('btn-success');
                     webSearchBtn.classList.add('btn-outline-secondary');
-                    webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب';
+                    webSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
                     webSearchBtn.title = 'فعال کردن جستجو وب';
                 }
             } else {
@@ -109,7 +109,7 @@ function checkWebSearchAccess(sessionId) {
                 webSearchBtn.classList.remove('btn-outline-secondary', 'btn-success');
                 webSearchBtn.classList.add('btn-secondary');
                 webSearchBtn.disabled = true;
-                webSearchBtn.innerHTML = '<i class="fas fa-search"></i> جستجو وب (فقط برای اشتراک ویژه)';
+                webSearchBtn.innerHTML = '<i class="fas fa-search"></i>';
                 webSearchBtn.title = 'این ویژگی فقط برای کاربران با اشتراک ویژه در دسترس است';
             }
         })

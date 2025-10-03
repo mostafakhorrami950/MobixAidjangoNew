@@ -570,20 +570,7 @@
                 </div>
             </div>
             
-            <!-- Web search button above input -->
-
-            
             <div class="input-container">
-                <div class="web-search-container">
-                    <button class="btn btn-sm btn-outline-secondary" id="web-search-btn" title="جستجو وب">
-                        <i class="fas fa-search"></i> جستجو وب
-                    </button>
-                    <!-- Add image generation button -->
-                    <button class="btn btn-sm btn-outline-primary" id="image-generation-btn" style="display: none;" title="تولید تصویر">
-                        <i class="fas fa-image"></i> تولید تصویر
-                    </button>
-
-                </div>
                 <form id="chat-form" class="position-relative">
                     <textarea class="form-control" id="message-input" placeholder="پیام خود را تایپ کنید..." rows="3"></textarea>
                     <!-- Hidden hint for image editing chatbot -->
@@ -598,6 +585,14 @@
                         <!-- Add file upload button -->
                         <button class="btn btn-secondary" type="button" id="upload-btn" title="آپلود فایل">
                             <i class="fas fa-paperclip"></i>
+                        </button>
+                        <!-- Web search button -->
+                        <button class="btn btn-sm btn-outline-secondary" id="web-search-btn" title="جستجو وب">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <!-- Add image generation button -->
+                        <button class="btn btn-sm btn-outline-primary" id="image-generation-btn" style="display: none;" title="تولید تصویر">
+                            <i class="fas fa-image"></i>
                         </button>
                         <!-- Hidden file input for multiple files - فایل انپوت مخفی برای چند فایل -->
                         <input type="file" id="file-input" multiple style="display: none;">
