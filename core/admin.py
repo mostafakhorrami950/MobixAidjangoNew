@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GlobalSettings, TermsAndConditions
+from .models import GlobalSettings, TermsAndConditions, AdvertisingBanner
 
 
 @admin.register(GlobalSettings)
@@ -61,3 +61,22 @@ class TermsAndConditionsAdmin(admin.ModelAdmin):
             if active_terms_count <= 1:
                 return False
         return True
+
+
+@admin.register(AdvertisingBanner)
+class AdvertisingBannerAdmin(admin.ModelAdmin):
+    list_display = ('title', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('title', 'link')
+    
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'image', 'link', 'is_active')
+        }),
+        ('تاریخ ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')

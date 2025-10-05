@@ -620,10 +620,11 @@
                         <!-- Files will be added here dynamically -->
                     </div>
                 </div>
-                <div class="input-hint">
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle"></i> Shift + Enter برای خط جدید | Enter برای ارسال
-                    </small>
+                <!-- Advertising Banner Container -->
+                <div id="advertising-banner-container" class="advertising-banner-container mt-2" style="display: none;">
+                    <a id="advertising-banner-link" href="#" target="_blank" class="d-block">
+                        <img id="advertising-banner-image" src="" alt="Advertisement" class="img-fluid rounded" style="max-width: 100%; height: auto; border: 1px solid #dee2e6;">
+                    </a>
                 </div>
             </div>
         </div>
@@ -631,22 +632,25 @@
 </div>
 
 <!-- Model Selection Wrapper as Floating Button -->
-<div class="model-selection-wrapper" id="model-selection-button">
-    <span class="model-select-label">مدل: </span>
-    <span id="current-model-name">انتخاب مدل</span>
-    <i class="fas fa-chevron-down ms-1"></i>
-</div>
+ <div class="model-top-menu">
+     </div>
+    <div class="model-selection-wrapper" id="model-selection-button">
+        <span class="model-select-label">مدل: </span>
+        <span id="current-model-name">انتخاب مدل</span>
+        <i class="fas fa-chevron-down ms-1"></i>
+    </div>
 
-<!-- Overlay for mobile sidebar -->
+    <!-- Overlay for mobile sidebar -->
+
+    <!-- Floating Action Button for Mobile -->
+    <div class="floating-action-button d-md-none" id="fab-new-chat">
+        <button class="btn rounded-circle" title="چت جدید">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+
 <div class="overlay d-md-none" id="sidebar-overlay"></div>
-
-<!-- Floating Action Button for Mobile -->
-<div class="floating-action-button d-md-none" id="fab-new-chat">
-    <button class="btn btn-primary rounded-circle shadow-lg" title="چت جدید">
-        <i class="fas fa-plus"></i>
-    </button>
-</div>
-
 <!-- New Chat Modal -->
 <div class="modal fade" id="newChatModal" tabindex="-1">
     <div class="modal-dialog modal-lg">

@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 
 class TermsAndConditions(models.Model):
@@ -19,7 +20,7 @@ class TermsAndConditions(models.Model):
         db_table = 'terms_and_conditions'
     
     def __str__(self):
-        return self.title
+        return str(self.title)
     
     @classmethod
     def get_active_terms(cls):
@@ -112,3 +113,43 @@ class GlobalSettings(models.Model):
             }
         )
         return settings
+
+
+class AdvertisingBanner(models.Model):
+    """
+    Advertising banner model that can be managed through the admin panel
+    """
+    title = models.CharField(max_length=200, verbose_name="عنوان بنر")
+    image = models.ImageField(
+        upload_to='banners/',
+        blank=True,
+        null=True,
+        verbose_name="تصویر بنر",
+        help_text="تصویر بنر تبلیغاتی"
+    )
+    link = models.URLField(max_length=500, verbose_name="لینک", help_text="لینک مقصد بنر")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="تاریخ ایجاد")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+    
+    class Meta:
+        verbose_name = "بنر تبلیغاتی"
+        verbose_name_plural = "بنرهای تبلیغاتی"
+        db_table = 'advertising_banners'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return str(self.title)
+    
+    @classmethod
+    def get_active_banners(cls):
+        """Get all active banners"""
+        return cls.objects.filter(is_active=True)
+    
+    @classmethod
+    def get_random_active_banner(cls):
+        """Get a random active banner"""
+        active_banners = cls.objects.filter(is_active=True)
+        if active_banners.exists():
+            return active_banners.order_by('?').first()
+        return None

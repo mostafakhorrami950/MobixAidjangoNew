@@ -30,12 +30,6 @@ function loadSessions() {
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <strong>${session.title}</strong>
-                            <div class="small text-muted">
-                                ${session.session_name} 
-                                <span class="model-access ${session.model_access.toLowerCase()}">
-                                    ${session.model_access === 'Free' ? 'رایگان' : 'ویژه'}
-                                </span>
-                            </div>
                         </div>
                         <div class="text-muted small">${new Date(session.updated_at).toLocaleTimeString('fa-IR')}</div>
                     </div>
@@ -91,6 +85,16 @@ function loadSession(sessionId) {
             const currentModelName = document.getElementById('current-model-name');
             if (currentModelName && data.ai_model_name) {
                 currentModelName.textContent = data.ai_model_name;
+            }
+            
+            // Hide model selection button for image editing chatbots
+            const modelSelectionButton = document.getElementById('model-selection-button');
+            if (modelSelectionButton) {
+                if (data.chatbot_type === 'image_editing') {
+                    modelSelectionButton.style.display = 'none';
+                } else {
+                    modelSelectionButton.style.display = 'block';
+                }
             }
             
             const chatContainer = document.getElementById('chat-container');

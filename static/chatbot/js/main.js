@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Chat page - Sidebar overlay element:', sidebarOverlay);
     console.log('Chat page - Mobile menu toggle element:', mobileMenuToggle);
     
+    // Hide model selection button by default until we know the session type
+    const modelSelButton = document.getElementById('model-selection-button');
+    if (modelSelButton) {
+        modelSelButton.style.display = 'none';
+    }
+    
     // Add event listener for the image editing button
     const imageEditingBtn = document.getElementById('image-editing-btn');
     if (imageEditingBtn) {
@@ -215,6 +221,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modelSelectionButton) {
         modelSelectionButton.addEventListener('click', function(e) {
             e.stopPropagation();
+            
+            // Check if this is an image editing chatbot session
+            if (currentSessionId) {
+                const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+                if (sessionData.chatbot_type === 'image_editing') {
+                    // Don't show model selection for image editing chatbots
+                    return;
+                }
+            }
+            
             // Only create a session if there's no current session
             if (!currentSessionId) {
                 // Show a loading state to the user
@@ -1655,3 +1671,44 @@ function initializeEnhancedSelect() {
     document.removeEventListener('click', handleOutsideClick); // Remove previous listener
     document.addEventListener('click', handleOutsideClick);
 }
+
+// Load advertising banner
+function loadAdvertisingBanner() {
+    fetch('/random-advertising-banner/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.banner) {
+                const bannerContainer = document.getElementById('advertising-banner-container');
+                const bannerLink = document.getElementById('advertising-banner-link');
+                const bannerImage = document.getElementById('advertising-banner-image');
+                
+                if (bannerContainer && bannerLink && bannerImage) {
+                    // Set banner data
+                    bannerLink.href = data.banner.link || '#';
+                    if (data.banner.image_url) {
+                        bannerImage.src = data.banner.image_url;
+                        bannerImage.alt = data.banner.title || 'Advertisement';
+                        // Show banner
+                        bannerContainer.style.display = 'block';
+                    } else {
+                        // Hide banner if no image
+                        bannerContainer.style.display = 'none';
+                    }
+                }
+            }
+            // If no banner data, keep the container hidden (default)
+        })
+        .catch(error => {
+            console.error('Error loading advertising banner:', error);
+            // Hide banner container on error
+            const bannerContainer = document.getElementById('advertising-banner-container');
+            if (bannerContainer) {
+                bannerContainer.style.display = 'none';
+            }
+        });
+}
+
+// Load advertising banner when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadAdvertisingBanner();
+});

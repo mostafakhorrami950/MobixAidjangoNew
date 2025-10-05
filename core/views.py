@@ -148,6 +148,66 @@ def terms_and_conditions(request):
     }
     return render(request, 'terms_and_conditions.html', context)
 
+def get_random_advertising_banner(request):
+    """
+    Get a random active advertising banner
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    try:
+        from .models import AdvertisingBanner
+        from django.apps import apps
+        from django.conf import settings
+        
+        # Check if user has premium subscription
+        UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
+        has_premium = False
+        if request.user.is_authenticated:
+            try:
+                user_subscription = UserSubscription.objects.filter(
+                    user=request.user,
+                    is_active=True
+                ).latest('end_date')
+                has_premium = user_subscription.subscription_type.name != 'Free'
+            except UserSubscription.DoesNotExist:
+                pass
+        
+        # Don't show banner to premium users
+        if has_premium:
+            return JsonResponse({
+                'banner': None
+            })
+        
+        # Get a random active banner
+        banner = AdvertisingBanner.get_random_active_banner()
+        
+        if banner:
+            banner_data = {
+                'id': banner.id,
+                'title': banner.title,
+                'link': banner.link,
+                'is_active': banner.is_active
+            }
+            
+            # Add image URL if available
+            if banner.image:
+                # Use build_absolute_uri to create full URL
+                banner_data['image_url'] = request.build_absolute_uri(banner.image.url)
+            else:
+                banner_data['image_url'] = None
+            
+            return JsonResponse({
+                'banner': banner_data
+            })
+        else:
+            return JsonResponse({
+                'banner': None
+            })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def get_sidebar_menu_items(request):
     """
     Get all active sidebar menu items that the user has permission to view
