@@ -960,3 +960,197 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null, messa
         scrollToBottom();
     }
 }
+
+// Function to send message to the server
+function sendMessage() {
+    // Get form elements
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const fileInput = document.getElementById('file-input');
+    
+    // Get message content
+    const messageContent = messageInput.value.trim();
+    
+    // Check if we have a session
+    if (!currentSessionId) {
+        alert('لطفاً ابتدا یک چت جدید ایجاد کنید');
+        return;
+    }
+    
+    // Validate input
+    if (!messageContent && (!fileInput.files || fileInput.files.length === 0)) {
+        alert('لطفاً یک پیام یا فایل وارد کنید');
+        return;
+    }
+    
+    // Disable send button and show loading state
+    sendButton.disabled = true;
+    const sendIcon = sendButton.querySelector('.send-icon');
+    const stopIcon = sendButton.querySelector('.stop-icon');
+    if (sendIcon) sendIcon.style.display = 'none';
+    if (stopIcon) stopIcon.style.display = 'inline';
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('message', messageContent);
+    
+    // Add files if any
+    if (fileInput.files && fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('files', fileInput.files[i]);
+        }
+    }
+    
+    // Check if web search is enabled
+    const webSearchBtn = document.getElementById('web-search-btn');
+    if (webSearchBtn && webSearchBtn.classList.contains('btn-success')) {
+        formData.append('web_search', 'true');
+    }
+    
+    // Check if image generation is enabled
+    const imageGenerationBtn = document.getElementById('image-generation-btn');
+    if (imageGenerationBtn && imageGenerationBtn.classList.contains('btn-success')) {
+        formData.append('image_generation', 'true');
+    }
+    
+    // Send message to server using fetch API
+    fetch(`/chat/session/${currentSessionId}/send/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response;
+    })
+    .then(response => {
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let assistantMessage = '';
+        let assistantMessageId = null;
+        let isFirstChunk = true;
+        
+        function read() {
+            reader.read().then(({done, value}) => {
+                if (done) {
+                    // Stream finished
+                    hideTypingIndicator();
+                    
+                    // Reset send button
+                    sendButton.disabled = false;
+                    if (sendIcon) sendIcon.style.display = 'inline';
+                    if (stopIcon) stopIcon.style.display = 'none';
+                    
+                    // Clear input
+                    messageInput.value = '';
+                    
+                    // Reset file input
+                    fileInput.value = '';
+                    const filesPreview = document.getElementById('files-preview');
+                    if (filesPreview) {
+                        filesPreview.style.display = 'none';
+                        document.getElementById('files-list').innerHTML = '';
+                        document.getElementById('files-count').textContent = '0';
+                    }
+                    
+                    // Scroll to bottom
+                    scrollToBottom();
+                    return;
+                }
+                
+                // Process chunk
+                const chunk = decoder.decode(value, {stream: true});
+                const lines = chunk.split('\n');
+                
+                lines.forEach(line => {
+                    if (line.startsWith('data: ')) {
+                        const data = line.substring(6);
+                        if (data === '[DONE]') {
+                            // Stream finished
+                            hideTypingIndicator();
+                            
+                            // Reset send button
+                            sendButton.disabled = false;
+                            if (sendIcon) sendIcon.style.display = 'inline';
+                            if (stopIcon) stopIcon.style.display = 'none';
+                            
+                            // Clear input
+                            messageInput.value = '';
+                            
+                            // Reset file input
+                            fileInput.value = '';
+                            const filesPreview = document.getElementById('files-preview');
+                            if (filesPreview) {
+                                filesPreview.style.display = 'none';
+                                document.getElementById('files-list').innerHTML = '';
+                                document.getElementById('files-count').textContent = '0';
+                            }
+                            
+                            // Scroll to bottom
+                            scrollToBottom();
+                        } else {
+                            try {
+                                const jsonData = JSON.parse(data);
+                                if (jsonData.error) {
+                                    // Handle error
+                                    hideTypingIndicator();
+                                    alert('خطا: ' + jsonData.error);
+                                    
+                                    // Reset send button
+                                    sendButton.disabled = false;
+                                    if (sendIcon) sendIcon.style.display = 'inline';
+                                    if (stopIcon) stopIcon.style.display = 'none';
+                                } else if (jsonData.message_id) {
+                                    // Store message ID for the first chunk
+                                    if (isFirstChunk) {
+                                        assistantMessageId = jsonData.message_id;
+                                        isFirstChunk = false;
+                                    }
+                                    
+                                    // Update assistant message
+                                    assistantMessage += jsonData.content;
+                                    updateOrAddAssistantMessage(assistantMessage, assistantMessageId);
+                                }
+                            } catch (e) {
+                                console.error('Error parsing JSON:', e);
+                            }
+                        }
+                    }
+                });
+                
+                // Continue reading
+                read();
+            }).catch(error => {
+                console.error('Error reading stream:', error);
+                hideTypingIndicator();
+                alert('خطا در دریافت پاسخ: ' + error.message);
+                
+                // Reset send button
+                sendButton.disabled = false;
+                if (sendIcon) sendIcon.style.display = 'inline';
+                if (stopIcon) stopIcon.style.display = 'none';
+            });
+        }
+        
+        // Start reading the stream
+        read();
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        hideTypingIndicator();
+        alert('خطا در ارسال پیام: ' + error.message);
+        
+        // Reset send button
+        sendButton.disabled = false;
+        if (sendIcon) sendIcon.style.display = 'inline';
+        if (stopIcon) stopIcon.style.display = 'none';
+    });
+}

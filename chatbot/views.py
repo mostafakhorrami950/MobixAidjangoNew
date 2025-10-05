@@ -519,7 +519,12 @@ def send_message(request, session_id):
             ChatSessionUsage = apps.get_model('chatbot', 'ChatSessionUsage')
             session = get_object_or_404(ChatSession, id=session_id, user=request.user)
 
-            # Handle both multipart/form-data (for file uploads) and JSON
+            # Check user access to AI model
+            if not LimitationService.check_user_access_to_ai_model(request.user, session.ai_model):
+                limitation_msg = LimitationMessageService.get_ai_model_access_message()
+                return JsonResponse({'error': limitation_msg['message']}, status=403)
+
+            # Handle both multipart/form-data (for file uploads) and JSON</new_str
             logger.info(f"Request content type: {request.content_type}")
             if request.content_type.startswith('multipart/form-data'):
                 user_message_content = request.POST.get('message', '')
