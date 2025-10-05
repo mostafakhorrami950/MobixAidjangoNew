@@ -469,8 +469,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const badgeClass = hasAccess ? 'free' : 'premium';
                     const badgeText = hasAccess ? 'رایگان' : 'نیاز به اشتراک';
                     
+                    // Add a class to indicate access status
+                    const accessClass = hasAccess ? '' : 'restricted-option';
+                    
                     html += `
-                        <div class="enhanced-option chatbot-option" 
+                        <div class="enhanced-option chatbot-option ${accessClass}" 
                              data-chatbot-id="${chatbot.id}" 
                              data-image="${chatbot.image || ''}"
                              data-name="${chatbot.name}"
@@ -494,6 +497,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add click listeners for options
                 document.querySelectorAll('.chatbot-option').forEach(option => {
                     option.addEventListener('click', function() {
+                        // Get data attributes
+                        const hasAccess = this.dataset.hasAccess === 'true';
+                        
+                        // Check if user has access to this chatbot
+                        if (!hasAccess) {
+                            // Show error message and prevent proceeding
+                            showConfirmationMessage('شما دسترسی لازم برای استفاده از این چت‌بات را ندارید. لطفاً اشتراک مناسب را تهیه کنید.', 'warning');
+                            return;
+                        }
+                        
                         // Remove selected class from all options
                         document.querySelectorAll('.chatbot-option').forEach(opt => {
                             opt.classList.remove('selected');
@@ -507,14 +520,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         const imgSrc = this.dataset.image ? this.dataset.image : '/static/images/default-chatbot.png';
                         const name = this.dataset.name;
                         const description = this.dataset.description;
-                        const hasAccess = this.dataset.hasAccess === 'true';
-                        
-                        // Check if user has access to this chatbot
-                        if (!hasAccess) {
-                            // Show error message and prevent proceeding
-                            showConfirmationMessage('شما دسترسی لازم برای استفاده از این چت‌بات را ندارید. لطفاً اشتراک مناسب را تهیه کنید.', 'warning');
-                            return;
-                        }
                         
                         // Update select display
                         const display = chatbotContainer.querySelector('.select-display');
@@ -705,18 +710,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 let html = '';
                 models.forEach(model => {
                     const isFree = model.is_free;
+                    const hasAccess = model.user_has_access;
                     const badgeClass = isFree ? 'free' : 'premium';
                     const badgeText = isFree ? 'رایگان' : 'ویژه';
                     const costMultiplier = parseFloat(model.token_cost_multiplier || 1);
                     
+                    // Add a class to indicate access status
+                    const accessClass = hasAccess ? '' : 'restricted-option';
+                    
                     html += `
-                        <div class="enhanced-option model-option" 
+                        <div class="enhanced-option model-option ${accessClass}" 
                              data-model-id="${model.model_id}" 
                              data-token-cost-multiplier="${costMultiplier}"
                              data-image="${model.image_url || ''}"
                              data-name="${model.name}"
                              data-description="${model.description || ''}"
-                             data-is-free="${isFree}">
+                             data-is-free="${isFree}"
+                             data-has-access="${hasAccess}">
                             <img src="${model.image_url ? model.image_url : '/static/images/default-model.png'}" 
                                  alt="${model.name}" 
                                  class="enhanced-option-img" 
@@ -736,6 +746,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const modelOptions = document.querySelectorAll('.model-option');
                 modelOptions.forEach(option => {
                     option.addEventListener('click', function() {
+                        // Get data attributes
+                        const hasAccess = this.dataset.hasAccess === 'true';
+                        
+                        // Check if user has access to this model
+                        if (!hasAccess) {
+                            // Show error message and prevent proceeding
+                            showConfirmationMessage('شما دسترسی لازم برای استفاده از این مدل را ندارید. لطفاً اشتراک مناسب را تهیه کنید.', 'warning');
+                            return;
+                        }
+                        
                         // Remove selected class from all options
                         modelOptions.forEach(opt => {
                             opt.classList.remove('selected');

@@ -1,4 +1,4 @@
-session-item// =================================
+// =================================
 // مدیریت جلسات چت (Sessions Management)
 // =================================
 
@@ -221,7 +221,13 @@ async function createNewChat() {
             ai_model_id: modelId
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is OK
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.error) {
             alert('خطا: ' + data.error);
@@ -229,22 +235,27 @@ async function createNewChat() {
         }
         
         // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('newChatModal')).hide();
+        const modalElement = document.getElementById('newChatModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            if (modal) {
+                modal.hide();
+            }
+        }
         
         // Load the new session
         loadSession(data.session_id);
         
         // Update the model selection button with the selected model name
-        const modelSelect = document.getElementById('modal-model-select');
-        if (modelSelect && modelSelect.options && modelSelect.options[modelSelect.selectedIndex]) {
-            const selectedModelName = modelSelect.options[modelSelect.selectedIndex].text;
-            const currentModelName = document.getElementById('current-model-name');
-            if (currentModelName) {
-                // Remove any badge text from the model name
-                const cleanModelName = selectedModelName.replace(/\s*<span[^>]*>[\s\S]*?<\/span>\s*/gi, '').trim();
-                currentModelName.textContent = cleanModelName;
+        const currentModelName = document.getElementById('current-model-name');
+        if (currentModelName) {
+            // Get the selected model name from the enhanced select
+            const selectedModelOption = modelContainer.querySelector('.enhanced-option.selected');
+            if (selectedModelOption) {
+                const modelName = selectedModelOption.querySelector('.enhanced-option-text').textContent;
+                currentModelName.textContent = modelName;
                 // Also update the global variable
-                currentSelectedModel = modelSelect.value;
+                currentSelectedModel = modelId;
             }
         }
         
@@ -266,15 +277,16 @@ async function createNewChat() {
     })
     .catch(error => {
         console.error('Error creating chat:', error);
-        alert('خطا در ایجاد چت: ' + error.message);
+        // Show a more user-friendly error message
+        showConfirmationMessage('خطا در ایجاد چت: ' + error.message, 'error');
     });
 }
 
 // Add event listener for create chat button
 document.getElementById('create-chat-btn').addEventListener('click', function() {
-    // Validate model selection
+    // Validate model selection - FIXED: Check the correct enhanced select component
     const modelContainer = document.getElementById('modal-model-select');
-    if (!modelContainer.dataset.selected) {
+    if (!modelContainer || !modelContainer.dataset.selected) {
         showConfirmationMessage('لطفاً مدل را انتخاب کنید.', 'warning');
         return;
     }

@@ -12,6 +12,7 @@ from subscriptions.services import UsageService
 from .file_services import FileUploadService, GlobalFileService
 from .limitation_service import LimitationMessageService
 from .models import UploadedFile, UploadedImage, SidebarMenuItem, MessageFile  # Add UploadedFile import and SidebarMenuItem
+import logging
 import json
 
 # Add these imports for image handling
@@ -217,6 +218,9 @@ def get_available_chatbots(request, type):
         
         return JsonResponse({'chatbots': available_chatbots})
     except Exception as e:
+        # Import logger locally to avoid import issues
+        import logging
+        logger = logging.getLogger(__name__)
         logger.error(f'Error fetching chatbots for type {type}: {str(e)}')
         return JsonResponse({'error': 'Failed to fetch chatbots'}, status=500)
 
@@ -520,8 +524,8 @@ def send_message(request, session_id):
             session = get_object_or_404(ChatSession, id=session_id, user=request.user)
 
             # Check user access to AI model
-            if not LimitationService.check_user_access_to_ai_model(request.user, session.ai_model):
-                limitation_msg = LimitationMessageService.get_ai_model_access_message()
+            if not request.user.has_access_to_model(session.ai_model):
+                limitation_msg = LimitationMessageService.get_model_access_denied_message()
                 return JsonResponse({'error': limitation_msg['message']}, status=403)
 
             # Handle both multipart/form-data (for file uploads) and JSON</new_str
@@ -1197,10 +1201,15 @@ def send_message(request, session_id):
             )
 
         except Exception as e:
+            # Import logger locally to avoid import issues
+            import logging
+            logger = logging.getLogger(__name__)
             logger.error(f"Error in send_message: {str(e)}", exc_info=True)
-            return JsonResponse({'error': 'Internal server error', 'details': str(e)}, status=500)
+            # Return a more user-friendly error message in Persian
+            error_message = "خطای داخلی سرور. لطفاً مجدد تلاش کنید."
+            return JsonResponse({'error': error_message}, status=500)
 
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
 @login_required
 def get_user_sessions(request):
