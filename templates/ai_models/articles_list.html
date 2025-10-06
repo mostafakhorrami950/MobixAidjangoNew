@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}مقالات مدل‌های هوش مصنوعی - MobixAI{% endblock %}
+{% block meta_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید.{% endblock %}
+{% block meta_keywords %}هوش مصنوعی, مقالات هوش مصنوعی, مدل‌های AI, MobixAI, چت با هوش مصنوعی, تولید محتوا{% endblock %}
+
+{% block content %}
+<!-- Floating CTA Button -->
+<div class="floating-cta">
+  <a href="{% url 'register' %}" class="cta-button">
+    <i class="fas fa-rocket me-2"></i>
+    <span>همین الان شروع کن</span>
+  </a>
+</div>
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'home' %}">خانه</a></li>
+          <li class="breadcrumb-item active" aria-current="page">مقالات مدل‌ها</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-12">
+      <header class="mb-5 text-center">
+        <h1 class="display-4 fw-bold mb-3">مقالات مدل‌های هوش مصنوعی</h1>
+        <p class="lead text-muted">اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها</p>
+      </header>
+    </div>
+  </div>
+  
+  {% if articles %}
+    <div class="row">
+      {% for article in articles %}
+        <div class="col-lg-4 col-md-6 mb-4">
+          <article class="card h-100 shadow-sm article-card" itemscope itemtype="https://schema.org/Article">
+            {% if article.image %}
+              <img src="{{ article.image.url }}" alt="{{ article.title }}" class="card-img-top" style="height: 200px; object-fit: cover;" itemprop="image">
+            {% else %}
+              <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                <i class="fas fa-robot fa-3x text-muted"></i>
+              </div>
+            {% endif %}
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title" itemprop="headline">{{ article.title }}</h5>
+                {% if article.ai_model.is_free %}
+                  <span class="badge bg-success ms-2">رایگان</span>
+                {% else %}
+                  <span class="badge bg-warning ms-2">ویژه</span>
+                {% endif %}
+              </div>
+              <p class="card-text flex-grow-1" itemprop="description">{{ article.excerpt|default:"مقاله‌ای درباره این مدل هوش مصنوعی" }}</p>
+              <div class="mt-3">
+                <a href="{{ article.get_absolute_url }}" class="btn btn-primary w-100">
+                  <i class="fas fa-book me-1"></i>
+                  ادامه مطلب
+                </a>
+              </div>
+            </div>
+            <div class="card-footer text-muted small">
+              <i class="fas fa-calendar me-1"></i>
+              <time itemprop="datePublished" datetime="{{ article.created_at|date:'c' }}">{{ article.created_at|date:"d M Y" }}</time>
+              <span class="mx-2">|</span>
+              <i class="fas fa-robot me-1"></i>
+              <span itemprop="about">{{ article.ai_model.name }}</span>
+            </div>
+          </article>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="row">
+      <div class="col-12 text-center py-5">
+        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+        <h3 class="mb-3">مقاله‌ای یافت نشد</h3>
+        <p class="text-muted">در حال حاضر مقاله‌ای برای نمایش وجود ندارد.</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Structured Data for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "مقالات مدل‌های هوش مصنوعی",
+  "description": "اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها",
+  "itemListElement": [
+    {% for article in articles %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "url": "{{ request.build_absolute_uri }}{{ article.get_absolute_url }}",
+      "name": "{{ article.title }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<style>
+.article-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.article-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.article-card .card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  line-height: 1.4;
+}
+
+.article-card .card-text {
+  color: #4a5568;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.article-card .card-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+.breadcrumb {
+  background-color: #f7fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+}
+
+.display-4 {
+  font-size: 2.5rem;
+}
+
+/* Floating CTA Button Styles */
+.floating-cta {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1000;
+  animation: pulse 2s infinite;
+}
+
+.cta-button {
+  display: flex;
+  align-items: center;
+  background: #ffffff; /* Remove background */
+  color: #2563eb; /* Use primary color for text */
+  padding: 12px 24px;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: none; /* Remove shadow */
+  transition: all 0.3s ease;
+  border: 2px solid #2563eb; /* Add border for visibility */
+  cursor: pointer;
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: none; /* Remove shadow on hover */
+  background: rgba(37, 99, 235, 0.1); /* Light background on hover */
+  border-color: #1d4ed8; /* Darker border on hover */
+}
+
+.cta-button i {
+  font-size: 1.2rem;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .display-4 {
+    font-size: 2rem;
+  }
+  
+  .article-card .card-title {
+    font-size: 1.1rem;
+  }
+  
+  .floating-cta {
+    top: 15px;
+    left: 15px;
+  }
+  
+  .cta-button {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .cta-button i {
+    font-size: 1rem;
+  }
+}
+</style>
+{% endblock %}

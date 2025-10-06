@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.urls import reverse
 
 class AIModel(models.Model):
     MODEL_TYPES = [
@@ -38,6 +39,39 @@ class AIModel(models.Model):
     
     class Meta:
         db_table = 'ai_models'
+
+class ModelArticle(models.Model):
+    """Articles about AI models"""
+    ai_model = models.OneToOneField(
+        AIModel, 
+        on_delete=models.CASCADE, 
+        related_name='article'
+    )
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
+    content = models.TextField()
+    excerpt = models.TextField(max_length=300, blank=True)
+    image = models.ImageField(
+        upload_to='article_images/', 
+        blank=True, 
+        null=True,
+        help_text="Image for this article"
+    )
+    is_published = models.BooleanField(default=False)
+    show_login_register = models.BooleanField(default=False, help_text="Show this article on login/register pages")
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Article: {self.title}"
+    
+    def get_absolute_url(self):
+        return reverse('model_article_detail', kwargs={'slug': self.slug})
+    
+    class Meta:
+        db_table = 'model_articles'
+        verbose_name = "Model Article"
+        verbose_name_plural = "Model Articles"
 
 class ModelSubscription(models.Model):
     ai_model = models.ForeignKey(AIModel, on_delete=models.CASCADE, related_name='subscriptions')

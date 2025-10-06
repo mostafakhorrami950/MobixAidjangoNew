@@ -19,6 +19,15 @@ def register(request):
     if request.user.is_authenticated:
         return redirect('chat')
         
+    # Get active AI models with articles that should be shown on login/register pages
+    AIModel = apps.get_model('ai_models', 'AIModel')
+    ai_models = AIModel.objects.filter(
+        is_active=True
+    ).select_related('article').filter(
+        article__is_published=True,
+        article__show_login_register=True
+    )[:6]  # Limit to 6 models
+    
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
@@ -83,7 +92,7 @@ def register(request):
     else:
         form = RegistrationForm()
     
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, 'accounts/register.html', {'form': form, 'ai_models': ai_models})
 
 def verify_otp(request):
     # Redirect if user is already authenticated
@@ -167,20 +176,29 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('chat')
         
+    # Get active AI models with articles that should be shown on login/register pages
+    AIModel = apps.get_model('ai_models', 'AIModel')
+    ai_models = AIModel.objects.filter(
+        is_active=True
+    ).select_related('article').filter(
+        article__is_published=True,
+        article__show_login_register=True
+    )[:6]  # Limit to 6 models
+    
     if request.method == 'POST':
         phone_number = request.POST.get('phone_number')
         
         # Validate phone number format
         if not phone_number:
             messages.error(request, 'لطفاً شمارع تلفن را وارد کنید.')
-            return render(request, 'accounts/login.html')
+            return render(request, 'accounts/login.html', {'ai_models': ai_models})
             
         phone_number = phone_number.strip()
         
         # Basic validation
         if not phone_number.isdigit() or len(phone_number) != 11 or not phone_number.startswith('09'):
             messages.error(request, 'شماره تلفن باید ۱۱ رقم باشد و با ۰۹ شروع شود.')
-            return render(request, 'accounts/login.html')
+            return render(request, 'accounts/login.html', {'ai_models': ai_models})
         
         try:
             User = apps.get_model('accounts', 'User')
@@ -201,7 +219,7 @@ def login_view(request):
         except apps.get_model('accounts', 'User').DoesNotExist:
             messages.error(request, 'هیچ حساب کاربری با این شماره تلفن یافت نشد. ابتدا ثبت نام کنید.')
     
-    return render(request, 'accounts/login.html')
+    return render(request, 'accounts/login.html', {'ai_models': ai_models})
 
 def logout_view(request):
     logout(request)

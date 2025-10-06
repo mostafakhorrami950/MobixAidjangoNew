@@ -286,7 +286,7 @@
                 ثبت نام با موفقیت انجام شد
             </div>
             
-            <form id="signup-form" method="post" action="{% url 'accounts:register' %}">
+            <form id="signup-form" method="post" action="{% url 'register' %}">
                 {% csrf_token %}
                 <input type="hidden" name="form_type" value="signup">
                 
@@ -352,7 +352,7 @@
                 ورود موفقیت‌آمیز
             </div>
             
-            <form id="login-form" method="post" action="{% url 'accounts:login' %}">
+            <form id="login-form" method="post" action="{% url 'login' %}">
                 {% csrf_token %}
                 <input type="hidden" name="form_type" value="login">
                 
