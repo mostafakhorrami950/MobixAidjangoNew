@@ -13,11 +13,9 @@ from chatbot.models import SidebarMenuItem
 
 def home(request):
     """
-    Home page view - redirect authenticated users to chat
+    Home page view - redirect to login page
     """
-    if request.user.is_authenticated:
-        return redirect('chat')
-    return render(request, 'home.html')
+    return redirect('login')
 
 @login_required
 def dashboard(request):

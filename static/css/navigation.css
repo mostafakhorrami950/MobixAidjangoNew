@@ -1290,6 +1290,12 @@ body:not(.chat-page):not(.auth-page) main {
   display: none !important;
 }
 
+/* Hide navbar on login and register pages */
+.login-page .modern-navbar,
+.register-page .modern-navbar {
+  display: none !important;
+}
+
 /* Base styles */
 html, body {
   width: 100%;

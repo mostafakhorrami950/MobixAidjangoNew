@@ -1,111 +1,119 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block body_class %}login-page{% endblock %}
+
 {% block title %}ورود به MobixAI - پلتفرم هوش مصنوعی{% endblock %}
 {% block meta_description %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
 {% block meta_keywords %}ورود, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند{% endblock %}
-{% block meta_robots %}noindex, follow{% endblock %}
+{% block meta_robots %}index, follow{% endblock %}
+
+{% block navbar %}
+<!-- Remove navbar for login page -->
+{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
 
-<div class="auth-container">
+<main role="main">
+  <div class="auth-container">
     <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo">
-                <i class="fas fa-robot"></i>
-            </div>
-            <h2 class="auth-title">ورود به MobixAI</h2>
-            <p class="auth-subtitle">به دنیای هوش مصنوعی خوش آمدید</p>
-            
-            <!-- Structured data for SEO -->
-            <script type="application/ld+json">
-            {
-              "@context": "https://schema.org",
-              "@type": "WebPage",
-              "name": "ورود به MobixAI",
-              "description": "ورود به پلتفرم هوش مصنوعی پیشرفته فارسی MobixAI برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
-              "breadcrumb": {
-                "@type": "BreadcrumbList",
-                "itemListElement": [{
-                  "@type": "ListItem",
-                  "position": 1,
-                  "name": "خانه",
-                  "item": "https://mobixai.ir/"
-                },{
-                  "@type": "ListItem",
-                  "position": 2,
-                  "name": "ورود",
-                  "item": "https://mobixai.ir/accounts/login/"
-                }]
-              }
-            }
-            </script>
+      <div class="auth-header">
+        <div class="auth-logo">
+          <i class="fas fa-robot"></i>
         </div>
+        <h1 class="auth-title">ورود به MobixAI</h1>
+        <p class="auth-subtitle">به دنیای هوش مصنوعی خوش آمدید</p>
         
-        <div class="auth-body">
-            <!-- Error Messages -->
-            {% if messages %}
-                <div class="error-messages">
-                    <ul>
-                        {% for message in messages %}
-                            {% if message.tags == 'error' %}
-                                <li>{{ message }}</li>
-                            {% endif %}
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-            
-            <!-- Success Messages -->
-            {% for message in messages %}
-                {% if message.tags == 'success' %}
-                    <div class="success-messages">
-                        {{ message }}
-                    </div>
+        <!-- Structured data for SEO -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "ورود به MobixAI",
+          "description": "ورود به پلتفرم هوش مصنوعی پیشرفته فارسی MobixAI برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
+          "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [{
+              "@type": "ListItem",
+              "position": 1,
+              "name": "خانه",
+              "item": "https://mobixai.ir/"
+            },{
+              "@type": "ListItem",
+              "position": 2,
+              "name": "ورود",
+              "item": "https://mobixai.ir/accounts/login/"
+            }]
+          }
+        }
+        </script>
+      </div>
+      
+      <div class="auth-body">
+        <!-- Error Messages -->
+        {% if messages %}
+          <div class="error-messages">
+            <ul>
+              {% for message in messages %}
+                {% if message.tags == 'error' %}
+                  <li>{{ message }}</li>
                 {% endif %}
-            {% endfor %}
-            
-            <form method="post" id="loginForm">
-                {% csrf_token %}
-                
-                <div class="form-group">
-                    <label for="phone_number" class="form-label">
-                        <i class="fas fa-phone"></i> شماره تلفن همراه
-                    </label>
-                    <div class="input-with-icon">
-                        <input 
-                            type="tel" 
-                            class="form-control" 
-                            id="phone_number" 
-                            name="phone_number" 
-                            placeholder="مثال: 09123456789"
-                            pattern="09[0-9]{9}"
-                            maxlength="11"
-                            required
-                            aria-describedby="phone-help"
-                        >
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <small id="phone-help" class="form-text text-muted">شماره تلفن برای احراز هویت و ارسال کد تأیید استفاده می‌شود.</small>
-                    <span class="field-error" id="phone-error" style="display: none;">شماره تلفن نامعتبر است</span>
-                </div>
-                
-                <button type="submit" class="auth-submit-btn" id="submitBtn">
-                    <i class="fas fa-paper-plane"></i>
-                    ارسال کد تأیید
-                </button>
-            </form>
-        </div>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
         
-        <div class="auth-footer">
-            <p>
-                حساب کاربری ندارید؟ 
-                <a href="{% url 'register' %}">همین حالا ثبت نام کنید</a>
-            </p>
-        </div>
+        <!-- Success Messages -->
+        {% for message in messages %}
+          {% if message.tags == 'success' %}
+            <div class="success-messages">
+              {{ message }}
+            </div>
+          {% endif %}
+        {% endfor %}
+        
+        <form method="post" id="loginForm">
+          {% csrf_token %}
+          
+          <div class="form-group">
+            <label for="phone_number" class="form-label">
+              <i class="fas fa-phone"></i> شماره تلفن همراه
+            </label>
+            <div class="input-with-icon">
+              <input 
+                type="tel" 
+                class="form-control" 
+                id="phone_number" 
+                name="phone_number" 
+                placeholder="مثال: 09123456789"
+                pattern="09[0-9]{9}"
+                maxlength="11"
+                required
+                aria-describedby="phone-help"
+              >
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <small id="phone-help" class="form-text text-muted">شماره تلفن برای احراز هویت و ارسال کد تأیید استفاده می‌شود.</small>
+            <span class="field-error" id="phone-error" style="display: none;">شماره تلفن نامعتبر است</span>
+          </div>
+          
+          <button type="submit" class="auth-submit-btn" id="submitBtn">
+            <i class="fas fa-paper-plane"></i>
+            ارسال کد تأیید
+          </button>
+        </form>
+      </div>
+      
+      <div class="auth-footer">
+        <p>
+          حساب کاربری ندارید؟ 
+          <a href="{% url 'register' %}">همین حالا ثبت نام کنید</a>
+        </p>
+      </div>
     </div>
-</div>
+  </div>
+</main>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
