@@ -1010,7 +1010,7 @@ html, body {
 /* Floating Action Button for Mobile */
 .floating-action-button {
   position: fixed;
-  top: 10px;
+  top: 22px;
   left: 20px;
   z-index: 1000;
   transition: var(--transition);
@@ -1018,12 +1018,12 @@ html, body {
 }
 
 .floating-action-button .btn {
-  width: 56px;
-  height: 56px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 12px;
   border: none;
   padding: 0;
   border: 1px solid rgba(226, 232, 240, 0.8);
@@ -1074,7 +1074,7 @@ html, body {
   border-radius: var(--radius);
   padding: 0.5rem 0.75rem;
   transition: var(--transition);
-  
+  font-size: 10px;
 }
 
 .model-selection-wrapper:hover {
@@ -1120,19 +1120,19 @@ html, body {
   }
 }
 @media (min-width: 767.98px) {
-  .chat-messages{
+  .chat-messeges-minheight{
     width: 60%;
     margin-right: 30%;
   }
   #sidebar{
     width: 20%;
   }
-.input-container{
-  width: 60%;
-  right: 30%;
+  .input-container{
+    width: 60%;
+    right: 30%;
+  }
 }
 
-}
 .model-selection-header {
   display: flex;
   justify-content: space-between;

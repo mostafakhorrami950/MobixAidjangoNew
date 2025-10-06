@@ -43,97 +43,7 @@
             <div id="remaining-value-result"></div>
         </div>
         
-        <!-- Current Usage Overview -->
-        {% if usage_summary %}
-        <div class="usage-overview">
-            <div class="usage-header">
-                <div class="usage-icon">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <div>
-                    <h3 class="usage-title">وضعیت فعلی مصرف شما</h3>
-                    <p class="usage-description">قبل از خرید، مصرف فعلی خود را بررسی کنید</p>
-                </div>
-            </div>
-            <div class="usage-stats-grid">
-                <div class="usage-stat">
-                    <div class="usage-stat-icon tokens-paid">
-                        <i class="fas fa-coins"></i>
-                    </div>
-                    <div class="usage-stat-content">
-                        <h4>توکن‌های پولی</h4>
-                        <div class="usage-numbers">
-                            <span class="used">{{ usage_summary.tokens_summary.paid_used }}</span>
-                            {% if usage_summary.tokens_summary.paid_limit %}
-                                <span class="separator">/</span>
-                                <span class="limit">{{ usage_summary.tokens_summary.paid_limit }}</span>
-                            {% endif %}
-                        </div>
-                        {% if usage_summary.tokens_summary.paid_remaining %}
-                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.paid_remaining }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="usage-stat">
-                    <div class="usage-stat-icon tokens-free">
-                        <i class="fas fa-gift"></i>
-                    </div>
-                    <div class="usage-stat-content">
-                        <h4>توکن‌های رایگان</h4>
-                        <div class="usage-numbers">
-                            <span class="used">{{ usage_summary.tokens_summary.free_used }}</span>
-                            {% if usage_summary.tokens_summary.free_limit %}
-                                <span class="separator">/</span>
-                                <span class="limit">{{ usage_summary.tokens_summary.free_limit }}</span>
-                            {% endif %}
-                        </div>
-                        {% if usage_summary.tokens_summary.free_remaining %}
-                            <div class="remaining">باقیمانده: {{ usage_summary.tokens_summary.free_remaining }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="usage-stat">
-                    <div class="usage-stat-icon messages">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <div class="usage-stat-content">
-                        <h4>پیام‌های امروز</h4>
-                        <div class="usage-numbers">
-                            <span class="used">{{ usage_summary.messages_today.used }}</span>
-                            {% if usage_summary.messages_today.limit %}
-                                <span class="separator">/</span>
-                                <span class="limit">{{ usage_summary.messages_today.limit }}</span>
-                            {% endif %}
-                        </div>
-                        {% if usage_summary.messages_today.remaining %}
-                            <div class="remaining">باقیمانده: {{ usage_summary.messages_today.remaining }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <div class="usage-stat">
-                    <div class="usage-stat-icon images">
-                        <i class="fas fa-image"></i>
-                    </div>
-                    <div class="usage-stat-content">
-                        <h4>تصاویر امروز</h4>
-                        <div class="usage-numbers">
-                            <span class="used">{{ usage_summary.images_today.used }}</span>
-                            {% if usage_summary.images_today.limit %}
-                                <span class="separator">/</span>
-                                <span class="limit">{{ usage_summary.images_today.limit }}</span>
-                            {% endif %}
-                        </div>
-                        {% if usage_summary.images_today.remaining %}
-                            <div class="remaining">باقیمانده: {{ usage_summary.images_today.remaining }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+        
         
         <!-- Subscription Plans -->
         {% if subscriptions %}
@@ -490,53 +400,7 @@
         </div>
         
         <!-- Purchase Guide Sidebar -->
-        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; align-items: start; margin-top: 3rem;">
-            <div></div>
-            <div class="purchase-guide">
-                <h3 class="guide-title">
-                    <i class="fas fa-info-circle"></i>
-                    راهنمای خرید
-                </h3>
-                <ul class="guide-items">
-                    <li class="guide-item">
-                        <div class="guide-item-title">
-                            <i class="fas fa-calculator"></i>
-                            محاسبه هوشمند
-                        </div>
-                        <div class="guide-item-description">
-                            ارزش باقیمانده اشتراک فعلی شما به طور خودکار محاسبه و از قیمت جدید کسر می‌شود
-                        </div>
-                    </li>
-                    <li class="guide-item">
-                        <div class="guide-item-title">
-                            <i class="fas fa-percent"></i>
-                            کدهای تخفیف
-                        </div>
-                        <div class="guide-item-description">
-                            اگر کد تخفیف دارید، از تخفیف‌های ویژه بهره‌مند شوید
-                        </div>
-                    </li>
-                    <li class="guide-item">
-                        <div class="guide-item-title">
-                            <i class="fas fa-shield-alt"></i>
-                            پرداخت ایمن
-                        </div>
-                        <div class="guide-item-description">
-                            پرداخت شما با بالاترین استانداردهای امنیتی محافظت می‌شود
-                        </div>
-                    </li>
-                    <li class="guide-item">
-                        <div class="guide-item-title">
-                            <i class="fas fa-headset"></i>
-                            پشتیبانی 24/7
-                        </div>
-                        <div class="guide-item-description">
-                            تیم پشتیبانی ما آماده کمک به شما است
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
+        
     </div>
 </div>
 

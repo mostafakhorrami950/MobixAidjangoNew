@@ -261,20 +261,19 @@
 /* Mobile Hamburger - Enhanced */
 .hamburger-menu {
   position: fixed;
-  top: 20px;
+  top: 22px;
   right: 20px;
   z-index: 10000;
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 16px;
-  padding: 14px;
-  
+  border-radius: 4px;
+  padding:4px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: #334155;
   backdrop-filter: blur(20px);
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -293,7 +292,7 @@
 }
 
 .hamburger-menu i {
-  font-size: 20px;
+  font-size: 14px;
   transition: all 0.3s ease;
 }
 

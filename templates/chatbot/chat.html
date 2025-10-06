@@ -502,6 +502,7 @@
     .modal-body{
         min-height: 500px
     }
+
 </style>
 <div class="chatgpt-container">
     <div class="chatgpt-layout">
@@ -556,7 +557,7 @@
             </div>
             
             <div class="chat-messages-container">
-                <div id="chat-container" class="chat-messages">
+                <div id="chat-container" class="chat-messages chat-messeges-minheight">
                     <div class="welcome-message" id="welcome-message">
                         <i class="fas fa-robot fa-3x mb-3"></i>
                         <h4>به چت‌بات MobixAI خوش آمدید</h4>
@@ -833,6 +834,7 @@
 <!-- استایل‌های اضافی برای drag and drop -->
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/chat.css' %}">
+
 <!-- JavaScript فایل‌های مجزا -->
 {% load static %}
 <!-- بارگذاری فایل‌های JavaScript به ترتیب صحیح -->
@@ -857,5 +859,4 @@
 <script src="{% static 'chatbot/js/ui.js' %}"></script>
 <script src="{% static 'chatbot/js/message_editing.js' %}"></script>
 <script src="{% static 'chatbot/js/main.js' %}"></script>
-
 {% endblock %}
