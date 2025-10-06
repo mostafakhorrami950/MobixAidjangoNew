@@ -485,7 +485,7 @@ html, body {
 /* Chat Messages Container */
 .chat-messages-container {
   flex: 1;
-  width: 100%;
+  width: 96%;
   margin: 2%;
   background: #fff !important;
   padding: 2%;
@@ -1977,4 +1977,88 @@ option:disabled {
   transform: scale(1.02);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
+
+/* Welcome Message Styles - Consistent with site color scheme */
+#welcome-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
+  max-width: 600px;
+  margin: 2rem auto;
+  border: 1px solid var(--border-light);
+  backdrop-filter: blur(10px);
+  background-color: var(--glass-bg);
+}
+
+#welcome-message i.fa-robot {
+  color: var(--primary-blue);
+  margin-bottom: 1rem;
+}
+
+#welcome-message h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+#welcome-message p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+#welcome-message .btn-primary {
+  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+  border: none;
+  color: var(--white);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
+
+#welcome-message .btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-blue), var(--primary-blue));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+}
+
+#welcome-message .btn-primary i {
+  color: var(--white);
+}
+
+#welcome-message .web-search-toggle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#welcome-message .btn-outline-secondary {
+  border-color: var(--border);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+#welcome-message .btn-outline-secondary:hover {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: var(--white);
+}
+
+#welcome-message .btn-outline-secondary i {
+  color: inherit;
+}
+
+#welcome-message .text-muted {
+  color: var(--text-muted) !important;
+  font-size: 0.875rem;
 }
