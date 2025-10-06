@@ -957,16 +957,16 @@
 }
 
 .formatted-price .small-digits {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem; /* Much smaller as requested */
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .formatted-price .separator {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0 2px;
+  font-size: 1rem; /* Much smaller as requested */
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 1px;
 }
 
 .formatted-price.small .large-digits {
@@ -975,11 +975,12 @@
 }
 
 .formatted-price.small .small-digits {
-  font-size: 0.9rem;
-  color: #475569;
+  font-size: 0.7rem; /* Much smaller as requested */
+  color: #94A3B8;
 }
 
 .formatted-price.small .separator {
-  font-size: 0.9rem;
+  font-size: 0.7rem; /* Much smaller as requested */
   color: #94A3B8;
+  margin: 0 1px;
 }

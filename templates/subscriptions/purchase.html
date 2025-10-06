@@ -403,7 +403,7 @@
 </div>
 
 <script>
-// Function to format price with "/" separator and different font sizes
+// Function to format price with "/" separator and different font sizes (Persian format - left to right)
 function formatPrice(price) {
     // Convert to string and remove any non-digit characters
     let priceStr = price.toString().replace(/\D/g, '');
@@ -413,22 +413,19 @@ function formatPrice(price) {
         return price;
     }
     
-    // Add "/" separator every 3 digits from right to left
+    // Add "/" separator every 3 digits from left to right
     let formatted = '';
-    let counter = 0;
-    
-    for (let i = priceStr.length - 1; i >= 0; i--) {
-        if (counter > 0 && counter % 3 === 0) {
-            formatted = '/' + formatted;
+    for (let i = 0; i < priceStr.length; i++) {
+        if (i > 0 && (priceStr.length - i) % 3 === 0) {
+            formatted += '/';
         }
-        formatted = priceStr[i] + formatted;
-        counter++;
+        formatted += priceStr[i];
     }
     
     return formatted;
 }
 
-// Function to create HTML with different font sizes for first 3 digits and the rest
+// Function to create HTML with different font sizes for first 3 digits and the rest (Persian format)
 function createFormattedPriceHTML(price, isSmall = false) {
     const formatted = formatPrice(price);
     if (!formatted) return '';
