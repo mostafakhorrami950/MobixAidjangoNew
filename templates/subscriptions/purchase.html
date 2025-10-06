@@ -51,7 +51,7 @@
                 <!-- Plan Header -->
                 <div class="plan-header">
                     <h2 class="plan-name">{{ subscription.name }}</h2>
-                    <div class="plan-price">
+                    <div class="plan-price" style="display: flex; justify-content: center; align-items: baseline;">
                         <span class="final-price-{{ subscription.id }}" data-price="{{ subscription.price|floatformat:0 }}"></span>
                         <span class="plan-currency">تومان</span>
                         <span class="original-price-{{ subscription.id }}" style="display: none;">{{ subscription.price|floatformat:0 }}</span>
@@ -119,6 +119,7 @@
                             <i class="fas fa-shopping-cart"></i>
                             خرید اشتراک - <span class="final-price-btn-{{ subscription.id }}" data-price="{{ subscription.price|floatformat:0 }}"></span> تومان
                         </button>
+
                     </form>
                 </div>
             </div>
@@ -388,7 +389,10 @@
                             </td>
                             {% for subscription in subscriptions %}
                             <td class="feature-value price">
-                                <span class="formatted-price small" data-price="{{ subscription.price|floatformat:0 }}"></span>
+                                <div style="display: flex; justify-content: center; align-items: center;">
+                                    <span class="formatted-price small" data-price="{{ subscription.price|floatformat:0 }}"></span>
+                                    <span style="margin-right: 5px;">تومان</span>
+                                </div>
                             </td>
                             {% endfor %}
                         </tr>

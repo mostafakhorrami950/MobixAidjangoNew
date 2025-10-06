@@ -948,18 +948,22 @@
   display: inline-flex;
   align-items: baseline;
   font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  direction: ltr; /* Ensure left-to-right positioning */
+  text-align: left;
 }
 
 .formatted-price .large-digits {
   font-size: 2.5rem;
   font-weight: 900;
   color: white;
+  direction: ltr;
 }
 
 .formatted-price .small-digits {
   font-size: 1rem; /* Much smaller as requested */
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
+  direction: ltr;
 }
 
 .formatted-price .separator {
@@ -967,6 +971,7 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
   margin: 0 1px;
+  direction: ltr;
 }
 
 .formatted-price.small .large-digits {
@@ -982,5 +987,9 @@
 .formatted-price.small .separator {
   font-size: 0.7rem; /* Much smaller as requested */
   color: #94A3B8;
-  margin: 0 1px;
+}
+
+/* Ensure proper alignment in price rows */
+.price .formatted-price {
+  justify-content: flex-start;
 }
