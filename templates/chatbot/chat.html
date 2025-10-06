@@ -223,20 +223,36 @@
     }
 
     .select-options-list {
-        /* Options will be added here dynamically */
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
     }
 
     .enhanced-option {
         display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         align-items: center;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #f8f9fa;
+        width: 100%;
+        min-height: 120px;
+        padding: 15px 10px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
         cursor: pointer;
-        transition: background-color 0.15s ease-in-out;
+        transition: all 0.3s ease;
+        text-align: center;
+        box-sizing: border-box;
+        position: relative;
     }
 
     .enhanced-option:hover, .enhanced-option.selected {
-        background-color: #f8f9fa;
+        background-color: #e9f0ff;
+        border-color: #3b82f6;
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.2);
     }
 
     .enhanced-option.restricted-option {
@@ -246,6 +262,8 @@
 
     .enhanced-option.restricted-option:hover {
         background-color: #f8f9fa;
+        transform: none;
+        box-shadow: none;
     }
 
     .enhanced-option.restricted-option .enhanced-option-text {
@@ -253,56 +271,78 @@
     }
 
     .enhanced-option-img {
-        width: 40px;
-        height: 40px;
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
         object-fit: cover;
-        margin-right: 0.75rem;
-        flex-shrink: 0;
+        margin-bottom: 10px;
     }
 
     .enhanced-option-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         flex-grow: 1;
-        min-width: 0;
+        width: 100%;
     }
 
     .enhanced-option-text {
-        font-weight: 500;
-        margin-bottom: 0.25rem;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 5px;
         display: block;
-        /* Allow text to wrap to show full content */
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
     }
 
     .enhanced-option-desc {
         color: #6c757d;
-        font-size: 0.875rem;
+        font-size: 12px;
         display: block;
-        /* Allow text to wrap to show full content */
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
     }
 
     .enhanced-option-badge {
-        font-size: 0.75rem;
-        font-weight: 500;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        margin-left: auto;
-        white-space: nowrap;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 10px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
     }
 
-    .enhanced-option-badge.premium {
-        background: #ffc107;
-        color: #000;
-    }
-
-    .enhanced-option-badge.free {
-        background: #28a745;
-        color: #fff;
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .select-options-list {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .enhanced-option {
+            min-height: 100px;
+            padding: 10px 5px;
+        }
+        
+        .enhanced-option-img {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 8px;
+        }
+        
+        .enhanced-option-text {
+            font-size: 12px;
+        }
+        
+        .enhanced-option-desc {
+            font-size: 10px;
+        }
     }
 
     /* Chatbot Details Card */
@@ -667,7 +707,7 @@
 <div class="overlay d-md-none" id="sidebar-overlay"></div>
 <!-- New Chat Modal -->
 <div class="modal fade" id="newChatModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content rounded-3 shadow">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title d-flex align-items-center">
@@ -676,7 +716,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="min-height: 500px;">
                 <!-- Step 1: Interaction Type Selection -->
                 <div id="step-1" class="modal-step active">
                     <h6 class="mb-3 text-center">انتخاب نوع تعامل</h6>

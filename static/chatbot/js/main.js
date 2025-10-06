@@ -490,6 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="enhanced-option-badge ${badgeClass}">${badgeText}</span>
                         </div>
                     `;
+
                 });
                 
                 if (optionsList) optionsList.innerHTML = html;
