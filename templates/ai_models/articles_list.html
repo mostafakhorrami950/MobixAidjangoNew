@@ -5,86 +5,154 @@
 {% block meta_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید.{% endblock %}
 {% block meta_keywords %}هوش مصنوعی, مقالات هوش مصنوعی, مدل‌های AI, MobixAI, چت با هوش مصنوعی, تولید محتوا{% endblock %}
 
+{% block navbar %}
+<!-- Empty navbar block to remove modern-navbar from articles page -->
+{% endblock %}
+
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/articles.css' %}">
+
 <!-- Floating CTA Button -->
-<div class="floating-cta">
-  <a href="{% url 'register' %}" class="cta-button">
+<div class="articles-floating-cta">
+  <a href="{% url 'register' %}" class="articles-cta-button">
     <i class="fas fa-rocket me-2"></i>
     <span>همین الان شروع کن</span>
   </a>
 </div>
 
-<div class="container mt-4">
-  <div class="row">
-    <div class="col-12">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'home' %}">خانه</a></li>
-          <li class="breadcrumb-item active" aria-current="page">مقالات مدل‌ها</li>
-        </ol>
-      </nav>
-    </div>
-  </div>
-  
-  <div class="row">
-    <div class="col-12">
-      <header class="mb-5 text-center">
-        <h1 class="display-4 fw-bold mb-3">مقالات مدل‌های هوش مصنوعی</h1>
-        <p class="lead text-muted">اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها</p>
-      </header>
-    </div>
-  </div>
-  
-  {% if articles %}
-    <div class="row">
-      {% for article in articles %}
-        <div class="col-lg-4 col-md-6 mb-4">
-          <article class="card h-100 shadow-sm article-card" itemscope itemtype="https://schema.org/Article">
-            {% if article.image %}
-              <img src="{{ article.image.url }}" alt="{{ article.title }}" class="card-img-top" style="height: 200px; object-fit: cover;" itemprop="image">
-            {% else %}
-              <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                <i class="fas fa-robot fa-3x text-muted"></i>
-              </div>
-            {% endif %}
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <h5 class="card-title" itemprop="headline">{{ article.title }}</h5>
-                {% if article.ai_model.is_free %}
-                  <span class="badge bg-success ms-2">رایگان</span>
-                {% else %}
-                  <span class="badge bg-warning ms-2">ویژه</span>
-                {% endif %}
-              </div>
-              <p class="card-text flex-grow-1" itemprop="description">{{ article.excerpt|default:"مقاله‌ای درباره این مدل هوش مصنوعی" }}</p>
-              <div class="mt-3">
-                <a href="{{ article.get_absolute_url }}" class="btn btn-primary w-100">
-                  <i class="fas fa-book me-1"></i>
-                  ادامه مطلب
-                </a>
-              </div>
-            </div>
-            <div class="card-footer text-muted small">
-              <i class="fas fa-calendar me-1"></i>
-              <time itemprop="datePublished" datetime="{{ article.created_at|date:'c' }}">{{ article.created_at|date:"d M Y" }}</time>
-              <span class="mx-2">|</span>
-              <i class="fas fa-robot me-1"></i>
-              <span itemprop="about">{{ article.ai_model.name }}</span>
-            </div>
-          </article>
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="row">
-      <div class="col-12 text-center py-5">
-        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-        <h3 class="mb-3">مقاله‌ای یافت نشد</h3>
-        <p class="text-muted">در حال حاضر مقاله‌ای برای نمایش وجود ندارد.</p>
+<!-- Header -->
+<header class="articles-header-section">
+  <div class="articles-header-top-bar">
+    <div class="container">
+      <div class="articles-header-content">
+        <h1 class="articles-header-title">MobixAI</h1>
       </div>
     </div>
-  {% endif %}
+  </div>
+  
+  <div class="articles-hero-section">
+    <div class="container">
+      <div class="articles-hero-content">
+        <div class="articles-hero-icon">
+          <div class="articles-icon-circle">
+            <i class="fas fa-book"></i>
+          </div>
+        </div>
+        <h1 class="articles-hero-title">مقالات مدل‌های هوش مصنوعی</h1>
+        <a href="{% url 'register' %}" class="articles-hero-cta-button">
+          <i class="fas fa-user-plus me-2"></i>
+          ثبت نام رایگان
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container articles-main-container">
+  <div class="row">
+    <div class="col-lg-9">
+      <div class="articles-main-content">
+        <div class="articles-intro mb-5">
+          <p class="articles-intro-text">اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها</p>
+        </div>
+        
+        {% if articles %}
+          <div class="row">
+            {% for article in articles %}
+              <div class="col-lg-4 col-md-6 mb-4">
+                <article class="articles-card h-100" itemscope itemtype="https://schema.org/Article">
+                  {% if article.image %}
+                    <img src="{{ article.image.url }}" alt="{{ article.title }}" class="card-img-top articles-list-image" itemprop="image">
+                  {% else %}
+                    <div class="articles-no-image-placeholder">
+                      <i class="fas fa-robot fa-3x text-muted"></i>
+                    </div>
+                  {% endif %}
+                  <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <h5 class="articles-card-title" itemprop="headline">{{ article.title }}</h5>
+                      {% if article.ai_model.is_free %}
+                        <span class="badge bg-success ms-2">رایگان</span>
+                      {% else %}
+                        <span class="badge bg-warning ms-2">ویژه</span>
+                      {% endif %}
+                    </div>
+                    <p class="articles-card-text flex-grow-1" itemprop="description">{{ article.excerpt|default:"مقاله‌ای درباره این مدل هوش مصنوعی" }}</p>
+                    <div class="mt-3">
+                      <a href="{{ article.get_absolute_url }}" class="btn btn-primary w-100">
+                        <i class="fas fa-book me-1"></i>
+                        ادامه مطلب
+                      </a>
+                    </div>
+                  </div>
+                  <div class="articles-card-footer text-muted small">
+                    <i class="fas fa-calendar me-1"></i>
+                    <time itemprop="datePublished" datetime="{{ article.created_at|date:'c' }}">{{ article.created_at|date:"d M Y" }}</time>
+                    <span class="mx-2">|</span>
+                    <i class="fas fa-robot me-1"></i>
+                    <span itemprop="about">{{ article.ai_model.name }}</span>
+                  </div>
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="articles-no-content">
+            <i class="fas fa-file-alt"></i>
+            <h3>مقاله‌ای یافت نشد</h3>
+            <p>در حال حاضر مقاله‌ای برای نمایش وجود ندارد.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+      <aside class="articles-sidebar">
+        <div class="articles-sidebar-card mb-4">
+          <div class="articles-brand-intro">
+            <div class="articles-brand-logo mb-3">
+              <i class="fas fa-robot"></i>
+            </div>
+            <h4 class="articles-brand-name">MobixAI</h4>
+            <p class="articles-brand-description">پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا و ترجمه</p>
+          </div>
+          <a href="{% url 'register' %}" class="articles-sidebar-cta">
+            <i class="fas fa-rocket me-2"></i>
+            شروع کنید
+          </a>
+        </div>
+        
+        <div class="articles-sidebar-card">
+          <h5 class="articles-sidebar-title">ما را دنبال کنید</h5>
+          <div class="articles-social-links">
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-telegram"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-linkedin"></i>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
 </div>
+
+<!-- Footer -->
+<footer class="articles-footer-section">
+  <div class="container">
+    <div class="articles-footer-content">
+      <p class="articles-footer-text">&copy; 2025 MobixAI. تمامی حقوق محفوظ است.</p>
+    </div>
+  </div>
+</footer>
 
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
@@ -105,118 +173,4 @@
   ]
 }
 </script>
-
-<style>
-.article-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: none;
-  border-radius: 1rem;
-  overflow: hidden;
-}
-
-.article-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
-}
-
-.article-card .card-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #2d3748;
-  line-height: 1.4;
-}
-
-.article-card .card-text {
-  color: #4a5568;
-  font-size: 0.95rem;
-  line-height: 1.6;
-}
-
-.article-card .card-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #e9ecef;
-}
-
-.breadcrumb {
-  background-color: #f7fafc;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-}
-
-.display-4 {
-  font-size: 2.5rem;
-}
-
-/* Floating CTA Button Styles */
-.floating-cta {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 1000;
-  animation: pulse 2s infinite;
-}
-
-.cta-button {
-  display: flex;
-  align-items: center;
-  background: #ffffff; /* Remove background */
-  color: #2563eb; /* Use primary color for text */
-  padding: 12px 24px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 600;
-  box-shadow: none; /* Remove shadow */
-  transition: all 0.3s ease;
-  border: 2px solid #2563eb; /* Add border for visibility */
-  cursor: pointer;
-}
-
-.cta-button:hover {
-  transform: translateY(-3px);
-  box-shadow: none; /* Remove shadow on hover */
-  background: rgba(37, 99, 235, 0.1); /* Light background on hover */
-  border-color: #1d4ed8; /* Darker border on hover */
-}
-
-.cta-button i {
-  font-size: 1.2rem;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .display-4 {
-    font-size: 2rem;
-  }
-  
-  .article-card .card-title {
-    font-size: 1.1rem;
-  }
-  
-  .floating-cta {
-    top: 15px;
-    left: 15px;
-  }
-  
-  .cta-button {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-  
-  .cta-button i {
-    font-size: 1rem;
-  }
-}
-</style>
 {% endblock %}

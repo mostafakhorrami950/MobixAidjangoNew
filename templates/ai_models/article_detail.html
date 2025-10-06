@@ -4,111 +4,177 @@
 {% block title %}{{ article.title }} - MobixAI{% endblock %}
 {% block meta_description %}{{ article.excerpt|default:"اطلاعات جامع درباره مدل هوش مصنوعی " }}{{ article.ai_model.name }}{% endblock %}
 
+{% block navbar %}
+<!-- Empty navbar block to remove modern-navbar from articles page -->
+{% endblock %}
+
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/articles.css' %}">
+
 <!-- Floating CTA Button -->
-<div class="floating-cta">
-  <a href="{% url 'register' %}" class="cta-button">
+<div class="articles-floating-cta">
+  <a href="{% url 'register' %}" class="articles-cta-button">
     <i class="fas fa-rocket me-2"></i>
     <span>همین الان شروع کن</span>
   </a>
 </div>
 
-<div class="container mt-4">
-  <div class="row">
-    <div class="col-12">
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'home' %}">خانه</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'model_articles_list' %}">مقالات مدل‌ها</a></li>
-          <li class="breadcrumb-item active" aria-current="page">{{ article.title }}</li>
-        </ol>
-      </nav>
+<!-- Header -->
+<header class="articles-header-section">
+  <div class="articles-header-top-bar">
+    <div class="container">
+      <div class="articles-header-content">
+        <h1 class="articles-header-title">MobixAI</h1>
+      </div>
     </div>
   </div>
   
+  <div class="articles-hero-section">
+    <div class="container">
+      <div class="articles-hero-content">
+        {% if article.image %}
+          <div class="articles-hero-image">
+            <img src="{{ article.image.url }}" alt="{{ article.title }}" class="articles-hero-img">
+          </div>
+        {% else %}
+          <div class="articles-hero-icon">
+            <div class="articles-icon-circle">
+              <i class="fas fa-robot"></i>
+            </div>
+          </div>
+        {% endif %}
+        <h1 class="articles-hero-title">{{ article.title }}</h1>
+        <a href="{% url 'register' %}" class="articles-hero-cta-button">
+          <i class="fas fa-comment me-2"></i>
+          چت با {{ article.ai_model.name }}
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container articles-main-container">
   <div class="row">
-    <div class="col-12">
-      <article class="article-detail" itemscope itemtype="https://schema.org/Article">
-        <header class="article-header mb-4">
-          <h1 class="article-title" itemprop="headline">{{ article.title }}</h1>
-          <div class="article-meta d-flex align-items-center text-muted mb-3">
-            <span class="me-3">
+    <div class="col-lg-9">
+      <div class="articles-main-content">
+        <article class="articles-detail" itemscope itemtype="https://schema.org/Article">
+          <div class="articles-meta-info">
+            <span class="articles-date">
               <i class="fas fa-calendar me-1"></i>
               <time itemprop="datePublished" datetime="{{ article.created_at|date:'c' }}">{{ article.created_at|date:"d M Y" }}</time>
             </span>
-            <span class="me-3">
+            <span class="articles-model ms-3">
               <i class="fas fa-robot me-1"></i>
               <span itemprop="about">{{ article.ai_model.name }}</span>
             </span>
             {% if article.ai_model.is_free %}
-              <span class="badge bg-success">رایگان</span>
+              <span class="badge bg-success ms-3">رایگان</span>
             {% else %}
-              <span class="badge bg-warning">ویژه</span>
+              <span class="badge bg-warning ms-3">ویژه</span>
             {% endif %}
           </div>
+        
           
-          {% if article.image %}
-            <div class="article-image mb-4">
-              <img src="{{ article.image.url }}" alt="{{ article.title }}" class="img-fluid rounded" itemprop="image">
-            </div>
-          {% endif %}
-        </header>
-        
-        <div class="article-content" itemprop="articleBody">
-          {{ article.content_html|safe }}
-        </div>
-        
-        <footer class="article-footer mt-5 pt-4 border-top">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              {% if article.ai_model.is_free or user.is_authenticated and user.has_access_to_model %}
-                <a href="{% url 'chat' %}" class="btn btn-primary">
-                  <i class="fas fa-comment me-1"></i>
-                  چت با {{ article.ai_model.name }}
-                </a>
-              {% else %}
-                <a href="{% url 'register' %}" class="btn btn-success">
-                  <i class="fas fa-user-plus me-1"></i>
-                  ثبت نام برای دسترسی
-                </a>
-              {% endif %}
-            </div>
-            <div>
-              <a href="{% url 'model_articles_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-right me-1"></i>
-                بازگشت به مقالات
-              </a>
-            </div>
+          <div class="articles-content" itemprop="articleBody">
+            {{ article.content_html|safe }}
           </div>
-        </footer>
-      </article>
-    </div>
-  </div>
-  
-  {% if related_articles %}
-    <div class="row mt-5">
-      <div class="col-12">
-        <h3 class="mb-4">مقالات مرتبط</h3>
-        <div class="row">
-          {% for related in related_articles %}
-            <div class="col-md-4 mb-4">
-              <div class="card h-100">
-                {% if related.image %}
-                  <img src="{{ related.image.url }}" alt="{{ related.title }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+          
+          <footer class="articles-detail-footer mt-5 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                {% if article.ai_model.is_free or user.is_authenticated and user.has_access_to_model %}
+                  <a href="{% url 'chat' %}" class="btn btn-primary">
+                    <i class="fas fa-comment me-1"></i>
+                    چت با {{ article.ai_model.name }}
+                  </a>
+                {% else %}
+                  <a href="{% url 'register' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-1"></i>
+                    ثبت نام برای دسترسی
+                  </a>
                 {% endif %}
-                <div class="card-body d-flex flex-column">
-                  <h5 class="card-title">{{ related.title }}</h5>
-                  <p class="card-text flex-grow-1">{{ related.excerpt|truncatewords:20 }}</p>
-                  <a href="{{ related.get_absolute_url }}" class="btn btn-primary mt-2">ادامه مطلب</a>
-                </div>
+              </div>
+              <div>
+                <a href="{% url 'model_articles_list' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-right me-1"></i>
+                  بازگشت به مقالات
+                </a>
               </div>
             </div>
-          {% endfor %}
-        </div>
+          </footer>
+        </article>
+        
+        {% if related_articles %}
+          <div class="articles-related-section mt-5">
+            <h3 class="articles-section-title">مقالات مرتبط</h3>
+            <div class="row">
+              {% for related in related_articles %}
+                <div class="col-md-4 mb-4">
+                  <div class="articles-card h-100">
+                    {% if related.image %}
+                      <img src="{{ related.image.url }}" alt="{{ related.title }}" class="card-img-top articles-related-image">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                      <h5 class="articles-card-title">{{ related.title }}</h5>
+                      <p class="articles-card-text flex-grow-1">{{ related.excerpt|truncatewords:20 }}</p>
+                      <a href="{{ related.get_absolute_url }}" class="btn btn-primary mt-2">ادامه مطلب</a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
-  {% endif %}
+    
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+      <aside class="articles-sidebar">
+        <div class="articles-sidebar-card mb-4">
+          <div class="articles-brand-intro">
+            <div class="articles-brand-logo mb-3">
+              <i class="fas fa-robot"></i>
+            </div>
+            <h4 class="articles-brand-name">MobixAI</h4>
+            <p class="articles-brand-description">پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا و ترجمه</p>
+          </div>
+          <a href="{% url 'register' %}" class="articles-sidebar-cta">
+            <i class="fas fa-rocket me-2"></i>
+            شروع کنید
+          </a>
+        </div>
+        
+        <div class="articles-sidebar-card">
+          <h5 class="articles-sidebar-title">ما را دنبال کنید</h5>
+          <div class="articles-social-links">
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-telegram"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-instagram"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="articles-social-icon">
+              <i class="fab fa-linkedin"></i>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
 </div>
+
+<!-- Footer -->
+<footer class="articles-footer-section">
+  <div class="container">
+    <div class="articles-footer-content">
+      <p class="articles-footer-text">&copy; 2025 MobixAI. تمامی حقوق محفوظ است.</p>
+    </div>
+  </div>
+</footer>
 
 <!-- Structured Data for SEO -->
 <script type="application/ld+json">
@@ -138,199 +204,4 @@
   "image": "{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% endif %}"
 }
 </script>
-
-<style>
-.article-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #2d3748;
-  line-height: 1.3;
-}
-
-.article-meta {
-  font-size: 0.9rem;
-}
-
-.article-content {
-  font-size: 1.1rem;
-  line-height: 1.8;
-}
-
-.article-content p {
-  margin-bottom: 1.5rem;
-}
-
-.article-content h1, .article-content h2 {
-  font-size: 1.8rem;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  color: #4a5568;
-  font-weight: 700;
-}
-
-.article-content h3 {
-  font-size: 1.5rem;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  color: #4a5568;
-  font-weight: 600;
-}
-
-.article-content h4 {
-  font-size: 1.3rem;
-  margin-top: 1.2rem;
-  margin-bottom: 0.8rem;
-  color: #4a5568;
-  font-weight: 600;
-}
-
-.article-content ul, .article-content ol {
-  margin-bottom: 1.5rem;
-  padding-right: 2rem;
-}
-
-.article-content li {
-  margin-bottom: 0.5rem;
-}
-
-.article-content img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.article-content blockquote {
-  border-right: 4px solid #4299e1;
-  padding-right: 1.5rem;
-  margin: 1.5rem 0;
-  color: #4a5568;
-  font-style: italic;
-  background-color: #f7fafc;
-  padding: 1rem 1.5rem;
-}
-
-.article-content code {
-  background-color: #f1f5f9;
-  padding: 0.2rem 0.4rem;
-  border-radius: 0.25rem;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.9rem;
-}
-
-.article-content pre {
-  background-color: #1a202c;
-  color: #f7fafc;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin: 1.5rem 0;
-}
-
-.article-content pre code {
-  background-color: transparent;
-  padding: 0;
-}
-
-.article-content table {
-  width: 100%;
-  margin: 1.5rem 0;
-  border-collapse: collapse;
-}
-
-.article-content table th,
-.article-content table td {
-  padding: 0.75rem;
-  text-align: right;
-  border: 1px solid #e2e8f0;
-}
-
-.article-content table th {
-  background-color: #f7fafc;
-  font-weight: 600;
-}
-
-.breadcrumb {
-  background-color: #f7fafc;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-}
-
-/* Floating CTA Button Styles */
-.floating-cta {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  z-index: 1000;
-  animation: pulse 2s infinite;
-}
-
-.cta-button {
-  display: flex;
-  align-items: center;
-  background: #ffffff; /* Remove background */
-  color: #2563eb; /* Use primary color for text */
-  padding: 12px 24px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 600;
-  box-shadow: none; /* Remove shadow */
-  transition: all 0.3s ease;
-  border: 2px solid #2563eb; /* Add border for visibility */
-  cursor: pointer;
-}
-
-.cta-button:hover {
-  transform: translateY(-3px);
-  box-shadow: none; /* Remove shadow on hover */
-  background: rgba(37, 99, 235, 0.1); /* Light background on hover */
-  border-color: #1d4ed8; /* Darker border on hover */
-}
-
-.cta-button i {
-  font-size: 1.2rem;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .article-title {
-    font-size: 2rem;
-  }
-  
-  .article-content h1, .article-content h2 {
-    font-size: 1.6rem;
-  }
-  
-  .article-content h3 {
-    font-size: 1.4rem;
-  }
-  
-  .floating-cta {
-    top: 15px;
-    left: 15px;
-  }
-  
-  .cta-button {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-  
-  .cta-button i {
-    font-size: 1rem;
-  }
-}
-</style>
 {% endblock %}
