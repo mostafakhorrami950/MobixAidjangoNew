@@ -272,8 +272,8 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: #334155;
   backdrop-filter: blur(20px);
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -292,7 +292,7 @@
 }
 
 .hamburger-menu i {
-  font-size: 14px;
+  font-size: 17px;
   transition: all 0.3s ease;
 }
 
