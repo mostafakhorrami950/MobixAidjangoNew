@@ -1075,7 +1075,7 @@ html, body {
   border-radius: var(--radius);
   padding: 0.5rem 0.75rem;
   transition: var(--transition);
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .model-selection-wrapper:hover {
