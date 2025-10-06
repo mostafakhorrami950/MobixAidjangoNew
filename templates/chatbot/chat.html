@@ -224,10 +224,10 @@
 
     .select-options-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 15px;
         padding: 15px;
-        max-height: 300px;
+        max-height: 400px;
         overflow-y: auto;
     }
 
@@ -237,7 +237,7 @@
         justify-content: space-between;
         align-items: center;
         width: 100%;
-        min-height: 120px;
+        min-height: 140px;
         padding: 15px 10px;
         border: 2px solid #dee2e6;
         border-radius: 10px;
@@ -291,20 +291,22 @@
         font-size: 14px;
         margin-bottom: 5px;
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
         width: 100%;
+        word-break: break-word;
     }
 
     .enhanced-option-desc {
         color: #6c757d;
         font-size: 12px;
         display: block;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
         width: 100%;
+        word-break: break-word;
     }
 
     .enhanced-option-badge {
@@ -326,7 +328,7 @@
         }
         
         .enhanced-option {
-            min-height: 100px;
+            min-height: 120px;
             padding: 10px 5px;
         }
         
@@ -540,7 +542,7 @@
         }
     }
     .modal-body{
-        min-height: 500px
+        min-height: 600px
     }
 
 </style>
