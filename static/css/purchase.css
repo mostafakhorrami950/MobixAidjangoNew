@@ -942,3 +942,44 @@
     transform: translateY(0);
   }
 }
+
+/* Formatted Price Styles */
+.formatted-price {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.formatted-price .large-digits {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: white;
+}
+
+.formatted-price .small-digits {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.formatted-price .separator {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 2px;
+}
+
+.formatted-price.small .large-digits {
+  font-size: 1.6rem;
+  color: #1D4ED8;
+}
+
+.formatted-price.small .small-digits {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.formatted-price.small .separator {
+  font-size: 0.9rem;
+  color: #94A3B8;
+}

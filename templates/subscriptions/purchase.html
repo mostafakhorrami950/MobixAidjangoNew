@@ -43,8 +43,6 @@
             <div id="remaining-value-result"></div>
         </div>
         
-        
-        
         <!-- Subscription Plans -->
         {% if subscriptions %}
         <div class="plans-grid">
@@ -54,7 +52,7 @@
                 <div class="plan-header">
                     <h2 class="plan-name">{{ subscription.name }}</h2>
                     <div class="plan-price">
-                        <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span>
+                        <span class="final-price-{{ subscription.id }}" data-price="{{ subscription.price|floatformat:0 }}"></span>
                         <span class="plan-currency">تومان</span>
                         <span class="original-price-{{ subscription.id }}" style="display: none;">{{ subscription.price|floatformat:0 }}</span>
                     </div>
@@ -119,7 +117,7 @@
                         <input type="hidden" name="discount_code" id="discount-code-{{ subscription.id }}" value="">
                         <button type="submit" class="purchase-btn">
                             <i class="fas fa-shopping-cart"></i>
-                            خرید اشتراک - <span class="final-price-{{ subscription.id }}">{{ subscription.price|floatformat:0 }}</span> تومان
+                            خرید اشتراک - <span class="final-price-btn-{{ subscription.id }}" data-price="{{ subscription.price|floatformat:0 }}"></span> تومان
                         </button>
                     </form>
                 </div>
@@ -188,7 +186,7 @@
                             {% for subscription in subscriptions %}
                             <td class="feature-value">
                                 {% if subscription.file_upload_settings %}
-                                    {% if subscription.file_upload_settings.max_file_size > 0 %}
+                                    {% if subscription_file_size > 0 %}
                                         {{ subscription.file_upload_settings.max_file_size|filesizeformat }}
                                     {% else %}
                                         <span class="unlimited">نامحدود</span>
@@ -390,7 +388,7 @@
                             </td>
                             {% for subscription in subscriptions %}
                             <td class="feature-value price">
-                                {{ subscription.price|floatformat:0 }} تومان
+                                <span class="formatted-price small" data-price="{{ subscription.price|floatformat:0 }}"></span>
                             </td>
                             {% endfor %}
                         </tr>
@@ -405,7 +403,67 @@
 </div>
 
 <script>
+// Function to format price with "/" separator and different font sizes
+function formatPrice(price) {
+    // Convert to string and remove any non-digit characters
+    let priceStr = price.toString().replace(/\D/g, '');
+    
+    // If price is empty or not a number, return as is
+    if (!priceStr || isNaN(priceStr)) {
+        return price;
+    }
+    
+    // Add "/" separator every 3 digits from right to left
+    let formatted = '';
+    let counter = 0;
+    
+    for (let i = priceStr.length - 1; i >= 0; i--) {
+        if (counter > 0 && counter % 3 === 0) {
+            formatted = '/' + formatted;
+        }
+        formatted = priceStr[i] + formatted;
+        counter++;
+    }
+    
+    return formatted;
+}
+
+// Function to create HTML with different font sizes for first 3 digits and the rest
+function createFormattedPriceHTML(price, isSmall = false) {
+    const formatted = formatPrice(price);
+    if (!formatted) return '';
+    
+    // Split by "/" to get digit groups
+    const parts = formatted.split('/');
+    
+    // If only one part (less than 4 digits), make all large
+    if (parts.length === 1) {
+        return `<span class="formatted-price${isSmall ? ' small' : ''}">` +
+               `<span class="large-digits">${formatted}</span>` +
+               `</span>`;
+    }
+    
+    // Take the first part (leftmost) as large digits
+    const largePart = parts[0];
+    
+    // Join the rest with "/" separators as small digits
+    const smallPart = parts.slice(1).join('/');
+    
+    return `<span class="formatted-price${isSmall ? ' small' : ''}">` +
+           `<span class="large-digits">${largePart}</span>` +
+           `<span class="separator">/</span>` +
+           `<span class="small-digits">${smallPart}</span>` +
+           `</span>`;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Format all prices on the page
+    document.querySelectorAll('[data-price]').forEach(element => {
+        const price = element.getAttribute('data-price');
+        const isSmall = element.classList.contains('formatted-price') && element.classList.contains('small');
+        element.innerHTML = createFormattedPriceHTML(price, isSmall);
+    });
+    
     // Calculate remaining value automatically on page load
     fetch('{% url "calculate_remaining_value" %}')
     .then(response => response.json())
@@ -463,7 +521,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (originalPriceElement && (!discountResultElement || !discountResultElement.innerHTML.trim())) {
                         const originalPrice = parseFloat(originalPriceElement.textContent);
                         const finalPrice = Math.max(0, originalPrice - data.total_remaining_value_tomans);
-                        element.textContent = finalPrice.toFixed(0);
+                        element.setAttribute('data-price', finalPrice.toFixed(0));
+                        element.innerHTML = createFormattedPriceHTML(finalPrice.toFixed(0));
+                        
+                        // Also update the button price
+                        const buttonPriceElement = document.querySelector(`.final-price-btn-${subscriptionId}`);
+                        if (buttonPriceElement) {
+                            buttonPriceElement.setAttribute('data-price', finalPrice.toFixed(0));
+                            buttonPriceElement.innerHTML = createFormattedPriceHTML(finalPrice.toFixed(0));
+                        }
                         
                         // Also update the hidden discount code input with the final price
                         const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
@@ -534,6 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 const resultDiv = document.getElementById(`discount-result-${subscriptionId}`);
                 const finalPriceSpan = document.querySelector(`.final-price-${subscriptionId}`);
+                const finalPriceBtnSpan = document.querySelector(`.final-price-btn-${subscriptionId}`);
                 const discountCodeInput = document.getElementById(`discount-code-${subscriptionId}`);
                 const planFooter = finalPriceSpan ? finalPriceSpan.closest('.plan-footer') : null;
                 const purchaseButton = planFooter ? planFooter.querySelector('.purchase-btn') : null;
@@ -553,7 +620,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                     }
                     if (finalPriceSpan) {
-                        finalPriceSpan.textContent = data.final_price.toFixed(0);
+                        finalPriceSpan.setAttribute('data-price', data.final_price.toFixed(0));
+                        finalPriceSpan.innerHTML = createFormattedPriceHTML(data.final_price.toFixed(0));
+                    }
+                    if (finalPriceBtnSpan) {
+                        finalPriceBtnSpan.setAttribute('data-price', data.final_price.toFixed(0));
+                        finalPriceBtnSpan.innerHTML = createFormattedPriceHTML(data.final_price.toFixed(0));
                     }
                     if (discountCodeInput) {
                         discountCodeInput.value = data.discount_code;
@@ -568,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (purchaseButton) {
                         // Re-enable button if it was previously disabled
                         purchaseButton.disabled = false;
-                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${data.final_price.toFixed(0)} تومان`;
+                        purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${createFormattedPriceHTML(data.final_price.toFixed(0))} تومان`;
                         purchaseButton.style.opacity = '1';
                         purchaseButton.style.cursor = 'pointer';
                         
@@ -601,7 +673,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (remainingValueMatch && finalPriceSpan) {
                             const remainingValue = parseFloat(remainingValueMatch[1].replace(/,/g, ''));
                             const finalPrice = Math.max(0, parseFloat(originalPrice) - remainingValue);
-                            finalPriceSpan.textContent = finalPrice.toFixed(0);
+                            finalPriceSpan.setAttribute('data-price', finalPrice.toFixed(0));
+                            finalPriceSpan.innerHTML = createFormattedPriceHTML(finalPrice.toFixed(0));
+                            
+                            if (finalPriceBtnSpan) {
+                                finalPriceBtnSpan.setAttribute('data-price', finalPrice.toFixed(0));
+                                finalPriceBtnSpan.innerHTML = createFormattedPriceHTML(finalPrice.toFixed(0));
+                            }
                             
                             // Check if we should disable the button based on remaining value
                             if (purchaseButton && remainingValue > parseFloat(originalPrice)) {
@@ -612,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else if (purchaseButton) {
                                 // Re-enable button if it was previously disabled due to remaining value
                                 purchaseButton.disabled = false;
-                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${finalPrice.toFixed(0)} تومان`;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${createFormattedPriceHTML(finalPrice.toFixed(0))} تومان`;
                                 purchaseButton.style.opacity = '1';
                                 purchaseButton.style.cursor = 'pointer';
                                 
@@ -640,21 +718,35 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                         } else if (finalPriceSpan) {
-                            finalPriceSpan.textContent = originalPrice;
+                            finalPriceSpan.setAttribute('data-price', originalPrice);
+                            finalPriceSpan.innerHTML = createFormattedPriceHTML(originalPrice);
+                            
+                            if (finalPriceBtnSpan) {
+                                finalPriceBtnSpan.setAttribute('data-price', originalPrice);
+                                finalPriceBtnSpan.innerHTML = createFormattedPriceHTML(originalPrice);
+                            }
+                            
                             // Re-enable button with original price
                             if (purchaseButton) {
                                 purchaseButton.disabled = false;
-                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPrice} تومان`;
+                                purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${createFormattedPriceHTML(originalPrice)} تومان`;
                                 purchaseButton.style.opacity = '1';
                                 purchaseButton.style.cursor = 'pointer';
                             }
                         }
                     } else if (originalPriceElement && finalPriceSpan) {
-                        finalPriceSpan.textContent = originalPriceElement.textContent;
+                        finalPriceSpan.setAttribute('data-price', originalPriceElement.textContent);
+                        finalPriceSpan.innerHTML = createFormattedPriceHTML(originalPriceElement.textContent);
+                        
+                        if (finalPriceBtnSpan) {
+                            finalPriceBtnSpan.setAttribute('data-price', originalPriceElement.textContent);
+                            finalPriceBtnSpan.innerHTML = createFormattedPriceHTML(originalPriceElement.textContent);
+                        }
+                        
                         // Re-enable button with original price
                         if (purchaseButton) {
                             purchaseButton.disabled = false;
-                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${originalPriceElement.textContent} تومان`;
+                            purchaseButton.innerHTML = `<i class="fas fa-shopping-cart"></i> خرید اشتراک - ${createFormattedPriceHTML(originalPriceElement.textContent)} تومان`;
                             purchaseButton.style.opacity = '1';
                             purchaseButton.style.cursor = 'pointer';
                         }
