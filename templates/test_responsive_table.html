@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Test Responsive Tables - MobixAI{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+      <h1>Test Responsive Tables</h1>
+      <p>This page demonstrates the responsive table functionality.</p>
+      
+      <h2>Regular Table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Model Name</th>
+            <th>Description</th>
+            <th>Token Cost</th>
+            <th>Free Tier</th>
+            <th>Performance</th>
+            <th>Release Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPT-4 Turbo</td>
+            <td>Advanced language model with improved reasoning</td>
+            <td>0.01 per 1K tokens</td>
+            <td>Yes</td>
+            <td>Excellent</td>
+            <td>2024-01-15</td>
+          </tr>
+          <tr>
+            <td>Claude 3 Opus</td>
+            <td>Anthropic's most powerful model</td>
+            <td>0.015 per 1K tokens</td>
+            <td>No</td>
+            <td>Outstanding</td>
+            <td>2024-03-04</td>
+          </tr>
+          <tr>
+            <td>Gemini Pro</td>
+            <td>Google's advanced multimodal model</td>
+            <td>0.007 per 1K tokens</td>
+            <td>Yes</td>
+            <td>Very Good</td>
+            <td>2023-12-06</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <h2>Responsive Table Wrapper</h2>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Model Name</th>
+              <th>Description</th>
+              <th>Token Cost</th>
+              <th>Free Tier</th>
+              <th>Performance</th>
+              <th>Release Date</th>
+              <th>Supported Languages</th>
+              <th>Special Features</th>
+              <th>Training Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GPT-4 Turbo</td>
+              <td>Advanced language model with improved reasoning and coding capabilities</td>
+              <td>0.01 per 1K tokens</td>
+              <td>Yes</td>
+              <td>Excellent</td>
+              <td>2024-01-15</td>
+              <td>100+</td>
+              <td>Code Interpreter, JSON Mode</td>
+              <td>Up to April 2023</td>
+            </tr>
+            <tr>
+              <td>Claude 3 Opus</td>
+              <td>Anthropic's most powerful model with strong reasoning capabilities</td>
+              <td>0.015 per 1K tokens</td>
+              <td>No</td>
+              <td>Outstanding</td>
+              <td>2024-03-04</td>
+              <td>90+</td>
+              <td>Constitutional AI, 200K context</td>
+              <td>Up to early 2024</td>
+            </tr>
+            <tr>
+              <td>Gemini Pro</td>
+              <td>Google's advanced multimodal model with integrated search</td>
+              <td>0.007 per 1K tokens</td>
+              <td>Yes</td>
+              <td>Very Good</td>
+              <td>2023-12-06</td>
+              <td>80+</td>
+              <td>Multimodal, Integrated Search</td>
+              <td>Up to early 2024</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <h2>Striped Table</h2>
+      <div class="table-responsive">
+        <table class="table-striped">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>GPT-4 Turbo</th>
+              <th>Claude 3 Opus</th>
+              <th>Gemini Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Context Length</td>
+              <td>128K tokens</td>
+              <td>200K tokens</td>
+              <td>32K tokens</td>
+            </tr>
+            <tr>
+              <td>Multimodal</td>
+              <td>Yes</td>
+              <td>Yes</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <td>Code Generation</td>
+              <td>Excellent</td>
+              <td>Very Good</td>
+              <td>Good</td>
+            </tr>
+            <tr>
+              <td>Reasoning</td>
+              <td>Excellent</td>
+              <td>Outstanding</td>
+              <td>Very Good</td>
+            </tr>
+            <tr>
+              <td>Mathematical</td>
+              <td>Very Good</td>
+              <td>Excellent</td>
+              <td>Good</td>
+            </tr>
+            <tr>
+              <td>Speed</td>
+              <td>Fast</td>
+              <td>Moderate</td>
+              <td>Very Fast</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

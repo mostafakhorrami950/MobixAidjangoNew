@@ -1,0 +1,27 @@
+/* همه جدول‌ها همیشه قابلیت اسکرول افقی داشته باشن */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: block;          /* مهم */
+  overflow-x: auto;        /* اسکرول افقی */
+  -webkit-overflow-scrolling: touch; /* روان در موبایل */
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: right;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;     /* جلوی شکست عجیب متن رو می‌گیره */
+}
+
+/* در دسکتاپ متن می‌تونه بشکنه برای خوانایی */
+@media (min-width: 768px) {
+  th, td {
+    white-space: normal;
+  }
+}

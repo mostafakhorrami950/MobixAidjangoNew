@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome Message Demo - MobixAI{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Welcome Message Element -->
+      <div id="welcome-message">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fas fa-hand-sparkles"></i>
+          </div>
+          <div class="welcome-text">
+            <h2 class="welcome-title">به MobixAI خوش آمدید!</h2>
+            <p class="welcome-subtitle">پلتفرم هوش مصنوعی پیشرفته ما به شما کمک می‌کند تا با استفاده از قدرت چت‌بات‌های هوشمند، کسب‌وکار خود را متحول کنید.</p>
+            <div class="welcome-actions">
+              <a href="#" class="welcome-btn welcome-btn-primary">
+                <i class="fas fa-rocket"></i>
+                شروع کنید
+              </a>
+              <a href="#" class="welcome-btn">
+                <i class="fas fa-book"></i>
+                مستندات
+              </a>
+              <a href="#" class="welcome-btn">
+                <i class="fas fa-headset"></i>
+                پشتیبانی
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Different theme variants -->
+      <div id="welcome-message" class="blue-theme mt-4">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="welcome-text">
+            <h2 class="welcome-title">چت‌بات‌های هوشمند</h2>
+            <p class="welcome-subtitle">با چت‌بات‌های تخصصی ما، پاسخ‌گویی 24 ساعته به سوالات کاربران خود را تجربه کنید.</p>
+            <div class="welcome-actions">
+              <a href="#" class="welcome-btn welcome-btn-primary">
+                <i class="fas fa-comments"></i>
+                چت با هوش مصنوعی
+              </a>
+              <a href="#" class="welcome-btn">
+                <i class="fas fa-cogs"></i>
+                تنظیمات
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="welcome-message" class="green-theme mt-4">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="welcome-text">
+            <h2 class="welcome-title">تحلیل و گزارش‌گیری</h2>
+            <p class="welcome-subtitle">آمار و گزارش‌های تفصیلی از عملکرد چت‌بات‌های خود دریافت کنید و تصمیمات بهتری بگیرید.</p>
+            <div class="welcome-actions">
+              <a href="#" class="welcome-btn welcome-btn-primary">
+                <i class="fas fa-chart-bar"></i>
+                مشاهده گزارش‌ها
+              </a>
+              <a href="#" class="welcome-btn">
+                <i class="fas fa-download"></i>
+                دانلود PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

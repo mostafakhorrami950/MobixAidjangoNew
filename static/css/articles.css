@@ -231,6 +231,33 @@
   font-weight: 600;
 }
 
+/* Make tables responsive in articles content */
+.articles-content .table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5rem 0;
+}
+
+.articles-content .table-responsive table {
+  margin: 0;
+}
+
+/* Ensure table content doesn't wrap unnecessarily */
+.articles-content th,
+.articles-content td {
+  white-space: nowrap;
+}
+
+/* On larger screens, allow normal table behavior */
+@media (min-width: 768px) {
+  .articles-content th,
+  .articles-content td {
+    white-space: normal;
+  }
+}
+
 /* Article Cards */
 .articles-card {
   background-color: #ffffff;
