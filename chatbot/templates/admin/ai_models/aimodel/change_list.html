@@ -1,0 +1,66 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<div class="module">
+    <h2>AI Model Usage Reports</h2>
+    
+    <!-- Top AI Models by Usage -->
+    <div class="module">
+        <h3>Top AI Models by Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Usage Count</th>
+                    <th>Total Tokens</th>
+                    <th>Total Cost (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in cl.opts.model_admin.top_models %}
+                <tr>
+                    <td>{{ model.model_name }}</td>
+                    <td>{{ model.usage_count }}</td>
+                    <td>{{ model.total_tokens }}</td>
+                    <td>{{ model.total_cost|floatformat:6 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Top Free AI Models Usage -->
+    <div class="module">
+        <h3>Top Free AI Models Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Usage Count</th>
+                    <th>Total Tokens</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in cl.opts.model_admin.top_free_models %}
+                <tr>
+                    <td>{{ model.model_name }}</td>
+                    <td>{{ model.usage_count }}</td>
+                    <td>{{ model.total_tokens }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

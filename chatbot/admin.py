@@ -1,5 +1,11 @@
 from django.contrib import admin
+from django.db.models import Sum, Count, Avg, F, Q
+from django.utils import timezone
+from django.apps import apps
 from .models import Chatbot, ChatSession, ChatMessage, UploadedFile, FileUploadSettings, VisionProcessingSettings, UploadedImage, FileUploadUsage, ImageGenerationUsage, DefaultChatSettings, SidebarMenuItem, LimitationMessage, OpenRouterRequestCost
+from accounts.models import User
+from ai_models.models import AIModel
+from subscriptions.models import SubscriptionType, UserSubscription
 
 class ChatSessionInline(admin.TabularInline):
     model = ChatSession
@@ -146,3 +152,95 @@ class OpenRouterRequestCostAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+    
+    def changelist_view(self, request, extra_context=None):
+        # Add custom reports to the context
+        extra_context = extra_context or {}
+        
+        # Get models using apps.get_model
+        OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+        AIModel = apps.get_model('ai_models', 'AIModel')
+        ChatSession = apps.get_model('chatbot', 'ChatSession')
+        
+        # Get data for reports
+        
+        # 1. Top users by cost
+        top_users_cost = OpenRouterRequestCost.objects.values(
+            'user__name',
+            'user__phone_number'
+        ).annotate(
+            total_cost=Sum('total_cost_usd'),
+            total_tokens=Sum('total_tokens'),
+            request_count=Count('id')
+        ).order_by('-total_cost')[:10]
+        
+        # 2. Top models by usage
+        top_models_usage = OpenRouterRequestCost.objects.values(
+            'model_name'
+        ).annotate(
+            usage_count=Count('id'),
+            total_tokens=Sum('total_tokens'),
+            total_cost=Sum('total_cost_usd')
+        ).order_by('-usage_count')[:10]
+        
+        # 3. Top free models usage
+        free_models = AIModel.objects.filter(is_free=True).values_list('model_id', flat=True)
+        top_free_models_usage = OpenRouterRequestCost.objects.filter(
+            model_id__in=free_models
+        ).values(
+            'model_name'
+        ).annotate(
+            usage_count=Count('id'),
+            total_tokens=Sum('total_tokens')
+        ).order_by('-usage_count')[:10]
+        
+        # 4. Average token usage
+        avg_tokens = OpenRouterRequestCost.objects.aggregate(
+            avg_tokens=Avg('total_tokens')
+        )
+        
+        # 5. Top chatbots by session count
+        top_chatbots = ChatSession.objects.values(
+            'chatbot__name'
+        ).annotate(
+            session_count=Count('id'),
+            total_messages=Count('messages')
+        ).order_by('-session_count')[:10]
+        
+        # Add to context
+        extra_context.update({
+            'top_users_cost': list(top_users_cost),
+            'top_models_usage': list(top_models_usage),
+            'top_free_models_usage': list(top_free_models_usage),
+            'avg_tokens_per_request': avg_tokens['avg_tokens'] or 0,
+            'top_chatbots': list(top_chatbots),
+        })
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+# Enhanced Chatbot admin with reporting capabilities
+class ChatbotAdminWithReports(ChatbotAdmin):
+    """Enhanced Chatbot admin with reporting capabilities"""
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs
+    
+    def changelist_view(self, request, extra_context=None):
+        # Add custom reports to the context
+        extra_context = extra_context or {}
+        
+        # Get models using apps.get_model
+        ChatSession = apps.get_model('chatbot', 'ChatSession')
+        
+        # Get top chatbots by usage
+        top_chatbots = ChatSession.objects.values(
+            'chatbot__name'
+        ).annotate(
+            session_count=Count('id'),
+            total_messages=Count('messages')
+        ).order_by('-session_count')[:10]
+        
+        extra_context['top_chatbots'] = list(top_chatbots)
+        
+        return super().changelist_view(request, extra_context=extra_context)

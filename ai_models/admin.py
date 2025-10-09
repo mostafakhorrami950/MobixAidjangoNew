@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db.models import Sum, Count, Avg
+from django.apps import apps
 from .models import AIModel, ModelSubscription, WebSearchSettings, ModelArticle
 
 @admin.register(AIModel)
@@ -25,6 +27,39 @@ class AIModelAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('article')
+    
+    def changelist_view(self, request, extra_context=None):
+        # Add custom reports to the context
+        extra_context = extra_context or {}
+        
+        # Get models using apps.get_model
+        OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
+        AIModel = apps.get_model('ai_models', 'AIModel')
+        
+        # Top AI models by usage count
+        top_models = OpenRouterRequestCost.objects.values(
+            'model_name'
+        ).annotate(
+            usage_count=Count('id'),
+            total_tokens=Sum('total_tokens'),
+            total_cost=Sum('total_cost_usd')
+        ).order_by('-usage_count')[:10]
+        
+        extra_context['top_models'] = list(top_models)
+        
+        # Top free AI models by usage
+        top_free_models = OpenRouterRequestCost.objects.filter(
+            model_name__in=AIModel.objects.filter(is_free=True).values_list('name', flat=True)
+        ).values(
+            'model_name'
+        ).annotate(
+            usage_count=Count('id'),
+            total_tokens=Sum('total_tokens')
+        ).order_by('-usage_count')[:10]
+        
+        extra_context['top_free_models'] = list(top_free_models)
+        
+        return super().changelist_view(request, extra_context=extra_context)
 
 @admin.register(ModelSubscription)
 class ModelSubscriptionAdmin(admin.ModelAdmin):

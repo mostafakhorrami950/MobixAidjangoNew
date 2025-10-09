@@ -1,0 +1,76 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<div class="module">
+    <h2>User Usage Reports</h2>
+    
+    <!-- Top Users by Cost -->
+    <div class="module">
+        <h3>Top Users by OpenRouter Cost</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Phone Number</th>
+                    <th>Total Cost (USD)</th>
+                    <th>Total Tokens</th>
+                    <th>Request Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in top_cost_users %}
+                <tr>
+                    <td>{{ user.user__name }}</td>
+                    <td>{{ user.user__phone_number }}</td>
+                    <td>{{ user.total_cost|floatformat:6 }}</td>
+                    <td>{{ user.total_tokens }}</td>
+                    <td>{{ user.request_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Top Users by Free Model Usage -->
+    <div class="module">
+        <h3>Top Users by Free Model Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Phone Number</th>
+                    <th>Total Tokens</th>
+                    <th>Request Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in top_free_users %}
+                <tr>
+                    <td>{{ user.user__name }}</td>
+                    <td>{{ user.user__phone_number }}</td>
+                    <td>{{ user.total_tokens }}</td>
+                    <td>{{ user.request_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Average Token Usage -->
+    <div class="module">
+        <h3>Average Token Usage</h3>
+        <p>Average tokens per request: {{ avg_tokens_per_user|floatformat:2 }}</p>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

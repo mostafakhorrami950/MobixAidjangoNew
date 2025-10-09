@@ -1,0 +1,130 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<div class="module">
+    <h2>Reports</h2>
+    
+    <!-- Top Users by Cost -->
+    <div class="module">
+        <h3>Top Users by OpenRouter Cost</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Phone Number</th>
+                    <th>Total Cost (USD)</th>
+                    <th>Total Tokens</th>
+                    <th>Request Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in cl.opts.model_admin.top_users_cost %}
+                <tr>
+                    <td>{{ user.user__name }}</td>
+                    <td>{{ user.user__phone_number }}</td>
+                    <td>{{ user.total_cost|floatformat:6 }}</td>
+                    <td>{{ user.total_tokens }}</td>
+                    <td>{{ user.request_count }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Top Models by Usage -->
+    <div class="module">
+        <h3>Top AI Models by Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Usage Count</th>
+                    <th>Total Tokens</th>
+                    <th>Total Cost (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in cl.opts.model_admin.top_models_usage %}
+                <tr>
+                    <td>{{ model.model_name }}</td>
+                    <td>{{ model.usage_count }}</td>
+                    <td>{{ model.total_tokens }}</td>
+                    <td>{{ model.total_cost|floatformat:6 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Top Free Models Usage -->
+    <div class="module">
+        <h3>Top Free AI Models Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Usage Count</th>
+                    <th>Total Tokens</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in cl.opts.model_admin.top_free_models_usage %}
+                <tr>
+                    <td>{{ model.model_name }}</td>
+                    <td>{{ model.usage_count }}</td>
+                    <td>{{ model.total_tokens }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Average Token Usage -->
+    <div class="module">
+        <h3>Average Token Usage</h3>
+        <p>Average tokens per request: {{ cl.opts.model_admin.avg_tokens_per_request|floatformat:2 }}</p>
+    </div>
+    
+    <!-- Top Chatbots -->
+    <div class="module">
+        <h3>Top Chatbots by Session Count</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chatbot Name</th>
+                    <th>Session Count</th>
+                    <th>Total Messages</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chatbot in cl.opts.model_admin.top_chatbots %}
+                <tr>
+                    <td>{{ chatbot.chatbot__name }}</td>
+                    <td>{{ chatbot.session_count }}</td>
+                    <td>{{ chatbot.total_messages }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

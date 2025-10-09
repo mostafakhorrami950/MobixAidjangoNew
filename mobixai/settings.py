@@ -69,7 +69,7 @@ ROOT_URLCONF = "mobixai.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates')],
+        "DIRS": [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'chatbot', 'templates')],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

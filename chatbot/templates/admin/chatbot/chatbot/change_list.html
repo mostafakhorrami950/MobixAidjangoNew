@@ -1,0 +1,37 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<div class="module">
+    <h2>Chatbot Usage Reports</h2>
+    
+    <!-- Top Chatbots by Usage -->
+    <div class="module">
+        <h3>Top Chatbots by Session Count</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Chatbot Name</th>
+                    <th>Session Count</th>
+                    <th>Total Messages</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chatbot in cl.opts.model_admin.top_chatbots %}
+                <tr>
+                    <td>{{ chatbot.chatbot__name }}</td>
+                    <td>{{ chatbot.session_count }}</td>
+                    <td>{{ chatbot.total_messages }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">No data available</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}
