@@ -39,38 +39,45 @@ class CustomUserAdmin(UserAdmin):
         OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
         AIModel = apps.get_model('ai_models', 'AIModel')
         
-        # Top users by OpenRouter cost
-        top_cost_users = OpenRouterRequestCost.objects.values(
-            'user__name',
-            'user__phone_number'
-        ).annotate(
-            total_cost=Sum('total_cost_usd'),
-            total_tokens=Sum('total_tokens'),
-            request_count=Count('id')
-        ).order_by('-total_cost')[:10]
-        
-        extra_context['top_cost_users'] = list(top_cost_users)
-        
-        # Top users by free model usage
-        free_models = AIModel.objects.filter(is_free=True).values_list('model_id', flat=True)
-        top_free_users = OpenRouterRequestCost.objects.filter(
-            model_id__in=free_models
-        ).values(
-            'user__name',
-            'user__phone_number'
-        ).annotate(
-            total_tokens=Sum('total_tokens'),
-            request_count=Count('id')
-        ).order_by('-total_tokens')[:10]
-        
-        extra_context['top_free_users'] = list(top_free_users)
-        
-        # Average token usage per user
-        avg_tokens = OpenRouterRequestCost.objects.aggregate(
-            avg_tokens=Avg('total_tokens')
-        )
-        
-        extra_context['avg_tokens_per_user'] = avg_tokens['avg_tokens'] or 0
+        try:
+            # Top users by OpenRouter cost
+            top_cost_users = OpenRouterRequestCost.objects.values(
+                'user__name',
+                'user__phone_number'
+            ).annotate(
+                total_cost=Sum('total_cost_usd'),
+                total_tokens=Sum('total_tokens'),
+                request_count=Count('id')
+            ).order_by('-total_cost')[:10]
+            
+            extra_context['top_cost_users'] = list(top_cost_users)
+            
+            # Top users by free model usage
+            free_models = AIModel.objects.filter(is_free=True).values_list('model_id', flat=True)
+            top_free_users = OpenRouterRequestCost.objects.filter(
+                model_id__in=free_models
+            ).values(
+                'user__name',
+                'user__phone_number'
+            ).annotate(
+                total_tokens=Sum('total_tokens'),
+                request_count=Count('id')
+            ).order_by('-total_tokens')[:10]
+            
+            extra_context['top_free_users'] = list(top_free_users)
+            
+            # Average token usage per user
+            avg_tokens = OpenRouterRequestCost.objects.aggregate(
+                avg_tokens=Avg('total_tokens')
+            )
+            
+            extra_context['avg_tokens_per_user'] = avg_tokens['avg_tokens'] or 0
+        except Exception as e:
+            # Handle timezone or other database errors gracefully
+            extra_context['top_cost_users'] = []
+            extra_context['top_free_users'] = []
+            extra_context['avg_tokens_per_user'] = 0
+            extra_context['report_error'] = str(e)
         
         return super().changelist_view(request, extra_context=extra_context)
 

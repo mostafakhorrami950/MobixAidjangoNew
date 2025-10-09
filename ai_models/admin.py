@@ -36,28 +36,34 @@ class AIModelAdmin(admin.ModelAdmin):
         OpenRouterRequestCost = apps.get_model('chatbot', 'OpenRouterRequestCost')
         AIModel = apps.get_model('ai_models', 'AIModel')
         
-        # Top AI models by usage count
-        top_models = OpenRouterRequestCost.objects.values(
-            'model_name'
-        ).annotate(
-            usage_count=Count('id'),
-            total_tokens=Sum('total_tokens'),
-            total_cost=Sum('total_cost_usd')
-        ).order_by('-usage_count')[:10]
-        
-        extra_context['top_models'] = list(top_models)
-        
-        # Top free AI models by usage
-        top_free_models = OpenRouterRequestCost.objects.filter(
-            model_name__in=AIModel.objects.filter(is_free=True).values_list('name', flat=True)
-        ).values(
-            'model_name'
-        ).annotate(
-            usage_count=Count('id'),
-            total_tokens=Sum('total_tokens')
-        ).order_by('-usage_count')[:10]
-        
-        extra_context['top_free_models'] = list(top_free_models)
+        try:
+            # Top AI models by usage count
+            top_models = OpenRouterRequestCost.objects.values(
+                'model_name'
+            ).annotate(
+                usage_count=Count('id'),
+                total_tokens=Sum('total_tokens'),
+                total_cost=Sum('total_cost_usd')
+            ).order_by('-usage_count')[:10]
+            
+            extra_context['top_models'] = list(top_models)
+            
+            # Top free AI models by usage
+            top_free_models = OpenRouterRequestCost.objects.filter(
+                model_name__in=AIModel.objects.filter(is_free=True).values_list('name', flat=True)
+            ).values(
+                'model_name'
+            ).annotate(
+                usage_count=Count('id'),
+                total_tokens=Sum('total_tokens')
+            ).order_by('-usage_count')[:10]
+            
+            extra_context['top_free_models'] = list(top_free_models)
+        except Exception as e:
+            # Handle timezone or other database errors gracefully
+            extra_context['top_models'] = []
+            extra_context['top_free_models'] = []
+            extra_context['report_error'] = str(e)
         
         return super().changelist_view(request, extra_context=extra_context)
 
