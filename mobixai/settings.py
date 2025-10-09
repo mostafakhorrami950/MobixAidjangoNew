@@ -300,3 +300,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # CSRF settings
 CSRF_COOKIE_AGE = 86400 * 7
+
+# CORS settings
+
+# Django REST Framework settings

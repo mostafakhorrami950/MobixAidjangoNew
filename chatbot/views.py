@@ -1257,13 +1257,17 @@ def get_user_sessions(request):
             'message_count': session.messages.count()
         })
     
+    # Correctly calculate has_more - there are more sessions if:
+    # 1. We haven't reached the total count
+    # 2. We have a full page of results (meaning there might be more)
+    has_more = end_index < total_sessions
     
     return JsonResponse({
         'sessions': session_list,
         'page': page,
         'page_size': page_size,
         'total_sessions': total_sessions,
-        'has_more': end_index < total_sessions
+        'has_more': has_more
     })
 
 @login_required

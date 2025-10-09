@@ -2,21 +2,46 @@
 // مدیریت جلسات چت (Sessions Management)
 // =================================
 
-// Load user sessions
-function loadSessions() {
-    fetch(CHAT_URLS.getUserSessions)
+// Add pagination variables
+let currentPage = 1;
+let isLoading = false;
+let hasMoreSessions = true;
+let sessionsLoaded = false;
+
+// Load user sessions with pagination support
+function loadSessions(page = 1, append = false) {
+    // Prevent multiple simultaneous requests
+    if (isLoading) return;
+    
+    // If not appending, reset pagination
+    if (!append) {
+        currentPage = 1;
+        hasMoreSessions = true;
+        sessionsLoaded = false;
+    }
+    
+    isLoading = true;
+    
+    fetch(`${CHAT_URLS.getUserSessions}?page=${page}&page_size=20`)
         .then(response => response.json())
         .then(data => {
             const sessionsList = document.getElementById('sessions-list');
             if (!sessionsList) {
                 console.warn('Sessions list element not found');
+                isLoading = false;
                 return;
             }
             
-            sessionsList.innerHTML = '';
+            // If not appending, clear the list
+            if (!append) {
+                sessionsList.innerHTML = '';
+            }
             
-            if (data.sessions.length === 0) {
+            if (data.sessions.length === 0 && !append) {
                 sessionsList.innerHTML = '<div class="list-group-item text-center text-muted">چتی وجود ندارد</div>';
+                hasMoreSessions = false;
+                isLoading = false;
+                sessionsLoaded = true;
                 return;
             }
             
@@ -37,8 +62,26 @@ function loadSessions() {
                 sessionElement.addEventListener('click', () => loadSession(session.id));
                 sessionsList.appendChild(sessionElement);
             });
+            
+            // Update pagination info
+            hasMoreSessions = data.has_more;
+            if (append) {
+                currentPage = page;
+            }
+            
+            isLoading = false;
+            sessionsLoaded = true;
+            
+            // If we're at the first page and there are more sessions, initialize scroll listener
+            if (page === 1 && hasMoreSessions) {
+                initInfiniteScroll();
+            }
         })
-        .catch(error => console.error('Error loading sessions:', error));
+        .catch(error => {
+            console.error('Error loading sessions:', error);
+            isLoading = false;
+            sessionsLoaded = true;
+        });
 }
 
 // Load a specific session
@@ -151,6 +194,37 @@ function loadSession(sessionId) {
             }
         })
         .catch(error => console.error('Error loading session:', error));
+}
+
+// Add scroll event listener for infinite scrolling
+function initInfiniteScroll() {
+    const sessionsContainer = document.getElementById('sessions-container');
+    if (sessionsContainer) {
+        // Remove any existing event listeners to prevent duplicates
+        sessionsContainer.removeEventListener('scroll', handleScroll);
+        // Add the scroll event listener
+        sessionsContainer.addEventListener('scroll', handleScroll);
+    }
+}
+
+// Handle scroll event
+function handleScroll() {
+    const sessionsContainer = document.getElementById('sessions-container');
+    if (!sessionsContainer) return;
+    
+    // Check if user has scrolled to the bottom (with a small threshold)
+    const scrollTop = sessionsContainer.scrollTop;
+    const clientHeight = sessionsContainer.clientHeight;
+    const scrollHeight = sessionsContainer.scrollHeight;
+    const threshold = 10; // pixels from bottom
+    
+    // Load more when near the bottom
+    if (scrollTop + clientHeight >= scrollHeight - threshold) {
+        // Load more sessions if there are more and not already loading
+        if (hasMoreSessions && !isLoading && sessionsLoaded) {
+            loadSessions(currentPage + 1, true);
+        }
+    }
 }
 
 // Add a function to check if we're on a specific session page
@@ -370,3 +444,9 @@ function deleteSession() {
         });
     }
 }
+
+// Initialize infinite scroll when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial sessions
+    loadSessions();
+});

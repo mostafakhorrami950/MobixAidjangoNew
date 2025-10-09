@@ -252,6 +252,8 @@ html, body {
   border-right: 1px solid #e9ecef;
   position: relative;
   box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.02);
+  /* Ensure the container takes full height */
+  height: calc(100vh - 80px); /* Adjust for sidebar header height */
 }
 
 .sessions-container::before {
@@ -275,6 +277,8 @@ html, body {
   list-style: none;
   position: relative;
   z-index: 1;
+  /* Ensure list takes full height */
+  min-height: 100%;
 }
 
 /* Session Items - Completely Redesigned from Scratch */

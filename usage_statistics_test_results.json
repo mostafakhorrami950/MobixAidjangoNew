@@ -1,0 +1,245 @@
+{
+  "/api/subscriptions/subscription-management/usage_statistics/": {
+    "status_code": 200,
+    "success": true,
+    "data": {
+      "tokens": {
+        "paid": {
+          "used": 0,
+          "limit": 10000,
+          "remaining": 10000,
+          "percentage_used": 0.0
+        },
+        "free": {
+          "used": 0,
+          "limit": 0,
+          "remaining": null,
+          "percentage_used": 0
+        }
+      },
+      "messages": {
+        "hourly": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 5,
+          "remaining": 5,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-07T12:33:34.778708Z",
+          "period_end": "2025-10-07T13:33:34.778708Z"
+        },
+        "three_hours": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 10,
+          "remaining": 10,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-07T10:33:34.778708Z",
+          "period_end": "2025-10-07T13:33:34.778708Z"
+        },
+        "twelve_hours": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 20,
+          "remaining": 20,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-07T01:33:34.778708Z",
+          "period_end": "2025-10-07T13:33:34.778708Z"
+        },
+        "daily": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 20,
+          "remaining": 20,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-07T00:00:00Z",
+          "period_end": "2025-10-07T23:59:59.999999Z"
+        },
+        "weekly": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 100,
+          "remaining": 100,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-06T00:00:00Z",
+          "period_end": "2025-10-12T23:59:59.999999Z"
+        },
+        "monthly": {
+          "used": 0,
+          "tokens": 0,
+          "limit": 300,
+          "remaining": 300,
+          "percentage_used": 0.0,
+          "period_start": "2025-10-01T00:00:00Z",
+          "period_end": "2025-10-31T23:59:59.999999Z"
+        }
+      },
+      "images": {
+        "daily": {
+          "used": 0,
+          "limit": 10,
+          "remaining": 10,
+          "percentage_used": 0.0
+        },
+        "weekly": {
+          "used": 0,
+          "limit": 50,
+          "remaining": 50,
+          "percentage_used": 0.0
+        },
+        "monthly": {
+          "used": 0,
+          "limit": 200,
+          "remaining": 200,
+          "percentage_used": 0.0
+        }
+      },
+      "subscription": {
+        "type": "Free",
+        "description": "Free subscription with limited access",
+        "price": 0.0,
+        "duration_days": 30
+      }
+    }
+  },
+  "/api/subscriptions/subscription-management/usage_summary/": {
+    "status_code": 200,
+    "success": true,
+    "data": {
+      "tokens_summary": {
+        "paid_used": 0,
+        "paid_limit": 10000,
+        "paid_remaining": 10000,
+        "free_used": 0,
+        "free_limit": 0,
+        "free_remaining": null
+      },
+      "messages_today": {
+        "used": 0,
+        "limit": 20,
+        "remaining": 20
+      },
+      "images_today": {
+        "used": 0,
+        "limit": 10,
+        "remaining": 10
+      },
+      "subscription_name": "Free"
+    }
+  },
+  "/api/subscriptions/subscription-management/usage_cards/": {
+    "status_code": 200,
+    "success": true,
+    "data": [
+      {
+        "title": "توکن‌های پولی",
+        "icon": "fas fa-coins",
+        "used": 0,
+        "limit": 10000,
+        "remaining": 10000,
+        "percentage": 0.0,
+        "color": "primary",
+        "type": "tokens_paid"
+      },
+      {
+        "title": "توکن‌های رایگان",
+        "icon": "fas fa-gift",
+        "used": 0,
+        "limit": 0,
+        "remaining": null,
+        "percentage": 0,
+        "color": "success",
+        "type": "tokens_free"
+      },
+      {
+        "title": "پیام‌های ساعتی",
+        "icon": "fas fa-clock",
+        "used": 0,
+        "limit": 5,
+        "remaining": 5,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_hourly"
+      },
+      {
+        "title": "پیام‌های ۳ ساعته",
+        "icon": "fas fa-hourglass-half",
+        "used": 0,
+        "limit": 10,
+        "remaining": 10,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_three_hours"
+      },
+      {
+        "title": "پیام‌های ۱۲ ساعته",
+        "icon": "fas fa-hourglass",
+        "used": 0,
+        "limit": 20,
+        "remaining": 20,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_twelve_hours"
+      },
+      {
+        "title": "پیام‌های روزانه",
+        "icon": "fas fa-calendar-day",
+        "used": 0,
+        "limit": 20,
+        "remaining": 20,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_daily"
+      },
+      {
+        "title": "پیام‌های هفتگی",
+        "icon": "fas fa-calendar-week",
+        "used": 0,
+        "limit": 100,
+        "remaining": 100,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_weekly"
+      },
+      {
+        "title": "پیام‌های ماهانه",
+        "icon": "fas fa-calendar-alt",
+        "used": 0,
+        "limit": 300,
+        "remaining": 300,
+        "percentage": 0.0,
+        "color": "info",
+        "type": "messages_monthly"
+      },
+      {
+        "title": "تصاویر روزانه",
+        "icon": "fas fa-image",
+        "used": 0,
+        "limit": 10,
+        "remaining": 10,
+        "percentage": 0.0,
+        "color": "warning",
+        "type": "images_daily"
+      },
+      {
+        "title": "تصاویر هفتگی",
+        "icon": "fas fa-images",
+        "used": 0,
+        "limit": 50,
+        "remaining": 50,
+        "percentage": 0.0,
+        "color": "warning",
+        "type": "images_weekly"
+      },
+      {
+        "title": "تصاویر ماهانه",
+        "icon": "fas fa-photo-video",
+        "used": 0,
+        "limit": 200,
+        "remaining": 200,
+        "percentage": 0.0,
+        "color": "warning",
+        "type": "images_monthly"
+      }
+    ]
+  }
+}
