@@ -5,10 +5,14 @@ Simple test for template rendering without chatbot.ai_model errors
 """
 
 import os
+import sys
 import django
 
+# Add the project directory to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixaidjangonew.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mobixai.settings')
 django.setup()
 
 from django.template.loader import get_template

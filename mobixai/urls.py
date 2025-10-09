@@ -27,6 +27,7 @@ urlpatterns = [
     path('chat/', include('chatbot.urls')),
     path('subscriptions/', include('subscriptions.urls')),
     path('ai-models/', include('ai_models.urls')),
+    path('api/', include('api.urls')),
     path('', include('core.urls')),  # Include core app URLs
 ]
 

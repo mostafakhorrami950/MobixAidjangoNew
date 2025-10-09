@@ -19,9 +19,14 @@ User = get_user_model()
 def test_remaining_value():
     # ایجاد یک کاربر تست
     try:
-        user = User.objects.get(username='testuser')
+        user = User.objects.get(phone_number='+1234567890')
     except User.DoesNotExist:
-        user = User.objects.create_user(username='testuser', password='testpass123')
+        user = User.objects.create_user(
+            phone_number='+1234567890',
+            username='testuser',
+            password='testpass123',
+            name='Test User'
+        )
     
     # ایجاد یک نوع اشتراک تست
     try:
@@ -33,20 +38,28 @@ def test_remaining_value():
             price=10000,  # 10,000 تومان
             duration_days=30,
             max_tokens=100000,
-            is_active=True
+            is_active=True,
+            sku='TEST-SUB-001'  # اضافه کردن SKU منحصر به فرد
         )
     
-    # ایجاد اشتراک کاربر
-    try:
-        user_subscription = UserSubscription.objects.get(user=user, subscription_type=subscription_type)
-    except UserSubscription.DoesNotExist:
-        user_subscription = UserSubscription.objects.create(
-            user=user,
-            subscription_type=subscription_type,
-            is_active=True,
-            start_date=timezone.now(),
-            end_date=timezone.now() + timedelta(days=30)
-        )
+    # ایجاد یا به‌روزرسانی اشتراک کاربر
+    user_subscription, created = UserSubscription.objects.get_or_create(
+        user=user,
+        defaults={
+            'subscription_type': subscription_type,
+            'is_active': True,
+            'start_date': timezone.now(),
+            'end_date': timezone.now() + timedelta(days=30)
+        }
+    )
+    
+    # اگر اشتراک از قبل وجود داشت، ممکن است بخواهیم مقادیر را به‌روز کنیم
+    if not created:
+        user_subscription.subscription_type = subscription_type
+        user_subscription.is_active = True
+        user_subscription.start_date = timezone.now()
+        user_subscription.end_date = timezone.now() + timedelta(days=30)
+        user_subscription.save()
     
     # ایجاد یک درخواست تست
     factory = RequestFactory()
