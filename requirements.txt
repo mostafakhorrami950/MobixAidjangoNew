@@ -9,7 +9,6 @@ python-docx==1.2.0
 openpyxl==3.1.5
 tiktoken>=0.8.0
 pydantic>=2.0.0
-djangorestframework>=3.14.0
 
 # Production deployment dependencies
 dj-database-url==2.1.0
