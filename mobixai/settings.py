@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "ai_models",
     "subscriptions",
     "core",
+    "reports",  # Add reports app
 ]
 
 MIDDLEWARE = [
@@ -69,7 +70,7 @@ ROOT_URLCONF = "mobixai.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates')],
+        "DIRS": [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'reports', 'templates')],  # Add reports templates
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -239,6 +240,7 @@ FILE_CHARSET = 'utf-8'
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -254,7 +256,7 @@ STATICFILES_FINDERS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Custom User Model
+# Custom user model
 AUTH_USER_MODEL = 'accounts.User'
 
 # OTP Service Settings
@@ -295,10 +297,19 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
 
 # Session settings
-SESSION_COOKIE_AGE = 86400 * 7  # 7 days
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_SAVE_EVERY_REQUEST = True
 
 # CSRF settings
-CSRF_COOKIE_AGE = 86400 * 7
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
 
-# CORS settings
+# Security settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Login/Logout URLs
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

@@ -20,9 +20,11 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from reports.admin import reports_admin_site
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('reports/', reports_admin_site.urls),  # Custom reports admin
     path('accounts/', include('accounts.urls')),
     path('chat/', include('chatbot.urls')),
     path('subscriptions/', include('subscriptions.urls')),

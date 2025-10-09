@@ -1,0 +1,237 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}Reports Dashboard{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .report-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .report-card h2 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+    }
+    
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .report-table th,
+    .report-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .report-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .report-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .stats-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #007bff;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
+    .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border: 1px solid #f5c6cb;
+        border-radius: 5px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; Reports Dashboard
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="report-card">
+    <h1>مدیریت گزارشات سایت</h1>
+    <p>این صفحه شامل تمام گزارشات مربوط به استفاده کاربران از سرویس های سایت می باشد.</p>
+</div>
+
+{% if report_error %}
+<div class="error-message">
+    <strong>خطا در دریافت گزارشات:</strong> {{ report_error }}
+    <br>لطفاً با مدیر سیستم تماس بگیرید.
+</div>
+{% endif %}
+
+<!-- Top Users by Cost -->
+<div class="report-card">
+    <h2>پر مصرف ترین کاربران بر اساس هزینه مصرف شده اوپن روتر</h2>
+    {% if top_users_cost %}
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>نام کاربر</th>
+                <th>شماره تلفن</th>
+                <th>هزینه کل (دلار)</th>
+                <th>تعداد توکن ها</th>
+                <th>تعداد درخواست ها</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in top_users_cost %}
+            <tr>
+                <td>{{ user.user__name }}</td>
+                <td>{{ user.user__phone_number }}</td>
+                <td>{{ user.total_cost|floatformat:6 }}</td>
+                <td>{{ user.total_tokens }}</td>
+                <td>{{ user.request_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>اطلاعاتی برای نمایش وجود ندارد.</p>
+    {% endif %}
+</div>
+
+<!-- Top Users by Free Model Usage -->
+<div class="report-card">
+    <h2>پر مصرف ترین کاربران بر اساس هوش مصنوعی های رایگان</h2>
+    {% if top_free_users %}
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>نام کاربر</th>
+                <th>شماره تلفن</th>
+                <th>تعداد توکن ها</th>
+                <th>تعداد درخواست ها</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in top_free_users %}
+            <tr>
+                <td>{{ user.user__name }}</td>
+                <td>{{ user.user__phone_number }}</td>
+                <td>{{ user.total_tokens }}</td>
+                <td>{{ user.request_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>اطلاعاتی برای نمایش وجود ندارد.</p>
+    {% endif %}
+</div>
+
+<!-- Average Token Usage -->
+<div class="report-card">
+    <h2>میانگین مصرف توکن توسط کاربران</h2>
+    <div class="stats-number">
+        {{ avg_tokens_per_request|floatformat:0 }} توکن
+    </div>
+</div>
+
+<!-- Top Chatbots -->
+<div class="report-card">
+    <h2>پراستفاده ترین چت بات ها</h2>
+    {% if top_chatbots %}
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>نام چت بات</th>
+                <th>تعداد جلسات</th>
+                <th>تعداد پیام ها</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chatbot in top_chatbots %}
+            <tr>
+                <td>{{ chatbot.chatbot__name }}</td>
+                <td>{{ chatbot.session_count }}</td>
+                <td>{{ chatbot.total_messages }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>اطلاعاتی برای نمایش وجود ندارد.</p>
+    {% endif %}
+</div>
+
+<!-- Top AI Models -->
+<div class="report-card">
+    <h2>پر استفاده ترین مدلهای هوش مصنوعی</h2>
+    {% if top_models %}
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>نام مدل</th>
+                <th>تعداد استفاده</th>
+                <th>تعداد توکن ها</th>
+                <th>هزینه کل (دلار)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for model in top_models %}
+            <tr>
+                <td>{{ model.model_name }}</td>
+                <td>{{ model.usage_count }}</td>
+                <td>{{ model.total_tokens }}</td>
+                <td>{{ model.total_cost|floatformat:6 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>اطلاعاتی برای نمایش وجود ندارد.</p>
+    {% endif %}
+</div>
+
+<!-- Top Free AI Models -->
+<div class="report-card">
+    <h2>پر استفاده ترین مدلهای هوش مصنوعی رایگان</h2>
+    {% if top_free_models %}
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th>نام مدل</th>
+                <th>تعداد استفاده</th>
+                <th>تعداد توکن ها</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for model in top_free_models %}
+            <tr>
+                <td>{{ model.model_name }}</td>
+                <td>{{ model.usage_count }}</td>
+                <td>{{ model.total_tokens }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>اطلاعاتی برای نمایش وجود ندارد.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
