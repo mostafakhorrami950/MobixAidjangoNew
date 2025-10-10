@@ -15,7 +15,7 @@
     <meta property="og:locale" content="fa_IR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block twitter_title %}MobixAI{% endblock %}">
-    <meta name="twitter:description" content="{% block twitter_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوای خلاقانه و ترجمه هوشمند.{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}/static/images/twitter-image.jpg{% endblock %}">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <title>{% block title %}MobixAI{% endblock %}</title>
@@ -217,10 +217,21 @@
                     // Clear existing content
                     mobileMenuSections.innerHTML = '';
                     
-                    // If user is authenticated AND on chat page, load chat sessions FIRST
-                    if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
-                        loadMobileChatSessions();
-                    }
+                    // Create main menu section FIRST (so it appears first by default)
+                    const menuSection = document.createElement('div');
+                    menuSection.className = 'mobile-menu-section';
+                    menuSection.id = 'mobile-menu-main'; // Add specific ID for menu section
+                    
+                    const menuHeader = document.createElement('div');
+                    menuHeader.className = 'mobile-menu-section-header';
+                    menuHeader.innerHTML = '<h3>منو</h3>';
+                    menuSection.appendChild(menuHeader);
+                    
+                    const menuContent = document.createElement('div');
+                    menuContent.className = 'mobile-menu-section-content';
+                    
+                    const menuItemsContainer = document.createElement('div');
+                    menuItemsContainer.className = 'mobile-menu-items';
                     
                     // Filter items based on user authentication status
                     let menuItems = [];
@@ -240,63 +251,51 @@
                         });
                     }
                     
-                    // Create main menu section (AFTER sessions if on chat page)
-                    if (menuItems.length > 0) {
-                        const section = document.createElement('div');
-                        section.className = 'mobile-menu-section';
+                    menuItems.forEach(item => {
+                        const menuItem = document.createElement('div');
+                        menuItem.className = 'mobile-menu-item';
                         
-                        const header = document.createElement('div');
-                        header.className = 'mobile-menu-section-header';
-                        header.innerHTML = '<h3>منو</h3>';
-                        section.appendChild(header);
-                        
-                        const content = document.createElement('div');
-                        content.className = 'mobile-menu-section-content';
-                        
-                        const itemsContainer = document.createElement('div');
-                        itemsContainer.className = 'mobile-menu-items';
-                        
-                        menuItems.forEach(item => {
-                            const menuItem = document.createElement('div');
-                            menuItem.className = 'mobile-menu-item';
-                            
-                            // Special handling for logout to show user name
-                            let itemName = item.name;
-                            if (item.name === 'خروج' && document.body.dataset.userName) {
-                                itemName = `خروج (${document.body.dataset.userName})`;
-                            }
-                            
-                            menuItem.innerHTML = `
-                                <a class="mobile-menu-link" href="${item.url}">
-                                    <i class="${item.icon_class}"></i>
-                                    <span>${itemName}</span>
-                                </a>
-                            `;
-                            itemsContainer.appendChild(menuItem);
-                        });
-                        
-                        // For non-authenticated users, add the comparison link if it's not already in the menu items
-                        if (!isAuthenticated) {
-                            // Check if comparison link is already in menuItems
-                            const hasComparisonLink = menuItems.some(item => item.url === '/subscriptions/comparison/');
-                            if (!hasComparisonLink) {
-                                const menuItem = document.createElement('div');
-                                menuItem.className = 'mobile-menu-item';
-                                menuItem.innerHTML = `
-                                    <a class="mobile-menu-link" href="/subscriptions/comparison/">
-                                        <i class="fas fa-table"></i>
-                                        <span>مقایسه پلن‌ها</span>
-                                    </a>
-                                `;
-                                itemsContainer.appendChild(menuItem);
-                            }
+                        // Special handling for logout to show user name
+                        let itemName = item.name;
+                        if (item.name === 'خروج' && document.body.dataset.userName) {
+                            itemName = `خروج (${document.body.dataset.userName})`;
                         }
                         
-                        content.appendChild(itemsContainer);
-                        section.appendChild(content);
-                        mobileMenuSections.appendChild(section);
+                        menuItem.innerHTML = `
+                            <a class="mobile-menu-link" href="${item.url}">
+                                <i class="${item.icon_class}"></i>
+                                <span>${itemName}</span>
+                            </a>
+                        `;
+                        menuItemsContainer.appendChild(menuItem);
+                    });
+                    
+                    // For non-authenticated users, add the comparison link if it's not already in the menu items
+                    if (!isAuthenticated) {
+                        // Check if comparison link is already in menuItems
+                        const hasComparisonLink = menuItems.some(item => item.url === '/subscriptions/comparison/');
+                        if (!hasComparisonLink) {
+                            const menuItem = document.createElement('div');
+                            menuItem.className = 'mobile-menu-item';
+                            menuItem.innerHTML = `
+                                <a class="mobile-menu-link" href="/subscriptions/comparison/">
+                                    <i class="fas fa-table"></i>
+                                    <span>مقایسه پلن‌ها</span>
+                                </a>
+                            `;
+                            menuItemsContainer.appendChild(menuItem);
+                        }
+                    }
+                    
+                    menuContent.appendChild(menuItemsContainer);
+                    menuSection.appendChild(menuContent);
+                    
+                    // If user is authenticated AND on chat page, load chat sessions
+                    if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
+                        loadMobileChatSessions(menuSection);
                     } else {
-                        showDefaultMobileMenuItems();
+                        // For non-chat pages or non-authenticated users, just append the menu section
+                        mobileMenuSections.appendChild(menuSection);
                     }
                 })
                 .catch(error => {
@@ -306,7 +305,8 @@
         }
         
         // Load chat sessions for mobile menu (only on chat page)
-        function loadMobileChatSessions() {
+        // Modified to accept the menuSection parameter and properly order sections
+        function loadMobileChatSessions(menuSection) {
             const mobileMenuSections = document.getElementById('mobile-menu-sections');
             
             if (!mobileMenuSections) {
@@ -342,8 +342,11 @@
             
             content.appendChild(itemsContainer);
             section.appendChild(content);
-            // Insert the sessions section at the beginning
-            mobileMenuSections.insertBefore(section, mobileMenuSections.firstChild);
+            
+            // On chat page, we want "Menu" above "Chat Sessions"
+            // So we append menu first, then sessions
+            mobileMenuSections.appendChild(menuSection); // Menu section first
+            mobileMenuSections.appendChild(section); // Sessions section second
             
             // Fetch sessions
             fetch('/chat/sessions/')
@@ -440,25 +443,21 @@
             // Clear existing content
             mobileMenuSections.innerHTML = '';
             
-            // If user is authenticated AND on chat page, load chat sessions FIRST
-            if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
-                loadMobileChatSessions();
-            }
+            // Create default menu items section FIRST (so it appears first by default)
+            const menuSection = document.createElement('div');
+            menuSection.className = 'mobile-menu-section';
+            menuSection.id = 'mobile-menu-main'; // Add specific ID for menu section
             
-            // Create default menu items
-            const section = document.createElement('div');
-            section.className = 'mobile-menu-section';
+            const menuHeader = document.createElement('div');
+            menuHeader.className = 'mobile-menu-section-header';
+            menuHeader.innerHTML = '<h3>منو</h3>';
+            menuSection.appendChild(menuHeader);
             
-            const header = document.createElement('div');
-            header.className = 'mobile-menu-section-header';
-            header.innerHTML = '<h3>منو</h3>';
-            section.appendChild(header);
+            const menuContent = document.createElement('div');
+            menuContent.className = 'mobile-menu-section-content';
             
-            const content = document.createElement('div');
-            content.className = 'mobile-menu-section-content';
-            
-            const itemsContainer = document.createElement('div');
-            itemsContainer.className = 'mobile-menu-items';
+            const menuItemsContainer = document.createElement('div');
+            menuItemsContainer.className = 'mobile-menu-items';
             
             // Default menu items based on authentication status
             const defaultItems = [];
@@ -495,12 +494,121 @@
                         <span>${itemName}</span>
                     </a>
                 `;
-                itemsContainer.appendChild(menuItem);
+                menuItemsContainer.appendChild(menuItem);
             });
             
-            content.appendChild(itemsContainer);
-            section.appendChild(content);
-            mobileMenuSections.appendChild(section);
+            menuContent.appendChild(menuItemsContainer);
+            menuSection.appendChild(menuContent);
+            
+            // If user is authenticated AND on chat page, load chat sessions
+            if (isAuthenticated && window.location.pathname.startsWith('/chat')) {
+                // Create sessions section
+                const section = document.createElement('div');
+                section.className = 'mobile-menu-section';
+                
+                const header = document.createElement('div');
+                header.className = 'mobile-menu-section-header';
+                header.innerHTML = '<h3>چت‌های من</h3>';
+                section.appendChild(header);
+                
+                const content = document.createElement('div');
+                content.className = 'mobile-menu-section-content';
+                
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'mobile-menu-items';
+                itemsContainer.id = 'mobile-sessions-list';
+                
+                // Add loading indicator
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'mobile-menu-loading';
+                loadingDiv.innerHTML = `
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">در حال بارگذاری...</span>
+                    </div>
+                    <p>در حال بارگذاری چت‌ها...</p>
+                `;
+                itemsContainer.appendChild(loadingDiv);
+                
+                content.appendChild(itemsContainer);
+                section.appendChild(content);
+                
+                // On chat page, we want "Menu" above "Chat Sessions"
+                // So we append menu first, then sessions
+                mobileMenuSections.appendChild(menuSection); // Menu section first
+                mobileMenuSections.appendChild(section); // Sessions section second
+                
+                // Fetch sessions
+                fetch('/chat/sessions/')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Remove loading indicator
+                        itemsContainer.innerHTML = '';
+                        
+                        // Get current session ID from URL if we're on a session page
+                        let currentSessionId = null;
+                        const pathParts = window.location.pathname.split('/');
+                        if (pathParts.length >= 4 && pathParts[1] === 'chat' && pathParts[2] === 'session') {
+                            currentSessionId = parseInt(pathParts[3]);
+                        }
+                        
+                        if (data.sessions && data.sessions.length > 0) {
+                            data.sessions.forEach(session => {
+                                const menuItem = document.createElement('div');
+                                menuItem.className = 'mobile-menu-item session-item';
+                                
+                                // Add active class if this is the current session
+                                if (session.id == currentSessionId) {
+                                    menuItem.classList.add('active');
+                                }
+                                
+                                // Format date
+                                const sessionDate = new Date(session.updated_at);
+                                const formattedDate = sessionDate.toLocaleDateString('fa-IR');
+                                
+                                menuItem.innerHTML = `
+                                    <a class="mobile-menu-link" href="/chat/session/${session.id}/">
+                                        <div class="session-info">
+                                            <div class="session-title">${session.title}</div>
+                                            <div class="session-meta">
+                                                <span class="session-name">${session.session_name}</span>
+                                                <span class="session-date">${formattedDate}</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                `;
+                                itemsContainer.appendChild(menuItem);
+                            });
+                        } else {
+                            // No sessions message
+                            const noSessionsDiv = document.createElement('div');
+                            noSessionsDiv.className = 'mobile-menu-item empty';
+                            noSessionsDiv.innerHTML = `
+                                <div class="mobile-menu-link" style="justify-content: center; opacity: 0.7;">
+                                    چتی وجود ندارد
+                                </div>
+                            `;
+                            itemsContainer.appendChild(noSessionsDiv);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading chat sessions:', error);
+                        // Remove loading indicator
+                        itemsContainer.innerHTML = '';
+                        
+                        // Show error message
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'mobile-menu-item error';
+                        errorDiv.innerHTML = `
+                            <div class="mobile-menu-link" style="justify-content: center; color: #dc3545;">
+                                خطا در بارگذاری چت‌ها
+                            </div>
+                        `;
+                        itemsContainer.appendChild(errorDiv);
+                    });
+            } else {
+                // For non-chat pages or non-authenticated users, just append the menu section
+                mobileMenuSections.appendChild(menuSection);
+            }
         }
         
         // Load desktop menu items dynamically

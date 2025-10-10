@@ -376,7 +376,6 @@
 .mobile-menu-sections {
   display: flex;
   flex-direction: column;
-  gap: 20px;
 }
 
 .mobile-menu-section {
@@ -388,9 +387,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
   border-bottom: 2px solid #E2E8F0;
-  margin-bottom: 10px;
 }
 
 .mobile-menu-section-header h3 {
@@ -438,7 +435,7 @@
   text-decoration: none;
   color: var(--text-primary);
   transition: all 0.2s ease;
-  padding: 12px 16px;
+  padding: none !important;
 }
 
 .mobile-menu-link:hover {
@@ -456,7 +453,6 @@
 /* Mobile Menu Link - Mobile Specific Styles */
 @media (max-width: 768px) {
   .mobile-menu-section-content .mobile-menu-link {
-    padding: 16px 20px;
     font-size: 16px;
     min-height: 56px;
     align-items: center;
@@ -555,6 +551,7 @@
   position: relative;
   background: transparent;
   margin: 0 0px;
+  padding: none !important;
 }
 
 /* Subtle hover background and left accent bar */
@@ -866,7 +863,7 @@ body.mobile-menu-open {
 
 /* Mobile Menu Sections */
 .mobile-menu-section {
-  margin-bottom: 24px;
+  /*margin-bottom: 24px;*/
 }
 
 .mobile-menu-section-header {
@@ -998,7 +995,7 @@ body.mobile-menu-open {
 .mobile-menu-item.empty .mobile-menu-link,
 .mobile-menu-item.error .mobile-menu-link {
   justify-content: center;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .mobile-menu-item.error .mobile-menu-link {
@@ -1309,4 +1306,113 @@ body {
   background: var(--background);
   font-family: 'Vazirmatn', sans-serif;
   position: relative;
+}
+
+/* Mobile Menu Items Container - Two columns layout for menu items */
+#mobile-menu-main .mobile-menu-items {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    margin: 0 !important;
+}
+
+/* Mobile Menu Item - Buttons with border and border-radius */
+#mobile-menu-main .mobile-menu-item {
+    margin: 0 !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    transition: none !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+#mobile-menu-main .mobile-menu-item:hover {
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+#mobile-menu-main .mobile-menu-item.active {
+    border: 1px solid #3b82f6 !important;
+    background-color: #ffffff !important;
+}
+
+/* Mobile Menu Link - With border, border-radius, and small padding */
+#mobile-menu-main .mobile-menu-link {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-decoration: none !important;
+    color: #334155 !important;
+    transition: none !important;
+    padding: 8px 12px !important;
+    min-height: auto !important;
+    background: transparent !important;
+    width: 100% !important;
+    margin: 4px !important;
+    border-radius: 4px !important;
+    border: none !important;
+}
+
+#mobile-menu-main .mobile-menu-link:hover {
+    text-decoration: none !important;
+    color: #2563eb !important;
+    background-color: #f8fafc !important;
+}
+
+#mobile-menu-main .mobile-menu-link i {
+    font-size: 16px !important;
+    width: auto !important;
+    text-align: center !important;
+    margin-right: 8px !important;
+    margin-bottom: 0 !important;
+    color: #334155 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+#mobile-menu-main .mobile-menu-link span {
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    text-align: left !important;
+    line-height: 1.2 !important;
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Remove any default styling that might interfere */
+#mobile-menu-main .mobile-menu-link,
+#mobile-menu-main .mobile-menu-link *,
+#mobile-menu-main .mobile-menu-item,
+#mobile-menu-main .mobile-menu-item * {
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 360px) {
+    #mobile-menu-main .mobile-menu-items {
+        gap: 6px !important;
+        padding: 6px !important;
+    }
+    
+    #mobile-menu-main .mobile-menu-link {
+        padding: 6px 10px !important;
+        margin: 3px !important;
+    }
+    
+    #mobile-menu-main .mobile-menu-link i {
+        font-size: 14px !important;
+        margin-right: 6px !important;
+    }
+    
+    #mobile-menu-main .mobile-menu-link span {
+        font-size: 13px !important;
+    }
 }
