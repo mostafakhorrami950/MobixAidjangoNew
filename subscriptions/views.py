@@ -80,6 +80,18 @@ def purchase_subscription(request):
         'websearchsettings_set'
     )
     
+    # Get all AI models for comparison table
+    AIModel = apps.get_model('ai_models', 'AIModel')
+    all_ai_models = AIModel.objects.filter(is_active=True)
+    
+    # Prepare subscription to AI model mapping for the template
+    subscription_model_access = {}
+    for subscription in subscriptions:
+        subscription_model_access[subscription.id] = [
+            model_subscription.ai_model.id 
+            for model_subscription in subscription.ai_models.all()
+        ]
+    
     # Get comprehensive usage statistics for the user
     usage_stats = UserUsageStatsService.get_user_usage_statistics(request.user)
     usage_summary = UserUsageStatsService.get_usage_summary_for_dashboard(request.user)
@@ -87,6 +99,8 @@ def purchase_subscription(request):
     
     context = {
         'subscriptions': subscriptions,
+        'all_ai_models': all_ai_models,
+        'subscription_model_access': subscription_model_access,
         'usage_stats': usage_stats,
         'usage_summary': usage_summary,
         'usage_cards': usage_cards,
