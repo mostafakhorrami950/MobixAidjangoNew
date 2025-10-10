@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.db.models import Q
@@ -285,6 +286,7 @@ def get_available_models_for_chatbot(request, chatbot_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
 @login_required
 def create_default_session(request):
     """
@@ -384,6 +386,8 @@ def create_default_session(request):
     
     return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
+
+@csrf_exempt
 @login_required
 def create_session(request):
     if request.method == 'POST':
@@ -510,6 +514,7 @@ def get_session_messages(request, session_id):
         'ai_model_name': ai_model_name
     })
 
+@csrf_exempt
 @login_required
 def send_message(request, session_id):
     # Define logger at the function level to ensure it's accessible in all blocks
@@ -1270,6 +1275,7 @@ def get_user_sessions(request):
         'has_more': has_more
     })
 
+@csrf_exempt
 @login_required
 def generate_chat_title(request):
     if request.method == 'POST':
@@ -1371,6 +1377,7 @@ def delete_session(request, session_id):
     
     return JsonResponse({'error': 'روش درخواست نامعتبر است'}, status=400)
 
+@csrf_exempt
 @login_required
 def update_session_title(request, session_id):
     if request.method == 'POST':
@@ -1450,6 +1457,7 @@ def check_image_generation_access(request, session_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
 @login_required
 def analyze_image(request, session_id):
     """
@@ -1627,6 +1635,7 @@ def chat_session(request, session_id):
     }
     return render(request, 'chatbot/chat.html', context)
 
+@csrf_exempt
 @login_required
 def update_session_model(request, session_id):
     """
@@ -1762,6 +1771,7 @@ def get_sidebar_menu_items(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
 @login_required
 def edit_message(request, session_id, message_id):
     """
