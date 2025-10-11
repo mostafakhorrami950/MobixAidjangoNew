@@ -171,12 +171,16 @@ def get_available_models_for_user(request):
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
+                'description': model.description,  # Add description
                 'is_free': model.is_free,
                 'model_type': model.model_type,
                 'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
                 'user_has_access': has_access,
                 'image_url': image_url
             })
+        
+        # Sort models: accessible models first, then by name
+        model_list.sort(key=lambda x: (not x['user_has_access'], x['name']))
         
         return JsonResponse({
             'models': model_list
@@ -271,12 +275,16 @@ def get_available_models_for_chatbot(request, chatbot_id):
             model_list.append({
                 'model_id': model.model_id,
                 'name': model.name,
+                'description': model.description,  # Add description
                 'is_free': model.is_free,
                 'model_type': model.model_type,
                 'token_cost_multiplier': float(model.token_cost_multiplier) if hasattr(model, 'token_cost_multiplier') else 1.0,
                 'user_has_access': has_access,
                 'image_url': image_url
             })
+        
+        # Sort models: accessible models first, then by name
+        model_list.sort(key=lambda x: (not x['user_has_access'], x['name']))
         
         return JsonResponse({
             'models': model_list,

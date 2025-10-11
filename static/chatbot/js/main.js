@@ -709,7 +709,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 let html = '';
-                models.forEach(model => {
+                // Sort models: accessible models first, then by name
+                const sortedModels = [...models].sort((a, b) => {
+                    // If one has access and the other doesn't, prioritize the one with access
+                    if (a.user_has_access && !b.user_has_access) return -1;
+                    if (!a.user_has_access && b.user_has_access) return 1;
+                    // If both have access or both don't, sort by name
+                    return a.name.localeCompare(b.name);
+                });
+                
+                sortedModels.forEach(model => {
                     const isFree = model.is_free;
                     const hasAccess = model.user_has_access;
                     const badgeClass = isFree ? 'free' : 'premium';
@@ -1164,13 +1173,22 @@ function populateFloatingModelGrid(models) {
     const modelGrid = document.getElementById('model-grid');
     if (!modelGrid) return;
     
+    // Sort models: accessible models first, then by name
+    const sortedModels = [...models].sort((a, b) => {
+        // If one has access and the other doesn't, prioritize the one with access
+        if (a.user_has_access && !b.user_has_access) return -1;
+        if (!a.user_has_access && b.user_has_access) return 1;
+        // If both have access or both don't, sort by name
+        return a.name.localeCompare(b.name);
+    });
+    
     // Only populate if the grid is empty or models have changed
     const existingCards = modelGrid.querySelectorAll('.model-card');
-    if (existingCards.length > 0 && existingCards.length === models.length) {
+    if (existingCards.length > 0 && existingCards.length === sortedModels.length) {
         // Check if models are the same
         let modelsMatch = true;
         for (let i = 0; i < existingCards.length; i++) {
-            if (existingCards[i].dataset.modelId !== models[i].model_id) {
+            if (existingCards[i].dataset.modelId !== sortedModels[i].model_id) {
                 modelsMatch = false;
                 break;
             }
@@ -1178,7 +1196,7 @@ function populateFloatingModelGrid(models) {
         
         if (modelsMatch) {
             // Models are the same, just update selection state
-            updateModelSelectionState(models);
+            updateModelSelectionState(sortedModels);
             return;
         }
     }
@@ -1187,7 +1205,7 @@ function populateFloatingModelGrid(models) {
     modelGrid.innerHTML = '';
     
     // Populate grid with model cards
-    models.forEach(model => {
+    sortedModels.forEach(model => {
         const modelCard = document.createElement('div');
         modelCard.className = 'model-card';
         modelCard.dataset.modelId = model.model_id;
@@ -1233,9 +1251,13 @@ function populateFloatingModelGrid(models) {
         // Set default image if none provided
         const modelImage = model.image_url || '/static/images/default-model.PNG';
         
+        // Add description if available
+        const descriptionHtml = model.description ? `<div class="model-description">${model.description}</div>` : '';
+        
         modelCard.innerHTML = `
             <img src="${modelImage}" alt="${model.name}" onerror="this.src='/static/images/default-model.PNG'">
             <div class="model-name">${model.name}</div>
+            ${descriptionHtml}
             <span class="model-access ${accessClass}">${accessText}</span>
         `;
         
