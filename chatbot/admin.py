@@ -117,32 +117,47 @@ class LimitationMessageAdmin(admin.ModelAdmin):
     
     # Removed custom form handling due to linter issues
 
-@admin.register(OpenRouterRequestCost)
+from django.utils import timezone
+import datetime
+
 class OpenRouterRequestCostAdmin(admin.ModelAdmin):
-    list_display = ('user', 'model_name', 'total_tokens', 'total_cost_usd', 'request_type', 'created_at')
-    list_filter = ('request_type', 'model_name', 'subscription_type', 'created_at')
+    list_display = ('user', 'model_name', 'total_tokens', 'formatted_created_at', 'formatted_updated_at')
+    list_filter = ('model_name', 'request_type', 'subscription_type')
     search_fields = ('user__name', 'user__phone_number', 'model_name', 'model_id')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('user', 'session', 'subscription_type', 'created_at', 'updated_at')
+    date_hierarchy = None  # Disable date hierarchy to avoid timezone issues
     
-    # Add date hierarchy for easier navigation
-    date_hierarchy = 'created_at'
+    @admin.display(description='Created At')
+    def formatted_created_at(self, obj):
+        """
+        Format created_at for display in admin, handling timezone issues
+        """
+        try:
+            if obj.created_at:
+                # If timezone-aware, convert to naive
+                if timezone.is_aware(obj.created_at):
+                    return timezone.localtime(obj.created_at).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    return obj.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            return "-"
+        except Exception:
+            return "Invalid Date"
     
-    # Add fieldsets for better organization
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('user', 'session', 'subscription_type', 'request_type')
-        }),
-        ('Model Information', {
-            'fields': ('model_id', 'model_name')
-        }),
-        ('Token Usage', {
-            'fields': ('prompt_tokens', 'completion_tokens', 'total_tokens')
-        }),
-        ('Cost Information', {
-            'fields': ('token_cost_multiplier', 'effective_cost_tokens', 'cost_per_million_tokens', 'total_cost_usd')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        })
-    )
+    @admin.display(description='Updated At')
+    def formatted_updated_at(self, obj):
+        """
+        Format updated_at for display in admin, handling timezone issues
+        """
+        try:
+            if obj.updated_at:
+                # If timezone-aware, convert to naive
+                if timezone.is_aware(obj.updated_at):
+                    return timezone.localtime(obj.updated_at).strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    return obj.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            return "-"
+        except Exception:
+            return "Invalid Date"
+
+# Register the model with the custom admin class
+admin.site.register(OpenRouterRequestCost, OpenRouterRequestCostAdmin)

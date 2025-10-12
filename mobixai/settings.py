@@ -115,6 +115,8 @@ if config('MYSQL_DATABASE', default=None):
                 'connect_timeout': 60,
                 'read_timeout': 60,
                 'write_timeout': 60,
+                # Disable timezone conversion in MySQL to avoid timezone issues
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci, time_zone='+00:00'",
             },
             'TEST': {
                 'CHARSET': 'utf8mb4',
@@ -226,7 +228,9 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+# Disable timezone support to avoid MySQL timezone issues
+# This will store all datetimes in naive format
+USE_TZ = False
 
 # Default charset for the entire project
 DEFAULT_CHARSET = 'utf-8'

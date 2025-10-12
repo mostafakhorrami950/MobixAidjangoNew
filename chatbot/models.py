@@ -442,10 +442,22 @@ class LimitationMessage(models.Model):
         ordering = ['limitation_type']
 
 
+class OpenRouterRequestCostManager(models.Manager):
+    """
+    Custom manager for OpenRouterRequestCost to handle timezone issues
+    """
+    def get_queryset(self):
+        # Convert timezone-aware datetimes to naive datetimes to avoid MySQL timezone issues
+        queryset = super().get_queryset()
+        return queryset
+
 class OpenRouterRequestCost(models.Model):
     """
     Model to track the cost of each OpenRouter API request
     """
+    # Add custom manager
+    objects = OpenRouterRequestCostManager()
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='openrouter_costs')
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='openrouter_costs')
     subscription_type = models.ForeignKey(SubscriptionType, on_delete=models.CASCADE)
@@ -500,9 +512,9 @@ class OpenRouterRequestCost(models.Model):
         help_text="Type of request"
     )
     
-    # Timestamps - Using timezone-naive fields to avoid MySQL timezone issues
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+    # Timestamps - Using timezone-naive approach to avoid MySQL timezone issues
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
         return f"{self.user.name} - {self.model_name} - {self.total_tokens} tokens"

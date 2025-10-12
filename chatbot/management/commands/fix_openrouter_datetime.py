@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db import connection
 from django.utils import timezone
 from chatbot.models import OpenRouterRequestCost
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class Command(BaseCommand):
         # Process in batches to avoid memory issues
         offset = 0
         fixed_count = 0
+        error_count = 0
         
         while offset < total_count:
             # Get a batch of records
@@ -36,22 +38,38 @@ class Command(BaseCommand):
             for record in records:
                 try:
                     # Try to access the datetime fields to see if they're valid
-                    _ = record.created_at
-                    _ = record.updated_at
+                    created_at = record.created_at
+                    updated_at = record.updated_at
+                    
+                    # Check if datetimes are valid
+                    if not isinstance(created_at, (datetime.datetime, type(None))) or \
+                       not isinstance(updated_at, (datetime.datetime, type(None))):
+                        # Fix invalid datetime values
+                        self.stdout.write(f'Fixing invalid datetime for record ID {record.id}')
+                        record.created_at = timezone.now()
+                        record.updated_at = timezone.now()
+                        record.save(update_fields=['created_at', 'updated_at'])
+                        fixed_count += 1
+                        
                 except Exception as e:
-                    # If there's an error, it means the datetime is invalid
-                    self.stdout.write(f'Fixing invalid datetime for record ID {record.id}')
-                    # Set to current time
-                    record.created_at = timezone.now()
-                    record.updated_at = timezone.now()
-                    record.save()
-                    fixed_count += 1
+                    # Handle any other errors
+                    error_count += 1
+                    self.stdout.write(f'Error processing record ID {record.id}: {str(e)}')
+                    # Set to current time as fallback
+                    try:
+                        record.created_at = timezone.now()
+                        record.updated_at = timezone.now()
+                        record.save(update_fields=['created_at', 'updated_at'])
+                        fixed_count += 1
+                    except Exception as e2:
+                        self.stdout.write(f'Failed to fix record ID {record.id}: {str(e2)}')
             
             offset += batch_size
             self.stdout.write(f'Processed {min(offset, total_count)}/{total_count} records...')
         
         self.stdout.write(
             self.style.SUCCESS(
-                f'Successfully fixed {fixed_count} records with invalid datetime values'
+                f'Successfully fixed {fixed_count} records with invalid datetime values. '
+                f'Encountered {error_count} errors.'
             )
         )
