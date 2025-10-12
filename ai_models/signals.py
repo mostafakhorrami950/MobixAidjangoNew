@@ -13,8 +13,9 @@ def regenerate_sitemap(sender, **kwargs):
     Regenerate the articles sitemap whenever an article is saved or deleted
     """
     try:
-        call_command('generate_sitemap')
-        logger.info("Sitemap regenerated successfully after article change")
+        # Note: With our new implementation, Django's sitemap view generates the sitemap dynamically
+        # So we don't need to generate a static file anymore
+        logger.info("Article changed - sitemap will be dynamically generated on next request")
     except Exception as e:
         # Log the error but don't fail the save operation
-        logger.error(f"Error regenerating sitemap: {e}")
+        logger.error(f"Error handling sitemap regeneration: {e}")

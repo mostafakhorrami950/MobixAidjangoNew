@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <sitemap>
-    <loc>https://mobixai.ir/sitemap.xml</loc>
-    <lastmod>2025-10-12T00:00:00+00:00</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>https://mobixai.ir/sitemap-articles.xml</loc>
-    <lastmod>2025-10-12T00:00:00+00:00</lastmod>
-  </sitemap>
+    <sitemap>
+        <loc>https://mobixai.ir/sitemap-static.xml</loc>
+        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+    </sitemap>
+    <sitemap>
+        <loc>https://mobixai.ir/sitemap-articles.xml</loc>
+        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+    </sitemap>
 </sitemapindex>

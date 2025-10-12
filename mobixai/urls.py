@@ -17,19 +17,28 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.sitemaps.views import sitemap, index
-from ai_models.sitemaps import ArticlesSitemap, StaticPagesSitemap
 from reports.admin import reports_admin_site
-from django.views.generic import TemplateView
+import os
+from django.http import HttpResponse
+from ai_models.views import static_sitemap, articles_sitemap
 
-# Sitemaps configuration
-sitemaps = {
-    'articles': ArticlesSitemap,
-    'static': StaticPagesSitemap,
-}
+# Custom view for sitemap index
+def sitemap_index(request):
+    # Simple sitemap index XML
+    content = '''<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <sitemap>
+        <loc>https://mobixai.ir/sitemap-static.xml</loc>
+        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+    </sitemap>
+    <sitemap>
+        <loc>https://mobixai.ir/sitemap-articles.xml</loc>
+        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+    </sitemap>
+</sitemapindex>'''
+    return HttpResponse(content.encode('utf-8'), content_type='application/xml')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -39,9 +48,11 @@ urlpatterns = [
     path('subscriptions/', include('subscriptions.urls')),
     path('ai-models/', include('ai_models.urls')),
     path('', include('core.urls')),  # Include core app URLs
-    path('sitemap.xml', index, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.index'),
-    path('sitemap-<section>.xml', sitemap, {'sitemaps': sitemaps},
-         name='django.contrib.sitemaps.views.sitemap'),
+    
+    # Sitemap URLs
+    path('sitemap.xml', sitemap_index, name='sitemap-index'),
+    path('sitemap-static.xml', static_sitemap, name='sitemap-static'),
+    path('sitemap-articles.xml', articles_sitemap, name='sitemap-articles'),
 ]
 
 # Serve media and static files during development
