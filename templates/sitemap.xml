@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://mobixai.ir/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Registration Page -->
+  <url>
+    <loc>https://mobixai.ir/accounts/register/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://mobixai.ir/static/images/registration-illustration.jpg</image:loc>
+      <image:title>ثبت نام در MobixAI</image:title>
+      <image:caption>ثبت نام رایگان در پلتفرم هوش مصنوعی پیشرفته فارسی</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Login Page -->
+  <url>
+    <loc>https://mobixai.ir/accounts/login/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://mobixai.ir/static/images/login-illustration.jpg</image:loc>
+      <image:title>ورود به MobixAI</image:title>
+      <image:caption>ورود به پلتفرم هوش مصنوعی پیشرفته فارسی</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Articles List Page -->
+  <url>
+    <loc>https://mobixai.ir/ai-models/articles/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://mobixai.ir/static/images/articles-hero.jpg</image:loc>
+      <image:title>مقالات مدل‌های هوش مصنوعی</image:title>
+      <image:caption>اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها</image:caption>
+    </image:image>
+  </url>
+  
+  <!-- Terms and Conditions -->
+  <url>
+    <loc>https://mobixai.ir/terms-and-conditions/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Dashboard -->
+  <url>
+    <loc>https://mobixai.ir/dashboard/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Financial Transactions -->
+  <url>
+    <loc>https://mobixai.ir/financial-transactions/</loc>
+    <lastmod>2025-10-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+</urlset>
