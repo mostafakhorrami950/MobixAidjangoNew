@@ -103,60 +103,55 @@ def articles_sitemap(request):
     
     return HttpResponse(sitemap_content.encode('utf-8'), content_type='application/xml')
 
-class StaticPagesSitemap(Sitemap):
-    protocol = 'https'
-
-    def items(self):
-        # Return a list of named URLs for static pages
-        return [
-            'home',
-            'register', 
-            'login',
-            'model_articles_list',
-            'terms_and_conditions',
-            'dashboard',
-            'financial_transactions'
-        ]
-
-    def location(self, item):
-        return reverse(item)
-
-    def lastmod(self, item):
-        # Return current date for static pages
-        return timezone.now()
-        
-    def changefreq(self, obj):
-        # Define specific change frequencies for different pages
-        changefreq_map = {
-            'home': 'daily',
-            'dashboard': 'daily',
-            'model_articles_list': 'weekly',
-            'financial_transactions': 'weekly',
-            'terms_and_conditions': 'yearly',
-            'register': 'monthly',
-            'login': 'monthly'
-        }
-        return changefreq_map.get(obj, 'monthly')
-        
-    def priority(self, obj):
-        # Define specific priorities for different pages
-        priority_map = {
-            'home': 1.0,
-            'dashboard': 0.8,
-            'model_articles_list': 0.8,
-            'financial_transactions': 0.6,
-            'terms_and_conditions': 0.5,
-            'register': 0.9,
-            'login': 0.9
-        }
-        return priority_map.get(obj, 0.5)
-
 def static_sitemap(request):
     """
     Generate and serve the static pages sitemap dynamically
     """
-    # Create sitemap instance
-    sitemap = StaticPagesSitemap()
+    # Define static pages with their correct URL names and metadata
+    static_pages = [
+        {
+            'name': 'home',
+            'changefreq': 'daily',
+            'priority': 1.0,
+            'image': None
+        },
+        {
+            'name': 'register',
+            'changefreq': 'monthly',
+            'priority': 0.9,
+            'image': None  # Removed non-existent image
+        },
+        {
+            'name': 'login',
+            'changefreq': 'monthly',
+            'priority': 0.9,
+            'image': None  # Removed non-existent image
+        },
+        {
+            'name': 'model_articles_list',
+            'changefreq': 'weekly',
+            'priority': 0.8,
+            'image': None  # Removed non-existent image
+        },
+        {
+            'name': 'terms_and_conditions',
+            'changefreq': 'yearly',
+            'priority': 0.5,
+            'image': None
+        },
+        {
+            'name': 'dashboard',
+            'changefreq': 'daily',
+            'priority': 0.8,
+            'image': None
+        },
+        {
+            'name': 'financial_transactions',
+            'changefreq': 'weekly',
+            'priority': 0.6,
+            'image': None
+        }
+    ]
     
     # Start building the sitemap XML with proper formatting
     sitemap_content = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -164,53 +159,36 @@ def static_sitemap(request):
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 '''
     
-    # Get all items
-    items = sitemap.items()
-    
     # Add static pages to sitemap
-    for item in items:
-        # Get the URL
-        url = sitemap.location(item)
-        full_url = f'https://mobixai.ir{url}'
-        
-        # Get lastmod (current date)
-        lastmod = timezone.now().strftime('%Y-%m-%d')
-        
-        # Get changefreq and priority
-        changefreq = sitemap.changefreq(item)
-        priority = sitemap.priority(item)
-        
-        sitemap_content += f'''  <url>
+    for page in static_pages:
+        try:
+            # Get the URL
+            url = reverse(page['name'])
+            full_url = f'https://mobixai.ir{url}'
+            
+            # Get lastmod (current date)
+            lastmod = timezone.now().strftime('%Y-%m-%d')
+            
+            sitemap_content += f'''  <url>
     <loc>{escape(full_url)}</loc>
     <lastmod>{lastmod}</lastmod>
-    <changefreq>{changefreq}</changefreq>
-    <priority>{priority}</priority>
+    <changefreq>{page['changefreq']}</changefreq>
+    <priority>{page['priority']}</priority>
 '''
-        
-        # Add specific image information for certain pages
-        if item == 'register':
-            sitemap_content += '''    <image:image>
-      <image:loc>https://mobixai.ir/static/images/registration-illustration.jpg</image:loc>
-      <image:title>ثبت نام در MobixAI</image:title>
-      <image:caption>ثبت نام رایگان در پلتفرم هوش مصنوعی پیشرفته فارسی</image:caption>
+            
+            # Add image information if available
+            if page['image']:
+                sitemap_content += f'''    <image:image>
+      <image:loc>{escape(page['image']['loc'])}</image:loc>
+      <image:title>{escape(page['image']['title'])}</image:title>
+      <image:caption>{escape(page['image']['caption'])}</image:caption>
     </image:image>
 '''
-        elif item == 'login':
-            sitemap_content += '''    <image:image>
-      <image:loc>https://mobixai.ir/static/images/login-illustration.jpg</image:loc>
-      <image:title>ورود به MobixAI</image:title>
-      <image:caption>ورود به پلتفرم هوش مصنوعی پیشرفته فارسی</image:caption>
-    </image:image>
-'''
-        elif item == 'model_articles_list':
-            sitemap_content += '''    <image:image>
-      <image:loc>https://mobixai.ir/static/images/articles-hero.jpg</image:loc>
-      <image:title>مقالات مدل‌های هوش مصنوعی</image:title>
-      <image:caption>اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها</image:caption>
-    </image:image>
-'''
-        
-        sitemap_content += '  </url>\n'
+            
+            sitemap_content += '  </url>\n'
+        except Exception as e:
+            # Skip pages that can't be reversed
+            continue
     
     # Close the sitemap
     sitemap_content += '</urlset>\n'

@@ -22,20 +22,24 @@ from django.conf.urls.static import static
 from reports.admin import reports_admin_site
 import os
 from django.http import HttpResponse
+from django.utils import timezone
 from ai_models.views import static_sitemap, articles_sitemap
 
 # Custom view for sitemap index
 def sitemap_index(request):
+    # Get current date in proper format
+    current_date = timezone.now().strftime('%Y-%m-%dT%H:%M:%S+00:00')
+    
     # Simple sitemap index XML
-    content = '''<?xml version="1.0" encoding="UTF-8"?>
+    content = f'''<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <sitemap>
         <loc>https://mobixai.ir/sitemap-static.xml</loc>
-        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+        <lastmod>{current_date}</lastmod>
     </sitemap>
     <sitemap>
         <loc>https://mobixai.ir/sitemap-articles.xml</loc>
-        <lastmod>2025-10-12T00:00:00+00:00</lastmod>
+        <lastmod>{current_date}</lastmod>
     </sitemap>
 </sitemapindex>'''
     return HttpResponse(content.encode('utf-8'), content_type='application/xml')
