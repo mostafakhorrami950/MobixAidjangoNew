@@ -637,8 +637,8 @@ body {
 }
 
 .ai-model-image {
-  width: 90px;
-  height: 90px;
+  width: 60px;
+  height: 60px;
   object-fit: cover;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -694,8 +694,8 @@ body {
   
   .ai-model-image,
   .ai-model-placeholder {
-    width: 90px;
-    height: 90px;
+    width: 60px;
+    height: 60px;
   }
   
   .ai-model-placeholder i {
