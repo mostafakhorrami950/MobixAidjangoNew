@@ -2,6 +2,9 @@
 // نمایش پیام‌ها و رندر محتوا (Messages Display)
 // =================================
 
+// Global variable to track if user has scrolled up
+let userScrolledUp = false;
+
 // Utility function to scroll to bottom with enhanced reliability
 function scrollToBottom() {
     // Multiple approaches to ensure scrolling works in all scenarios
@@ -45,6 +48,19 @@ function isUserAtBottom() {
     const threshold = 50; 
     return (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - threshold);
 }
+
+// Add scroll event listener to detect when user scrolls up
+document.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('scroll', function() {
+        // If user has scrolled up (not at bottom), set flag to true
+        if (!isUserAtBottom()) {
+            userScrolledUp = true;
+        } else {
+            // If user scrolls back to bottom, reset flag
+            userScrolledUp = false;
+        }
+    });
+});
 
 // Add message to chat display
 function addMessageToChat(message) {
@@ -110,8 +126,10 @@ function addMessageToChat(message) {
                     }
                 }
                 
-                // Scroll to bottom
-                scrollToBottom();
+                // Scroll to bottom ONLY if user hasn't scrolled up
+                if (!userScrolledUp) {
+                    scrollToBottom();
+                }
                 return;
             }
         }
@@ -394,8 +412,10 @@ function addMessageToChat(message) {
         }
     });
     
-    // Scroll to bottom with enhanced reliability
-    scrollToBottom();
+    // Scroll to bottom with enhanced reliability ONLY if user hasn't scrolled up
+    if (!userScrolledUp) {
+        scrollToBottom();
+    }
 }
 
 // Function to extract and display files from a message

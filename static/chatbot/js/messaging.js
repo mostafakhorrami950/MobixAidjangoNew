@@ -190,7 +190,10 @@ function sendMessage() {
                     } else if (hasImages) {
                         // For any other chatbot with images, ensure they're visible
                         setTimeout(() => {
-                            scrollToBottom();
+                            // Only scroll if user hasn't scrolled up
+                            if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                scrollToBottom();
+                            }
                         }, 200);
                     }
                     
@@ -303,9 +306,11 @@ function sendMessage() {
                                         // Update the streaming message with images immediately
                                         updateOrAddAssistantMessageWithImages(assistantContent, imagesData);
                                         
-                                        // Force scroll to show the new images
+                                        // Force scroll to show the new images ONLY if user hasn't scrolled up
                                         setTimeout(() => {
-                                            scrollToBottom();
+                                            if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                                scrollToBottom();
+                                            }
                                         }, 100);
                                     } catch (parseError) {
                                         console.error('Error parsing images data:', parseError);
@@ -628,7 +633,8 @@ function updateOrAddAssistantMessage(content) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
+    // and hasn't scrolled up manually
+    if (typeof userScrolledUp !== 'undefined' && !userScrolledUp && isUserAtBottom()) {
         scrollToBottom();
     }
 }
@@ -723,15 +729,19 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
                 const newImages = assistantElement.querySelectorAll('.image-container img');
                 newImages.forEach(img => {
                     img.onload = function() {
-                        // Scroll to show the image when it loads
+                        // Scroll to show the image when it loads ONLY if user hasn't scrolled up
                         setTimeout(() => {
-                            scrollToBottom();
+                            if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                scrollToBottom();
+                            }
                         }, 50);
                     };
                     // Ensure image loads even if cached
                     if (img.complete) {
                         setTimeout(() => {
-                            scrollToBottom();
+                            if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                scrollToBottom();
+                            }
                         }, 50);
                     }
                 });
@@ -743,7 +753,8 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
     addCopyButtonsToContent(assistantElement);
     
     // Scroll to bottom during streaming ONLY if the user is already at the bottom
-    if (isUserAtBottom()) {
+    // and hasn't scrolled up manually
+    if (typeof userScrolledUp !== 'undefined' && !userScrolledUp && isUserAtBottom()) {
         scrollToBottom();
     }
 }

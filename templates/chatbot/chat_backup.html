@@ -249,7 +249,9 @@
     
     let currentSessionId = null;
     let isStreaming = false;
-    
+    // Global variable to track if user has scrolled up
+    let userScrolledUp = false;
+
     // Load user sessions
     function loadSessions() {
         fetch('{% url "get_user_sessions" %}')
@@ -293,32 +295,50 @@
     // Utility function to scroll to bottom with better reliability
     // Modified to scroll the entire window instead of a container
     function scrollToBottom() {
-    // Multiple approaches to ensure scrolling works in all scenarios
-    function doScroll() {
-        window.scrollTo(0, document.body.scrollHeight);
+        // Check if user has scrolled up, if so, don't auto-scroll
+        if (typeof userScrolledUp !== 'undefined' && userScrolledUp) {
+            return;
+        }
+        
+        // Multiple approaches to ensure scrolling works in all scenarios
+        function doScroll() {
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+        
+        // Immediate scroll
+        doScroll();
+        
+        // Scroll after a short delay to handle DOM updates
+        setTimeout(doScroll, 10);
+        
+        // Scroll using requestAnimationFrame for better timing
+        requestAnimationFrame(doScroll);
+        
+        // Additional scroll attempts with increasing delays
+        setTimeout(doScroll, 50);
+        setTimeout(doScroll, 100);
+        setTimeout(doScroll, 200);
     }
-    
-    // Immediate scroll
-    doScroll();
-    
-    // Scroll after a short delay to handle DOM updates
-    setTimeout(doScroll, 10);
-    
-    // Scroll using requestAnimationFrame for better timing
-    requestAnimationFrame(doScroll);
-    
-    // Additional scroll attempts with increasing delays
-    setTimeout(doScroll, 50);
-    setTimeout(doScroll, 100);
-    setTimeout(doScroll, 200);
-}
 
-// Helper function to check if the user is near the bottom of the page
-function isUserAtBottom() {
-    // A small buffer in pixels to ensure it works on all screen sizes
-    const threshold = 50; 
-    return (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - threshold);
-}
+    // Helper function to check if the user is near the bottom of the page
+    function isUserAtBottom() {
+        // A small buffer in pixels to ensure it works on all screen sizes
+        const threshold = 50; 
+        return (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - threshold);
+    }
+
+    // Add scroll event listener to detect when user scrolls up
+    document.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('scroll', function() {
+            // If user has scrolled up (not at bottom), set flag to true
+            if (!isUserAtBottom()) {
+                userScrolledUp = true;
+            } else {
+                // If user scrolls back to bottom, reset flag
+                userScrolledUp = false;
+            }
+        });
+    });
 
     // Load a specific session
     function loadSession(sessionId) {
@@ -373,7 +393,10 @@ function isUserAtBottom() {
                 document.getElementById('send-button').disabled = false;
                 
                 // Scroll to bottom with enhanced reliability
-                scrollToBottom();
+                // Only scroll if user hasn't scrolled up
+                if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                    scrollToBottom();
+                }
                 
                 // Focus on input
                 document.getElementById('message-input').focus();
@@ -595,7 +618,10 @@ function isUserAtBottom() {
         });
         
         // Scroll to bottom with enhanced reliability
-        scrollToBottom();
+        // Only scroll if user hasn't scrolled up
+        if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+            scrollToBottom();
+        }
     }
 
     // Function to add copy buttons to code blocks and quotes
@@ -1184,8 +1210,9 @@ function isUserAtBottom() {
         // Add copy buttons to code blocks and quotes
         addCopyButtonsToContent(assistantElement);
         
-        // Scroll to bottom during streaming ONLY if the user is already at the bottom
-        if (isUserAtBottom()) {
+        // Scroll to bottom with enhanced reliability
+        // Only scroll if user hasn't scrolled up
+        if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
             scrollToBottom();
         }
     }
@@ -1290,7 +1317,8 @@ function isUserAtBottom() {
         addCopyButtonsToContent(assistantElement);
         
         // Scroll to bottom during streaming ONLY if the user is already at the bottom
-        if (isUserAtBottom()) {
+        // and hasn't scrolled up manually
+        if (typeof userScrolledUp !== 'undefined' && !userScrolledUp && isUserAtBottom()) {
             scrollToBottom();
         }
     }

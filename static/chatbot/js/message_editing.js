@@ -422,7 +422,10 @@ function handleEditStreamingResponse(response) {
                     // For all other chatbots, just scroll to bottom to show the edited message
                     console.log('Message editing completed successfully, scrolling to show message...');
                     setTimeout(() => {
-                        scrollToBottom();
+                        // Only scroll if user hasn't scrolled up
+                        if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                            scrollToBottom();
+                        }
                     }, 500); // Small delay to ensure message is rendered
                     
                     // Refresh page after successful message editing
@@ -512,6 +515,11 @@ function handleEditStreamingResponse(response) {
                                     updateOrAddAssistantMessage(assistantContent);
                                 }
                                 
+                                // Scroll to bottom during streaming ONLY if user hasn't scrolled up
+                                if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                    scrollToBottom();
+                                }
+                                
                                 // Remove processed text from buffer
                                 buffer = buffer.substring(firstMarker.start);
                                 processed = true;
@@ -531,7 +539,10 @@ function handleEditStreamingResponse(response) {
                                         
                                         // Force scroll to show the new images
                                         setTimeout(() => {
-                                            scrollToBottom();
+                                            // Only scroll if user hasn't scrolled up
+                                            if (typeof userScrolledUp !== 'undefined' && !userScrolledUp) {
+                                                scrollToBottom();
+                                            }
                                         }, 100);
                                     } catch (parseError) {
                                         console.error('Error parsing images data:', parseError);
