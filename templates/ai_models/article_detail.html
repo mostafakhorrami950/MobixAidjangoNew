@@ -2,7 +2,20 @@
 {% load static %}
 
 {% block title %}{{ article.title }} - MobixAI{% endblock %}
-{% block meta_description %}{{ article.excerpt|default:"اطلاعات جامع درباره مدل هوش مصنوعی " }}{{ article.ai_model.name }}{% endblock %}
+{% block meta_description %}{{ article.excerpt|default:"اطلاعات جامع درباره مدل هوش مصنوعی " }}{{ article.ai_model.name }}. کاربردها، ویژگی‌ها و نحوه استفاده از این مدل پیشرفته AI در MobixAI.{% endblock %}
+{% block meta_keywords %}{{ article.ai_model.name }}, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, مدل زبان طبیعی, {{ article.title }}{% endblock %}
+{% block meta_robots %}index, follow{% endblock %}
+
+<!-- Open Graph / Facebook -->
+{% block og_title %}{{ article.title }} - MobixAI{% endblock %}
+{% block og_description %}{{ article.excerpt|default:"اطلاعات جامع درباره مدل هوش مصنوعی " }}{{ article.ai_model.name }}. کاربردها، ویژگی‌ها و نحوه استفاده از این مدل پیشرفته AI در MobixAI.{% endblock %}
+{% block og_image %}{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% else %}{% static 'images/article-default-og-image.jpg' %}{% endif %}{% endblock %}
+{% block og_url %}{{ request.build_absolute_uri }}{% endblock %}
+
+<!-- Twitter -->
+{% block twitter_title %}{{ article.title }} - MobixAI{% endblock %}
+{% block twitter_description %}{{ article.excerpt|default:"اطلاعات جامع درباره مدل هوش مصنوعی " }}{{ article.ai_model.name }}. کاربردها، ویژگی‌ها و نحوه استفاده از این مدل پیشرفته AI در MobixAI.{% endblock %}
+{% block twitter_image %}{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% else %}{% static 'images/article-default-twitter-image.jpg' %}{% endif %}{% endblock %}
 
 {% block navbar %}
 <!-- Empty navbar block to remove modern-navbar from articles page -->
@@ -187,7 +200,8 @@
   "dateModified": "{{ article.updated_at|date:'c' }}",
   "author": {
     "@type": "Organization",
-    "name": "MobixAI"
+    "name": "MobixAI",
+    "url": "https://mobixai.ir/"
   },
   "publisher": {
     "@type": "Organization",
@@ -201,7 +215,8 @@
     "@type": "WebPage",
     "@id": "{{ request.build_absolute_uri }}"
   },
-  "image": "{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% endif %}"
+  "image": "{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% endif %}",
+  "articleBody": "{{ article.content|truncatewords:50|escapejs }}"
 }
 </script>
 {% endblock %}

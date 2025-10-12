@@ -3,10 +3,21 @@
 
 {% block body_class %}register-page{% endblock %}
 
-{% block title %}ثبت نام در MobixAI - عضویت رایگان در پلتفرم هوش مصنوعی{% endblock %}
-{% block meta_description %}عضویت رایگان در MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
-{% block meta_keywords %}ثبت نام, عضویت, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند{% endblock %}
+{% block title %}ثبت نام در MobixAI - عضویت رایگان در پلتفرم هوش مصنوعی پیشرفته{% endblock %}
+{% block meta_description %}عضویت رایگان در MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید. دسترسی به مدل‌های پیشرفته AI مانند GPT-4، Claude و Llama.{% endblock %}
+{% block meta_keywords %}ثبت نام, عضویت, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند, GPT-4, Claude, Llama, مدل‌های زبان طبیعی{% endblock %}
 {% block meta_robots %}index, follow{% endblock %}
+
+<!-- Open Graph / Facebook -->
+{% block og_title %}ثبت نام در MobixAI - عضویت رایگان در پلتفرم هوش مصنوعی پیشرفته{% endblock %}
+{% block og_description %}عضویت رایگان در MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
+{% block og_image %}{% static 'images/registration-og-image.jpg' %}{% endblock %}
+{% block og_url %}https://mobixai.ir/accounts/register/{% endblock %}
+
+<!-- Twitter -->
+{% block twitter_title %}ثبت نام در MobixAI - عضویت رایگان در پلتفرم هوش مصنوعی پیشرفته{% endblock %}
+{% block twitter_description %}عضویت رایگان در MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
+{% block twitter_image %}{% static 'images/registration-twitter-image.jpg' %}{% endblock %}
 
 {% block navbar %}
 <!-- Remove navbar for register page -->
@@ -51,6 +62,7 @@
           "@type": "WebPage",
           "name": "ثبت نام در MobixAI",
           "description": "عضویت رایگان در پلتفرم هوش مصنوعی پیشرفته فارسی MobixAI برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
+          "url": "https://mobixai.ir/accounts/register/",
           "breadcrumb": {
             "@type": "BreadcrumbList",
             "itemListElement": [{
@@ -64,6 +76,11 @@
               "name": "ثبت نام",
               "item": "https://mobixai.ir/accounts/register/"
             }]
+          },
+          "mainEntity": {
+            "@type": "RegisterAction",
+            "name": "فرم ثبت نام MobixAI",
+            "description": "فرم ثبت نام در پلتفرم هوش مصنوعی MobixAI با نام و شماره تلفن همراه"
           }
         }
         </script>

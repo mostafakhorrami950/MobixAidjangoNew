@@ -1,16 +1,17 @@
 User-agent: *
-Allow: /
-Allow: /accounts/register/
-Allow: /accounts/login/
-Allow: /home/
 Disallow: /admin/
-Disallow: /chat/
+Disallow: /reports/
+Disallow: /chat/admin/
 Disallow: /accounts/profile/
-Disallow: /accounts/logout/
-Disallow: /subscriptions/
-Disallow: /financial/
-Disallow: /api/
+Disallow: /subscriptions/admin/
 
 Sitemap: https://mobixai.ir/sitemap.xml
 
-Host: mobixai.ir
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /

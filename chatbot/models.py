@@ -500,9 +500,9 @@ class OpenRouterRequestCost(models.Model):
         help_text="Type of request"
     )
     
-    # Timestamps
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
+    # Timestamps - Using timezone-naive fields to avoid MySQL timezone issues
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
     
     def __str__(self):
         return f"{self.user.name} - {self.model_name} - {self.total_tokens} tokens"

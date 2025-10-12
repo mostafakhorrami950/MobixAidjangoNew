@@ -3,10 +3,21 @@
 
 {% block body_class %}login-page{% endblock %}
 
-{% block title %}ورود به MobixAI - پلتفرم هوش مصنوعی{% endblock %}
-{% block meta_description %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
-{% block meta_keywords %}ورود, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند{% endblock %}
+{% block title %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی{% endblock %}
+{% block meta_description %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید. دسترسی به مدل‌های پیشرفته AI مانند GPT-4، Claude و Llama.{% endblock %}
+{% block meta_keywords %}ورود, هوش مصنوعی, MobixAI, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند, GPT-4, Claude, Llama, مدل‌های زبان طبیعی{% endblock %}
 {% block meta_robots %}index, follow{% endblock %}
+
+<!-- Open Graph / Facebook -->
+{% block og_title %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی{% endblock %}
+{% block og_description %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
+{% block og_image %}{% static 'images/login-og-image.jpg' %}{% endblock %}
+{% block og_url %}https://mobixai.ir/accounts/login/{% endblock %}
+
+<!-- Twitter -->
+{% block twitter_title %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی{% endblock %}
+{% block twitter_description %}ورود به MobixAI - پلتفرم هوش مصنوعی پیشرفته فارسی. با کاربران بیش از 50 هزار نفر بپیوندید و از قابلیت‌های چت با هوش مصنوعی، تولید محتوا و ترجمه هوشمند استفاده کنید.{% endblock %}
+{% block twitter_image %}{% static 'images/login-twitter-image.jpg' %}{% endblock %}
 
 {% block navbar %}
 <!-- Remove navbar for login page -->
@@ -50,6 +61,7 @@
           "@type": "WebPage",
           "name": "ورود به MobixAI",
           "description": "ورود به پلتفرم هوش مصنوعی پیشرفته فارسی MobixAI برای چت با مدل‌های زبان طبیعی، تولید محتوای خلاقانه و ترجمه هوشمند.",
+          "url": "https://mobixai.ir/accounts/login/",
           "breadcrumb": {
             "@type": "BreadcrumbList",
             "itemListElement": [{
@@ -63,6 +75,11 @@
               "name": "ورود",
               "item": "https://mobixai.ir/accounts/login/"
             }]
+          },
+          "mainEntity": {
+            "@type": "LoginForm",
+            "name": "فرم ورود به MobixAI",
+            "description": "فرم ورود به پلتفرم هوش مصنوعی MobixAI با شماره تلفن همراه"
           }
         }
         </script>

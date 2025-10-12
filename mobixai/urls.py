@@ -20,7 +20,15 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.sitemaps.views import sitemap
+from ai_models.sitemaps import ArticlesSitemap, StaticPagesSitemap
 from reports.admin import reports_admin_site
+
+# Sitemaps configuration
+sitemaps = {
+    'articles': ArticlesSitemap,
+    'static': StaticPagesSitemap,
+}
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,6 +38,8 @@ urlpatterns = [
     path('subscriptions/', include('subscriptions.urls')),
     path('ai-models/', include('ai_models.urls')),
     path('', include('core.urls')),  # Include core app URLs
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps},
+         name='django.contrib.sitemaps.views.sitemap'),
 ]
 
 # Serve media and static files during development

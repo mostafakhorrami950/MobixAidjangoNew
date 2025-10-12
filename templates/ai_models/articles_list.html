@@ -2,8 +2,20 @@
 {% load static %}
 
 {% block title %}مقالات مدل‌های هوش مصنوعی - MobixAI{% endblock %}
-{% block meta_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید.{% endblock %}
-{% block meta_keywords %}هوش مصنوعی, مقالات هوش مصنوعی, مدل‌های AI, MobixAI, چت با هوش مصنوعی, تولید محتوا{% endblock %}
+{% block meta_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید. مقالات درباره GPT-4, Claude, Llama و سایر مدل‌های پیشرفته AI.{% endblock %}
+{% block meta_keywords %}هوش مصنوعی, مقالات هوش مصنوعی, مدل‌های AI, MobixAI, چت با هوش مصنوعی, تولید محتوا, GPT-4, Claude, Llama, مدل‌های زبان طبیعی{% endblock %}
+{% block meta_robots %}index, follow{% endblock %}
+
+<!-- Open Graph / Facebook -->
+{% block og_title %}مقالات مدل‌های هوش مصنوعی - MobixAI{% endblock %}
+{% block og_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید.{% endblock %}
+{% block og_image %}{% static 'images/articles-list-og-image.jpg' %}{% endblock %}
+{% block og_url %}https://mobixai.ir/articles/{% endblock %}
+
+<!-- Twitter -->
+{% block twitter_title %}مقالات مدل‌های هوش مصنوعی - MobixAI{% endblock %}
+{% block twitter_description %}اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها. با ثبت نام در MobixAI از تمامی مدل‌ها به صورت رایگان استفاده کنید.{% endblock %}
+{% block twitter_image %}{% static 'images/articles-list-twitter-image.jpg' %}{% endblock %}
 
 {% block navbar %}
 <!-- Empty navbar block to remove modern-navbar from articles page -->
@@ -161,13 +173,17 @@
   "@type": "ItemList",
   "name": "مقالات مدل‌های هوش مصنوعی",
   "description": "اطلاعات جامع درباره مدل‌های هوش مصنوعی مختلف و کاربردهای آنها",
+  "url": "https://mobixai.ir/articles/",
   "itemListElement": [
     {% for article in articles %}
     {
       "@type": "ListItem",
       "position": {{ forloop.counter }},
       "url": "{{ request.build_absolute_uri }}{{ article.get_absolute_url }}",
-      "name": "{{ article.title }}"
+      "name": "{{ article.title }}",
+      "description": "{{ article.excerpt|default:article.title }}",
+      "datePublished": "{{ article.created_at|date:'c' }}",
+      "image": "{% if article.image %}{{ request.build_absolute_uri }}{{ article.image.url }}{% endif %}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
   ]
