@@ -1,5 +1,6 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
+from django.utils import timezone
 from .models import ModelArticle
 
 class ArticlesSitemap(Sitemap):
@@ -8,7 +9,7 @@ class ArticlesSitemap(Sitemap):
     protocol = 'https'
 
     def items(self):
-        return ModelArticle.objects.filter(is_published=True)
+        return ModelArticle._default_manager.filter(is_published=True)
 
     def lastmod(self, item):
         return item.updated_at
@@ -28,6 +29,5 @@ class StaticPagesSitemap(Sitemap):
         return reverse(item)
 
     def lastmod(self, item):
-        # Return a fixed date for static pages
-        from django.utils import timezone
-        return timezone.now().date()
+        # Return current date for static pages
+        return timezone.now()

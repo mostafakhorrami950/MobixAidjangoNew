@@ -20,9 +20,10 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.sitemaps.views import sitemap
+from django.contrib.sitemaps.views import sitemap, index
 from ai_models.sitemaps import ArticlesSitemap, StaticPagesSitemap
 from reports.admin import reports_admin_site
+from django.views.generic import TemplateView
 
 # Sitemaps configuration
 sitemaps = {
@@ -38,7 +39,8 @@ urlpatterns = [
     path('subscriptions/', include('subscriptions.urls')),
     path('ai-models/', include('ai_models.urls')),
     path('', include('core.urls')),  # Include core app URLs
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps},
+    path('sitemap.xml', index, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.index'),
+    path('sitemap-<section>.xml', sitemap, {'sitemaps': sitemaps},
          name='django.contrib.sitemaps.views.sitemap'),
 ]
 

@@ -1,18 +1,17 @@
 from django.core.management.base import BaseCommand
-from django.urls import reverse
-from django.utils import timezone
 from ai_models.models import ModelArticle
 import os
 from django.conf import settings
+from xml.sax.saxutils import escape
 
 class Command(BaseCommand):
     help = 'Generate dynamic sitemap for articles'
 
     def handle(self, *args, **options):
         # Get all published articles
-        articles = ModelArticle.objects.filter(is_published=True).order_by('-updated_at')
+        articles = ModelArticle._default_manager.filter(is_published=True).order_by('-updated_at')
         
-        # Start building the sitemap XML
+        # Start building the sitemap XML with proper formatting
         sitemap_content = '''<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -20,34 +19,34 @@ class Command(BaseCommand):
         
         # Add articles to sitemap
         for article in articles:
-            # Format last modified date
-            lastmod = article.updated_at.strftime('%Y-%m-%d')
+            # Format last modified date in W3C format
+            lastmod = article.updated_at.strftime('%Y-%m-%dT%H:%M:%S+00:00')
             
-            # Build the URL
-            url = reverse('model_article_detail', kwargs={'slug': article.slug})
-            full_url = f'https://mobixai.ir{url}'
+            # Build the URL using Django's get_absolute_url method for accuracy
+            full_url = f'https://mobixai.ir{article.get_absolute_url()}'
             
             sitemap_content += f'''  <url>
-    <loc>{full_url}</loc>
+    <loc>{escape(full_url)}</loc>
     <lastmod>{lastmod}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
 '''
             
             # Add image information if available
             if article.image:
+                # Ensure we have the correct absolute URL for the image
                 image_url = f'https://mobixai.ir{article.image.url}'
                 sitemap_content += f'''    <image:image>
-      <image:loc>{image_url}</image:loc>
-      <image:title>{article.title}</image:title>
-      <image:caption>{article.excerpt or article.title}</image:caption>
+      <image:loc>{escape(image_url)}</image:loc>
+      <image:title>{escape(article.title)}</image:title>
+      <image:caption>{escape(article.excerpt if article.excerpt else article.title)}</image:caption>
     </image:image>
 '''
             
             sitemap_content += '  </url>\n'
         
         # Close the sitemap
-        sitemap_content += '</urlset>'
+        sitemap_content += '</urlset>\n'
         
         # Write to file
         sitemap_path = os.path.join(settings.BASE_DIR, 'templates', 'sitemap-articles.xml')
@@ -55,7 +54,5 @@ class Command(BaseCommand):
             f.write(sitemap_content)
         
         self.stdout.write(
-            self.style.SUCCESS(
-                f'Successfully generated sitemap with {len(articles)} articles at {sitemap_path}'
-            )
+            'Successfully generated sitemap with {} articles at {}'.format(len(articles), sitemap_path)
         )
