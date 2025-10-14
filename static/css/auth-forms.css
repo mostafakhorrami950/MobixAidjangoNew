@@ -613,13 +613,16 @@ body {
   font-weight: 600;
   margin-bottom: 1rem;
   font-size: 16px;
+  text-align: center;
 }
 
 .ai-models-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(3, 1fr); /* 3 columns on desktop */
+  gap: 1rem;
   justify-content: center;
+  margin: 0 auto;
+  max-width: 300px; /* Limit width for better alignment */
 }
 
 .ai-model-card {
@@ -634,6 +637,7 @@ body {
   border: none;
   width: 70px;
   height: 70px;
+  margin: 0 auto;
 }
 
 .ai-model-card:hover {
@@ -685,6 +689,162 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-top: 4px;
+  display: block;
+  line-height: 1.2;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .ai-models-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on tablet */
+    gap: 0.75rem;
+    max-width: 250px;
+  }
+  
+  .ai-model-card {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 1rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.6rem;
+    margin-top: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-models-section {
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+  }
+  
+  .ai-models-section h5 {
+    font-size: 14px;
+    margin-bottom: 0.75rem;
+  }
+  
+  .ai-models-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns on mobile */
+    gap: 0.6rem;
+    max-width: 220px;
+  }
+  
+  .ai-model-card {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 0.9rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.55rem;
+    margin-top: 2px;
+  }
+}
+
+/* Extra small devices (400px and below) */
+@media (max-width: 400px) {
+  .ai-models-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    max-width: 200px;
+  }
+  
+  .ai-model-card {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 0.8rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.5rem;
+    margin-top: 2px;
+  }
+}
+
+/* Very small devices (360px and below) */
+@media (max-width: 360px) {
+  .ai-models-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    max-width: 180px;
+  }
+  
+  .ai-model-card {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 0.75rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.45rem;
+    margin-top: 1px;
+  }
+}
+
+/* Extremely small devices (320px and below) */
+@media (max-width: 320px) {
+  .ai-models-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
+    max-width: 160px;
+  }
+  
+  .ai-model-card {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 0.7rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.4rem;
+    margin-top: 1px;
+  }
 }
 
 /* Responsive adjustments */
