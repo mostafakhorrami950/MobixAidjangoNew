@@ -83,8 +83,8 @@
             </form>
             
             <!-- Resend OTP Section -->
-            <div class="resend-section" style="margin-top: 1.5rem; text-align: center;">
-                <p class="text-muted" style="margin-bottom: 0.5rem;">کد را دریافت نکردید؟</p>
+            <div class="resend-section">
+                <p class="text-muted">کد را دریافت نکردید؟</p>
                 <button id="resendBtn" class="resend-btn" onclick="resendOTP()" disabled>
                     <i class="fas fa-redo-alt"></i>
                     <span id="resendText">ارسال مجدد (60)</span>
@@ -212,6 +212,5 @@ function resendOTP() {
     });
 }
 </script>
-
 
 {% endblock %}

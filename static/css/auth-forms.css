@@ -216,6 +216,7 @@ body {
   transform-style: preserve-3d;
   perspective: 1000px;
   transition: var(--transition);
+  margin: 10px;
 }
 
 /* Glass Shine Effect */
@@ -380,6 +381,7 @@ body {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  min-height: 48px; /* Minimum height for better touch targets */
 }
 
 .form-control:focus {
@@ -461,6 +463,7 @@ body {
   appearance: none;
   -webkit-appearance: none;
   margin-top: 2px;
+  min-width: 20px; /* Ensure minimum touch target size */
 }
 
 .form-check-input:checked {
@@ -488,6 +491,7 @@ body {
   font-size: 14px;
   color: var(--text-secondary);
   cursor: pointer;
+  line-height: 1.4; /* Improve readability */
 }
 
 .form-check-label a {
@@ -522,6 +526,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--gap-sm);
+  min-height: 48px; /* Minimum height for better touch targets */
 }
 
 .auth-submit-btn::before {
@@ -607,12 +612,13 @@ body {
   color: var(--text-primary);
   font-weight: 600;
   margin-bottom: 1rem;
+  font-size: 16px;
 }
 
 .ai-models-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.75rem;
   justify-content: center;
 }
 
@@ -626,8 +632,8 @@ body {
   border-radius: 50%;
   background: transparent;
   border: none;
-  width: 90px;
-  height: 90px;
+  width: 70px;
+  height: 70px;
 }
 
 .ai-model-card:hover {
@@ -637,8 +643,8 @@ body {
 }
 
 .ai-model-image {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   object-fit: cover;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -646,8 +652,8 @@ body {
 }
 
 .ai-model-placeholder {
-  width: 90px;
-  height: 90px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   display: flex;
@@ -666,11 +672,11 @@ body {
 
 .ai-model-placeholder i {
   color: var(--text-muted);
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 .ai-model-name {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-primary);
   text-align: center;
   font-weight: 500;
@@ -678,44 +684,143 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 4px;
 }
 
 /* Responsive adjustments */
 @media (max-width: 480px) {
+  .auth-container {
+    padding: 10px;
+  }
+  
+  .resend-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  
+  .auth-header {
+    padding: var(--gap-lg) var(--gap-md);
+  }
+  
+  .auth-body {
+    padding: var(--gap-lg) var(--gap-md);
+  }
+  
+  .auth-footer {
+    padding: var(--gap-md);
+  }
+  
+  .auth-logo {
+    width: 70px;
+    height: 70px;
+    margin-bottom: var(--gap-md);
+  }
+  
+  .auth-title {
+    font-size: 20px;
+  }
+  
+  .auth-subtitle {
+    font-size: 12px;
+  }
+  
+  .form-control {
+    font-size: 14px;
+    padding: var(--gap-sm) var(--gap-md);
+    min-height: 40px;
+  }
+  
+  .auth-submit-btn {
+    font-size: 14px;
+    padding: var(--gap-sm) var(--gap-md);
+    min-height: 40px;
+  }
+  
+  .form-label {
+    font-size: 12px;
+  }
+  
+  .form-text,
+  .error-text {
+    font-size: 10px;
+  }
+  
+  .form-check-label {
+    font-size: 12px;
+  }
+  
   .ai-models-grid {
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   }
   
   .ai-model-card {
-    width: 90px;
-    height: 90px;
+    width: 50px;
+    height: 50px;
   }
   
   .ai-model-image,
   .ai-model-placeholder {
-    width: 60px;
-    height: 60px;
+    width: 35px;
+    height: 35px;
   }
   
   .ai-model-placeholder i {
-    font-size: 1.5rem;
+    font-size: 0.8rem;
   }
   
-  .auth-card {
-    max-width: 100%;
+  .ai-model-name {
+    font-size: 0.5rem;
   }
-  
+}
+
+/* Extremely small devices (320px and below) */
+@media (max-width: 320px) {
   .auth-title {
-    font-size: 24px;
+    font-size: 18px;
   }
   
   .auth-subtitle {
-    font-size: 14px;
+    font-size: 11px;
   }
   
   .form-control {
-    font-size: 15px;
+    font-size: 13px;
+    padding: var(--gap-xs) var(--gap-sm);
+  }
+  
+  .auth-submit-btn {
+    font-size: 13px;
+  }
+  
+  .form-label {
+    font-size: 11px;
+  }
+  
+  .form-check-label {
+    font-size: 11px;
+  }
+  
+  .ai-models-grid {
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+  }
+  
+  .ai-model-card {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 0.7rem;
+  }
+  
+  .ai-model-name {
+    font-size: 0.45rem;
   }
 }
 
@@ -786,10 +891,17 @@ body {
   font-size: 24px;
   cursor: pointer;
   transition: var(--transition);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .terms-modal-close:hover {
   color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .terms-modal-body {
@@ -817,27 +929,42 @@ body {
   margin-bottom: var(--gap-sm);
 }
 
-/* Responsive Styles */
+/* Responsive Styles for Terms Modal */
 @media (max-width: 480px) {
-  .auth-card {
+  .terms-modal-overlay {
+    padding: 5px;
+  }
+  
+  .terms-modal {
     max-width: 100%;
+    max-height: 90vh;
   }
   
-  .auth-logo {
-    width: 70px;
-    height: 70px;
+  .terms-modal-header {
+    padding: var(--gap-md);
   }
   
-  .auth-title {
-    font-size: 24px;
+  .terms-modal-title {
+    font-size: 18px;
   }
   
-  .auth-subtitle {
+  .terms-modal-close {
+    font-size: 20px;
+    width: 35px;
+    height: 35px;
+  }
+  
+  .terms-modal-body {
+    padding: var(--gap-md);
+    max-height: calc(90vh - 110px);
+  }
+  
+  .terms-modal-body h3 {
+    font-size: 16px;
+  }
+  
+  .terms-modal-body p {
     font-size: 14px;
-  }
-  
-  .form-control {
-    font-size: 15px;
   }
 }
 
@@ -853,4 +980,43 @@ body {
   font-size: 13px;
   margin-top: var(--gap-xs);
   display: block;
+}
+
+/* Focus states for better accessibility */
+.form-control:focus,
+.form-check-input:focus,
+.auth-submit-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Touch target improvements for mobile */
+button,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Prevent zoom on iOS when focusing inputs */
+@media screen and (-webkit-min-device-pixel-ratio: 2) {
+  select,
+  textarea,
+  input {
+    font-size: 16px; /* Prevents iOS Safari zoom */
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .auth-container {
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+  
+  .auth-card {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
 }

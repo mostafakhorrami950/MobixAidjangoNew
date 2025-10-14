@@ -35,6 +35,7 @@
         
         <!-- AI Models Section -->
         <div class="ai-models-section mt-4">
+          <h5 class="text-center mb-3">مدل‌های هوش مصنوعی ما</h5>
           <div class="ai-models-grid">
             {% for model in ai_models %}
               <a href="{% url 'model_article_detail' slug=model.article.slug %}" class="ai-model-card" title="{{ model.name }}" target="_blank">
@@ -206,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add loading state
         submitBtn.classList.add('loading');
-        submitBtn.textContent = 'در حال ارسال...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
         submitBtn.disabled = true;
     });
 });
