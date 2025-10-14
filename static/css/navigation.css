@@ -419,7 +419,8 @@ body:not(.chat-page):not(.auth-page) main {
 
 /* Hide navbar on login and register pages */
 .login-page .modern-navbar,
-.register-page .modern-navbar {
+.register-page .modern-navbar,
+.verify-otp-page .modern-navbar {
   display: none !important;
 }
 
@@ -488,6 +489,11 @@ body:not(.chat-page):not(.auth-page) main {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: none; /* Prevent interaction when hidden */
+}
+
+.mobile-menu-container.open {
+  pointer-events: auto; /* Enable interaction when open */
 }
 
 .mobile-menu-container.open {

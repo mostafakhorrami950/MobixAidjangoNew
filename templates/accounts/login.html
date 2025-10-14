@@ -35,16 +35,15 @@
         
         <!-- AI Models Section -->
         <div class="ai-models-section mt-4">
-          <h5 class="text-center mb-3">مدل‌های هوش مصنوعی ما</h5>
           <div class="ai-models-grid">
             {% for model in ai_models %}
               <a href="{% url 'model_article_detail' slug=model.article.slug %}" class="ai-model-card" title="{{ model.name }}" target="_blank">
                 {% if model.image %}
-                  <img src="{{ model.image.url }}" alt="{{ model.name }}" class="ai-model-image" loading="lazy">
+                  <img src="{{ model.image.url }}" alt="{{ model.name }}" class="ai-model-image">
                 {% else %}
                   <div class="ai-model-placeholder">
                     {% if model.article.image %}
-                      <img src="{{ model.article.image.url }}" alt="{{ model.name }}" class="ai-model-image" style="opacity: 0.75;" loading="lazy">
+                      <img src="{{ model.article.image.url }}" alt="{{ model.name }}" class="ai-model-image" style="opacity: 0.75;">
                     {% else %}
                       <i class="fas fa-microchip"></i>
                     {% endif %}
@@ -207,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add loading state
         submitBtn.classList.add('loading');
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ارسال...';
+        submitBtn.textContent = 'در حال ارسال...';
         submitBtn.disabled = true;
     });
 });

@@ -3,7 +3,9 @@
 <head>
     {% load static %}
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MobixAI">
     <meta name="description" content="{% block meta_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
     <meta name="keywords" content="{% block meta_keywords %}هوش مصنوعی, چت با هوش مصنوعی, تولید محتوا, ترجمه هوشمند, MobixAI, هوش مصنوعی فارسی{% endblock %}">
     <meta name="author" content="MobixAI">
@@ -178,11 +180,18 @@
                 document.body.classList.add('chat-page');
             }
             
-            // Load desktop menu items
-            loadDesktopMenuItems();
+            // Don't initialize mobile menu on auth pages to prevent scrolling issues
+            const isAuthPage = document.body.classList.contains('login-page') || 
+                              document.body.classList.contains('register-page') || 
+                              document.body.classList.contains('verify-otp-page');
             
-            // Load mobile menu items
-            loadMobileMenuItems();
+            if (!isAuthPage) {
+                // Load desktop menu items
+                loadDesktopMenuItems();
+                
+                // Load mobile menu items
+                loadMobileMenuItems();
+            }
         });
         
         // Load mobile menu items dynamically

@@ -8,6 +8,7 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     margin-top: 2rem;
     margin-bottom: 2rem;
+    font-family: 'Vazir', sans-serif;
 }
 
 .terms-header {
@@ -22,6 +23,218 @@
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
+}
+
+.terms-content {
+    color: #374151;
+    font-size: 16px;
+    line-height: 1.8;
+    text-align: justify;
+    direction: rtl;
+}
+
+.terms-content h1, .terms-content h2, .terms-content h3 {
+    color: #1f2937;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.terms-content h1 {
+    font-size: 1.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.terms-content h2 {
+    font-size: 1.5rem;
+}
+
+.terms-content h3 {
+    font-size: 1.25rem;
+}
+
+.terms-content p {
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.terms-content ul, .terms-content ol {
+    margin-right: 2rem;
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.terms-content li {
+    margin-bottom: 0.5rem;
+}
+
+.terms-content a {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.terms-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+}
+
+.terms-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1001;
+    display: none;
+}
+
+.terms-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terms-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.terms-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.terms-modal-close:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.terms-modal-body {
+    padding: 1.5rem;
+    color: #374151;
+    line-height: 1.7;
+    text-align: justify;
+    direction: rtl;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-top: 2rem;
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+    color: white;
+    text-decoration: none;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+    .terms-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .terms-title {
+        font-size: 1.5rem;
+    }
+    
+    .terms-content {
+        font-size: 14px;
+    }
+    
+    .terms-content h1 {
+        font-size: 1.5rem;
+    }
+    
+    .terms-content h2 {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content h3 {
+        font-size: 1.1rem;
+    }
+    
+    .terms-modal {
+        width: 95%;
+        margin: 1rem;
+        max-height: 90vh;
+    }
+    
+    .terms-modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .terms-modal-body {
+        padding: 1rem;
+        font-size: 14px;
+    }
+    
+    .back-button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .terms-container {
+        margin: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .terms-title {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content {
+        font-size: 13px;
+    }
+    
+    .terms-content h1 {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content h2 {
+        font-size: 1.1rem;
+    }
+    
+    .terms-content ul, .terms-content ol {
+        margin-right: 1.5rem;
+    }
 }
 
 /* Home2 Page Styles */

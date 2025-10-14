@@ -4,14 +4,80 @@
 {% block title %}{{ terms.title }} - MobixAI{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages.css' %}">
+<style>
+.terms-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    font-family: 'Vazir', sans-serif;
+}
+
+.terms-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.terms-title {
+    color: #1f2937;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
 
 .terms-content {
     color: #374151;
     font-size: 16px;
     line-height: 1.8;
     text-align: justify;
-    white-space: pre-line;
+    direction: rtl;
+}
+
+.terms-content h1, .terms-content h2, .terms-content h3 {
+    color: #1f2937;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.terms-content h1 {
+    font-size: 1.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.terms-content h2 {
+    font-size: 1.5rem;
+}
+
+.terms-content h3 {
+    font-size: 1.25rem;
+}
+
+.terms-content p {
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.terms-content ul, .terms-content ol {
+    margin-right: 2rem;
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.terms-content li {
+    margin-bottom: 0.5rem;
+}
+
+.terms-content a {
+    color: #3b82f6;
+    text-decoration: underline;
 }
 
 .terms-modal-overlay {
@@ -45,7 +111,7 @@
     padding: 1.5rem;
     border-bottom: 1px solid #e5e7eb;
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -76,8 +142,8 @@
     padding: 1.5rem;
     color: #374151;
     line-height: 1.7;
-    white-space: pre-line;
     text-align: justify;
+    direction: rtl;
 }
 
 .back-button {
@@ -101,6 +167,7 @@
     text-decoration: none;
 }
 
+/* Mobile-specific improvements */
 @media (max-width: 768px) {
     .terms-container {
         margin: 1rem;
@@ -111,9 +178,68 @@
         font-size: 1.5rem;
     }
     
+    .terms-content {
+        font-size: 14px;
+    }
+    
+    .terms-content h1 {
+        font-size: 1.5rem;
+    }
+    
+    .terms-content h2 {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content h3 {
+        font-size: 1.1rem;
+    }
+    
     .terms-modal {
         width: 95%;
         margin: 1rem;
+        max-height: 90vh;
+    }
+    
+    .terms-modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .terms-modal-body {
+        padding: 1rem;
+        font-size: 14px;
+    }
+    
+    .back-button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .terms-container {
+        margin: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .terms-title {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content {
+        font-size: 13px;
+    }
+    
+    .terms-content h1 {
+        font-size: 1.25rem;
+    }
+    
+    .terms-content h2 {
+        font-size: 1.1rem;
+    }
+    
+    .terms-content ul, .terms-content ol {
+        margin-right: 1.5rem;
     }
 }
 </style>
@@ -126,7 +252,7 @@
     </div>
     
     <div class="terms-content">
-        {{ terms.content }}
+        {{ terms.content|safe }}
     </div>
     
     <div style="text-align: center;">
@@ -146,8 +272,8 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="terms-modal-body">
-            {{ terms.content }}
+        <div class="terms-modal-body" id="termsModalBody">
+            {{ terms.content|safe }}
         </div>
     </div>
 </div>
@@ -167,10 +293,20 @@ function hideTermsModal() {
 }
 
 // Event listeners
-document.getElementById('termsModalClose').addEventListener('click', hideTermsModal);
-document.getElementById('termsModalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideTermsModal();
+document.addEventListener('DOMContentLoaded', function() {
+    const closeBtn = document.getElementById('termsModalClose');
+    const overlay = document.getElementById('termsModalOverlay');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideTermsModal);
+    }
+    
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideTermsModal();
+            }
+        });
     }
 });
 
