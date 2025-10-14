@@ -306,7 +306,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 # CSRF settings
 CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to access CSRF cookie for AJAX requests
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True

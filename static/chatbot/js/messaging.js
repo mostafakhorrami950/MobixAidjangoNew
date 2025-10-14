@@ -26,19 +26,30 @@ function sendMessage() {
     
     // بررسی وجود currentSessionId و ایجاد session پیش‌فرض در صورت نیاز
     if (!currentSessionId) {
-        // Store the message content in session storage so it can be sent after page refresh
-        if (message) {
-            sessionStorage.setItem('pendingMessage', message);
-        }
-        
-        // Store files info in session storage if needed
-        if (files && files.length > 0) {
-            // For simplicity, we'll just store the fact that files were selected
-            sessionStorage.setItem('pendingFiles', 'true');
-        }
-        
-        // ایجاد session پیش‌فرض
-        createDefaultSessionAndSendMessage(message, files);
+        // Instead of storing in session storage, send the message directly after creating session
+        createDefaultSession().then(sessionData => {
+            if (sessionData && sessionData.session_id) {
+                // Session created successfully, now send the message
+                // Re-call sendMessage after a short delay to ensure UI is updated
+                setTimeout(() => {
+                    // Update the message input with the original message
+                    const msgInput = document.getElementById('message-input');
+                    if (msgInput) {
+                        msgInput.value = message;
+                        // Now send the message
+                        sendMessage();
+                    }
+                }, 100);
+            } else {
+                // Handle error in session creation
+                console.error('Failed to create session:', sessionData.error || 'No session ID returned');
+                alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
+            }
+        }).catch(error => {
+            // Handle network or other unexpected errors
+            console.error('Error creating default session:', error);
+            alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
+        });
         return;
     }
 
@@ -888,24 +899,33 @@ async function createDefaultSession() {
         // Set new session ID
         currentSessionId = data.session_id;
         
-        // Redirect to the new session URL with page refresh
+        // Instead of refreshing the page, update the URL and UI without refresh
         const newUrl = `/chat/session/${currentSessionId}/`;
-        window.location.href = newUrl;
-        
-        // The following code will not execute due to page refresh
-        /*
         history.pushState({sessionId: currentSessionId}, '', newUrl);
         
-        // Update UI
-        document.getElementById('current-session-title').innerHTML = `
-            <i class="fas fa-comments"></i> ${data.title}
-        `;
-        document.getElementById('delete-session-btn').style.display = 'inline-block';
+        // Update UI with null checks
+        const sessionTitleElement = document.getElementById('current-session-title');
+        if (sessionTitleElement) {
+            sessionTitleElement.innerHTML = `
+                <i class="fas fa-comments"></i> ${data.title}
+            `;
+        }
+        
+        const deleteSessionBtn = document.getElementById('delete-session-btn');
+        if (deleteSessionBtn) {
+            deleteSessionBtn.style.display = 'inline-block';
+        }
         
         // Enable inputs
         const messageInput = document.getElementById('message-input');
-        messageInput.disabled = false;
-        document.getElementById('send-button').disabled = false;
+        if (messageInput) {
+            messageInput.disabled = false;
+        }
+        
+        const sendButton = document.getElementById('send-button');
+        if (sendButton) {
+            sendButton.disabled = false;
+        }
         
         // Store session data in localStorage (important for auto-refresh functionality)
         const sessionData = {
@@ -947,7 +967,6 @@ async function createDefaultSession() {
         if (welcomeMessage) {
             welcomeMessage.style.display = 'none';
         }
-        */
         
         return data; // Return session data
     } catch (error) {

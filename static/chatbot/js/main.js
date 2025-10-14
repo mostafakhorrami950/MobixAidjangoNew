@@ -157,9 +157,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, page will automatically refresh
-                            // due to changes in createDefaultSession function
-                            console.log('Session created, page will refresh automatically');
+                            // Session created successfully
+                            console.log('Session created successfully');
+                            hideSessionCreationLoading(true); // Hide loading and enable chat
                         } else {
                             // Handle cases where the server returns an error in the JSON response
                             console.error('Failed to create session:', sessionData.error || 'No session ID returned');
@@ -190,9 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, page will automatically refresh
-                            // due to changes in createDefaultSession function
-                            console.log('Session created, page will refresh automatically');
+                            // Session created successfully
+                            console.log('Session created successfully');
+                            hideSessionCreationLoading(true); // Hide loading and enable chat
                             
                             // After session is created, trigger the file input
                             setTimeout(() => {
@@ -212,6 +212,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
                         hideSessionCreationLoading(false); // Hide loading and restore welcome message
                     });
+            } else {
+                // If session exists, just trigger file input
+                document.getElementById('file-input').click();
             }
         });
     }
@@ -240,9 +243,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 createDefaultSession()
                     .then(sessionData => {
                         if (sessionData && sessionData.session_id) {
-                            // Session created successfully, page will automatically refresh
-                            // due to changes in createDefaultSession function
-                            console.log('Session created, page will refresh automatically');
+                            // Session created successfully
+                            console.log('Session created successfully');
+                            hideSessionCreationLoading(true); // Hide loading and enable chat
                             
                             // After session is created, show the model selection
                             setTimeout(() => {
