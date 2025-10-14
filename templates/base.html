@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="{% block meta_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوا، ترجمه و اتوماسیون کارهای روزمره{% endblock %}">
@@ -11,12 +12,12 @@
     <meta property="og:description" content="{% block og_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوای خلاقانه و ترجمه هوشمند.{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
-    <meta property="og:image" content="{% block og_image %}/static/images/og-image.jpg{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'images/og-image.jpg' %}{% endblock %}">
     <meta property="og:locale" content="fa_IR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block twitter_title %}MobixAI{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}MobixAI - پلتفرم هوش مصنوعی پیشرفته برای چت، تولید محتوای خلاقانه و ترجمه هوشمند.{% endblock %}">
-    <meta name="twitter:image" content="{% block twitter_image %}/static/images/twitter-image.jpg{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{% static 'images/twitter-image.jpg' %}{% endblock %}">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
@@ -36,7 +37,7 @@
         "name": "MobixAI",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://mobixai.ir/static/images/logo.png"
+          "url": "https://mobixai.ir{% static 'images/logo.png' %}"
         }
       },
       "inLanguage": "fa"
@@ -58,7 +59,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <!-- Custom CSS -->
-    {% load static %}
     <link rel="stylesheet" href="{% static 'css/chat.css' %}">
     <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
     <link rel="stylesheet" href="{% static 'css/auth-forms.css' %}">
