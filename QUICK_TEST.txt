@@ -1,0 +1,55 @@
+╔════════════════════════════════════════════════════════════╗
+║           FILE UPLOAD - QUICK TEST GUIDE                   ║
+╚════════════════════════════════════════════════════════════╝
+
+📋 BEFORE TESTING:
+   1. Clear browser cache: Ctrl+F5 (hard refresh)
+   2. Open Developer Console: F12
+
+📁 TEST FILE UPLOAD:
+   1. Click the paperclip (📎) button
+   2. Select a file
+   3. Check: File preview appears below message box
+   4. Check: File name, size, and icon are shown
+   5. Check: Send button becomes enabled
+
+🔍 EXPECTED CONSOLE LOGS:
+   [DEBUG] triggerFileSelect called
+   [DEBUG] File input element found, triggering click
+   [DEBUG] handleFileSelect called
+   [DEBUG] Files selected: 1 files
+   [DEBUG] Processing file: yourfile.jpg
+   [DEBUG] updateFilePreview called
+   [DEBUG] Showing preview container with 1 files
+
+✅ SUCCESS CHECKLIST:
+   □ File picker opens ONCE (not twice)
+   □ File appears in preview immediately
+   □ Can select multiple files
+   □ Can remove files with X button
+   □ Can clear all files
+   □ Works on mobile devices
+   □ No JavaScript errors in console
+
+📱 MOBILE TEST:
+   1. Open site on phone OR use Chrome mobile mode (F12 → mobile icon)
+   2. Click upload button
+   3. Select file from gallery/camera
+   4. Check: File appears within 1-2 seconds
+   5. Check: File doesn't disappear
+
+❌ IF PROBLEMS:
+   - Check console for errors (red text)
+   - Copy [DEBUG] messages
+   - See FILE_UPLOAD_TEST_GUIDE.md for troubleshooting
+
+📚 DOCUMENTATION:
+   - Quick reference: QUICK_TEST.txt (this file)
+   - Full test guide: FILE_UPLOAD_TEST_GUIDE.md
+   - Technical details: FILE_UPLOAD_FIX.md
+   - Summary: UPLOAD_FIX_SUMMARY.md
+   - Verification: Run "bash verify_upload_fix.sh"
+
+╔════════════════════════════════════════════════════════════╗
+║  STATUS: ✅ FIXED & VERIFIED - READY TO TEST              ║
+╚════════════════════════════════════════════════════════════╝

@@ -296,8 +296,10 @@ class MultiFileUploadManager {
      * Open file selection dialog
      */
     triggerFileSelect() {
+        console.log('[DEBUG] triggerFileSelect called');
         // Check if the file input element is still valid
         if (this.elements.fileInput && document.contains(this.elements.fileInput)) {
+            console.log('[DEBUG] File input element found, triggering click');
             this.elements.fileInput.click();
         } else {
             console.warn('File input element is no longer valid, refreshing elements');
@@ -314,6 +316,7 @@ class MultiFileUploadManager {
      * Handle multiple files selection from input
      */
     handleFileSelect(event) {
+        console.log('[DEBUG] handleFileSelect called, event:', event);
         // Check if the event target is still valid
         if (!event.target || !document.contains(event.target)) {
             console.warn('File input element is no longer valid, refreshing elements');
@@ -322,8 +325,11 @@ class MultiFileUploadManager {
         }
         
         const files = Array.from(event.target.files);
+        console.log('[DEBUG] Files selected:', files.length, 'files');
         if (files.length > 0) {
             this.addFiles(files);
+        } else {
+            console.log('[DEBUG] No files were selected');
         }
         // پاک کردن input برای امکان انتخاب مجدد همان فایل‌ها
         // Delay clearing to ensure mobile browsers process files properly
@@ -337,7 +343,9 @@ class MultiFileUploadManager {
      * Add multiple files to the list
      */
     addFiles(files) {
+        console.log('[DEBUG] addFiles called with', files.length, 'files');
         for (const file of files) {
+            console.log('[DEBUG] Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
             // بررسی حداکثر تعداد فایل
             if (this.selectedFiles.length >= this.maxFiles) {
                 this.showError(`حداکثر ${this.maxFiles} فایل قابل انتخاب است.`);
