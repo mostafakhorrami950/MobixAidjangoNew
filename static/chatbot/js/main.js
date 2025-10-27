@@ -181,33 +181,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // NOTE: File upload button handler is now in multifileupload.js to prevent duplicate handlers
     // This prevents the file picker from opening twice
 
-<<<<<<< HEAD
-                        } else {
-                            // Handle cases where the server returns an error in the JSON response
-                            console.error('Failed to create session:', sessionData.error || 'No session ID returned');
-                            alert('خطا در ایجاد چت جدید: ' + (sessionData.error || 'پاسخ نامعتبر از سرور'));
-                            hideSessionCreationLoading(false); // Hide loading and restore welcome message
-                        }
-                    })
-                    .catch(error => {
-                        // Handle network or other unexpected errors
-                        console.error('Error creating default session:', error);
-                        alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
-                        hideSessionCreationLoading(false); // Hide loading and restore welcome message
-                    });
-            } else {
-                // If session exists, just trigger file input through MultiFileUploadManager
-                if (typeof multiFileUploadManager !== 'undefined' && multiFileUploadManager !== null) {
-                    multiFileUploadManager.triggerFileSelect();
-                } else {
-                    document.getElementById('file-input').click();
-                }
-            }
-        });
-    }
-=======
->>>>>>> 17300b4 (تغییر بخش آپلود)
-
     // Model selection button
     const modelSelectionButton = document.getElementById('model-selection-button');
     if (modelSelectionButton) {
