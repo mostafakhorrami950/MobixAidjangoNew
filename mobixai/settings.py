@@ -28,12 +28,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+
+# CSRF Trusted Origins (required for Django 4.0+)
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+if not CSRF_TRUSTED_ORIGINS and ALLOWED_HOSTS:
+    # Auto-generate from ALLOWED_HOSTS if not explicitly set
+    CSRF_TRUSTED_ORIGINS = [
+        f"http://{host}" for host in ALLOWED_HOSTS if host and host != "*"
+    ]
+    CSRF_TRUSTED_ORIGINS += [
+        f"https://{host}" for host in ALLOWED_HOSTS if host and host != "*"
+    ]
 
 
 # Application definition
@@ -70,7 +81,10 @@ ROOT_URLCONF = "mobixai.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'reports', 'templates')],  # Add reports templates
+        "DIRS": [
+            os.path.join(BASE_DIR, "templates"),
+            os.path.join(BASE_DIR, "reports", "templates"),
+        ],  # Add reports templates
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -92,43 +106,42 @@ WSGI_APPLICATION = "mobixai.wsgi.application"
 # Database configuration with multi-database support
 # Priority: MySQL > PostgreSQL > SQLite
 
-if config('MYSQL_DATABASE', default=None):
+if config("MYSQL_DATABASE", default=None):
     # تنظیم PyMySQL به عنوان درایور MySQL
     import pymysql
+
     pymysql.install_as_MySQLdb()
-    
+
     # MySQL database configuration with full Persian/UTF-8 support using PyMySQL
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': config('MYSQL_DATABASE'),
-            'USER': config('MYSQL_USER'),
-            'PASSWORD': config('MYSQL_PASSWORD'),
-            'HOST': config('MYSQL_HOST', default='localhost'),
-            'PORT': config('MYSQL_PORT', default='3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'use_unicode': True,
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci",
-                'isolation_level': None,
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": config("MYSQL_DATABASE"),
+            "USER": config("MYSQL_USER"),
+            "PASSWORD": config("MYSQL_PASSWORD"),
+            "HOST": config("MYSQL_HOST", default="localhost"),
+            "PORT": config("MYSQL_PORT", default="3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "use_unicode": True,
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci",
+                "isolation_level": None,
                 # تنظیمات خاص PyMySQL
-                'connect_timeout': 60,
-                'read_timeout': 60,
-                'write_timeout': 60,
+                "connect_timeout": 60,
+                "read_timeout": 60,
+                "write_timeout": 60,
                 # Disable timezone conversion in MySQL to avoid timezone issues
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci, time_zone='+00:00'",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES',character_set_connection=utf8mb4,collation_connection=utf8mb4_unicode_ci, time_zone='+00:00'",
             },
-            'TEST': {
-                'CHARSET': 'utf8mb4',
-                'COLLATION': 'utf8mb4_unicode_ci',
-            }
+            "TEST": {
+                "CHARSET": "utf8mb4",
+                "COLLATION": "utf8mb4_unicode_ci",
+            },
         }
     }
-elif config('DATABASE_URL', default=None) and dj_database_url:
+elif config("DATABASE_URL", default=None) and dj_database_url:
     # Production database (PostgreSQL)
-    DATABASES = {
-        'default': dj_database_url.parse(config('DATABASE_URL'))
-    }
+    DATABASES = {"default": dj_database_url.parse(config("DATABASE_URL"))}
 else:
     # Development database (SQLite)
     DATABASES = {
@@ -140,54 +153,54 @@ else:
 
 # Logging configuration
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'file': {
-            'level': 'WARNING',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django.log'),
-            'formatter': 'verbose',
-        },
-        'console': {
-            'level': 'WARNING',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'root': {
-        'handlers': ['console', 'file'],
+    "handlers": {
+        "file": {
+            "level": "WARNING",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "django.log"),
+            "formatter": "verbose",
+        },
+        "console": {
+            "level": "WARNING",
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['file', 'console'],
-            'level': 'WARNING',
-            'propagate': False,
+    "root": {
+        "handlers": ["console", "file"],
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'subscriptions': {
-            'handlers': ['file', 'console'],
-            'level': 'WARNING',
-            'propagate': False,
+        "subscriptions": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'chatbot': {
-            'handlers': ['file', 'console'],
-            'level': 'WARNING',
-            'propagate': False,
+        "chatbot": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": False,
         },
-        'accounts': {
-            'handlers': ['file', 'console'],
-            'level': 'WARNING',
-            'propagate': False,
+        "accounts": {
+            "handlers": ["file", "console"],
+            "level": "WARNING",
+            "propagate": False,
         },
     },
 }
@@ -218,8 +231,8 @@ LANGUAGE_CODE = "en-us"
 
 # Persian language and Iran timezone support
 LANGUAGES = [
-    ('en', 'English'),
-    ('fa', 'فارسی'),
+    ("en", "English"),
+    ("fa", "فارسی"),
 ]
 
 TIME_ZONE = "Asia/Tehran"
@@ -233,26 +246,26 @@ USE_L10N = True
 USE_TZ = False
 
 # Default charset for the entire project
-DEFAULT_CHARSET = 'utf-8'
+DEFAULT_CHARSET = "utf-8"
 
 # Ensure proper encoding handling
-FILE_CHARSET = 'utf-8'
+FILE_CHARSET = "utf-8"
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
+    os.path.join(BASE_DIR, "static"),
 ]
 
 # Static files finders
 STATICFILES_FINDERS = [
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
 
 # Default primary key field type
@@ -261,44 +274,44 @@ STATICFILES_FINDERS = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom user model
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 
 # OTP Service Settings
-IPANEL_API_KEY = config('IPANEL_API_KEY')
-IPANEL_PATTERN_CODE = config('IPANEL_PATTERN_CODE')
-IPANEL_FROM_NUMBER = config('IPANEL_FROM_NUMBER')
+IPANEL_API_KEY = config("IPANEL_API_KEY")
+IPANEL_PATTERN_CODE = config("IPANEL_PATTERN_CODE")
+IPANEL_FROM_NUMBER = config("IPANEL_FROM_NUMBER")
 
 # OpenRouter API Settings
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
+OPENROUTER_API_KEY = config("OPENROUTER_API_KEY")
 
 # ZarinPal Settings
-ZARINPAL_MERCHANT_ID = config('ZARINPAL_MERCHANT_ID')
-ZARINPAL_SANDBOX = config('ZARINPAL_SANDBOX', default=True, cast=bool)
+ZARINPAL_MERCHANT_ID = config("ZARINPAL_MERCHANT_ID")
+ZARINPAL_SANDBOX = config("ZARINPAL_SANDBOX", default=True, cast=bool)
 
 # Media files (Uploaded images)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Production Security Settings
 if not DEBUG:
     # Security settings for production
-    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
-    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    X_FRAME_OPTIONS = 'DENY'
-    
+    X_FRAME_OPTIONS = "DENY"
+
     # Add whitenoise for static files serving
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024   # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
 # Session settings
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
@@ -307,13 +320,20 @@ SESSION_SAVE_EVERY_REQUEST = True
 # CSRF settings
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to access CSRF cookie for AJAX requests
+CSRF_COOKIE_SAMESITE = "Lax"  # Allow CSRF cookie in same-site contexts
+CSRF_USE_SESSIONS = False  # Use cookie-based CSRF tokens
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
+# Don't require HTTPS for CSRF in development
+if DEBUG:
+    CSRF_COOKIE_SECURE = False
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = "DENY"
 
 # Login/Logout URLs
-LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
