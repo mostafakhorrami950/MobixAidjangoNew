@@ -177,28 +177,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // File upload button
-    const uploadBtn = document.getElementById('upload-btn');
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', function() {
-            // Only create a session if there's no current session
-            if (!currentSessionId) {
-                // Show a loading state to the user
-                showSessionCreationLoading();
 
-                // Call the function from sessions.js to create a new default session
-                createDefaultSession()
-                    .then(sessionData => {
-                        if (sessionData && sessionData.session_id) {
-                            // Session created successfully
-                            console.log('Session created successfully');
-                            hideSessionCreationLoading(true); // Hide loading and enable chat
-                            
-                            // After session is created, trigger the file input
-                            setTimeout(() => {
-                                document.getElementById('file-input').click();
-                            }, 100);
+    // NOTE: File upload button handler is now in multifileupload.js to prevent duplicate handlers
+    // This prevents the file picker from opening twice
 
+<<<<<<< HEAD
                         } else {
                             // Handle cases where the server returns an error in the JSON response
                             console.error('Failed to create session:', sessionData.error || 'No session ID returned');
@@ -222,6 +205,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+=======
+>>>>>>> 17300b4 (تغییر بخش آپلود)
 
     // Model selection button
     const modelSelectionButton = document.getElementById('model-selection-button');
