@@ -298,14 +298,28 @@ class MultiFileUploadManager {
     triggerFileSelect() {
         // Check if the file input element is still valid
         if (this.elements.fileInput && document.contains(this.elements.fileInput)) {
-            this.elements.fileInput.click();
+            // Create a new input element to avoid any cached state issues
+            const newInput = document.createElement('input');
+            newInput.type = 'file';
+            newInput.multiple = true;
+            newInput.style.display = 'none';
+            newInput.id = 'file-input-temp';
+            
+            // Add event listener to the new input
+            newInput.addEventListener('change', (e) => {
+                this.handleFileSelect(e);
+                // Remove the temporary input after handling
+                if (newInput.parentNode) {
+                    newInput.parentNode.removeChild(newInput);
+                }
+            });
+            
+            // Add to DOM and trigger click
+            document.body.appendChild(newInput);
+            newInput.click();
         } else {
             console.warn('File input element is no longer valid, refreshing elements');
             this.refreshElements();
-            // Try again after refreshing
-            if (this.elements.fileInput) {
-                this.elements.fileInput.click();
-            }
         }
     }
     
@@ -316,8 +330,7 @@ class MultiFileUploadManager {
     handleFileSelect(event) {
         // Check if the event target is still valid
         if (!event.target || !document.contains(event.target)) {
-            console.warn('File input element is no longer valid, refreshing elements');
-            this.refreshElements();
+            console.warn('File input element is no longer valid');
             return;
         }
         
@@ -325,8 +338,15 @@ class MultiFileUploadManager {
         if (files.length > 0) {
             this.addFiles(files);
         }
-        // پاک کردن input برای امکان انتخاب مجدد همان فایل‌ها
-        event.target.value = '';
+        // No need to clear the input since we're using a temporary input that gets removed
+    }
+    
+    /**
+     * Check if current device is mobile
+     * @returns {boolean}
+     */
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
     
     /**

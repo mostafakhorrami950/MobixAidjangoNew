@@ -1,0 +1,34 @@
+[Interface]
+PrivateKey = cCXjTESKSHj3Y6S5LoTUH7iM/Q1PPmMqHKAPQroETGo=
+Address = 10.0.0.2/24
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = FjO2GUhQWW2VwYVcK+r3Pz94ylH/3EPqzlh0PQlvQFY=
+Endpoint = 85.133.228.36:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+
+
+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
+
+
+
+
+51.38.79.186
+865uE?f7NA?n57
+cd /opt/MobixAidjangoNew
+source venv/bin/activate
+git pull origin main
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+
+git add .
+git commit -m "تغییر در بخش نمایش مدلها"
+git push
+
+git log --oneline
+git reset --hard c78c9cb
+
+

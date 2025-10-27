@@ -1520,6 +1520,71 @@ option:disabled {
   line-height: 1;
 }
 
+/* Mobile-specific improvements for file preview */
+@media (max-width: 768px) {
+  .files-preview {
+    padding: 12px;
+    margin-top: 10px;
+  }
+  
+  .files-list {
+    max-height: 150px;
+  }
+  
+  .file-preview-item {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  
+  .file-name {
+    font-size: 14px;
+    max-width: 150px;
+  }
+  
+  .file-size {
+    font-size: 12px;
+  }
+  
+  .file-actions .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .files-preview {
+    padding: 10px;
+  }
+  
+  .files-list {
+    max-height: 120px;
+  }
+  
+  .file-preview-item {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+  
+  .file-name {
+    font-size: 13px;
+    max-width: 120px;
+  }
+  
+  .file-size {
+    font-size: 11px;
+  }
+  
+  .file-info i {
+    margin-left: 6px;
+    width: 16px;
+    font-size: 14px;
+  }
+  
+  .file-details {
+    margin-right: 6px;
+  }
+}
+
 /* Mobile nav menu styles */
 .mobile-nav-menu .nav-item {
   border-bottom: 1px solid #e9ecef;
@@ -2083,3 +2148,41 @@ option:disabled {
   color: var(--text-muted) !important;
   font-size: 0.875rem;
 }
+
+/* Hidden file input for multiple files - فایل انپوت مخفی برای چند فایل */
+#file-input {
+    display: none;
+}
+
+/* Mobile-specific improvements for file preview */
+@media (max-width: 768px) {
+  .files-preview {
+    padding: 12px;
+    margin-top: 10px;
+  }
+  
+  .files-list {
+    max-height: 150px;
+  }
+  
+  .file-preview-item {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  
+  .file-name {
+    font-size: 14px;
+    max-width: 150px;
+  }
+  
+  .file-size {
+    font-size: 12px;
+  }
+  
+  .file-actions .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Ensure overlay is hidden on mobile devices */
