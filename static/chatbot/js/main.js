@@ -213,8 +213,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         hideSessionCreationLoading(false); // Hide loading and restore welcome message
                     });
             } else {
-                // If session exists, just trigger file input
-                document.getElementById('file-input').click();
+                // If session exists, just trigger file input through MultiFileUploadManager
+                if (typeof multiFileUploadManager !== 'undefined' && multiFileUploadManager !== null) {
+                    multiFileUploadManager.triggerFileSelect();
+                } else {
+                    document.getElementById('file-input').click();
+                }
             }
         });
     }

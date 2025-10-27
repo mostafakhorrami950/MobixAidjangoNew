@@ -140,6 +140,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert('یک خطای غیرمنتظره در هنگام ایجاد چت جدید رخ داد. لطفا اتصال اینترنت خود را بررسی کرده و صفحه را دوباره بارگیری کنید.');
                         hideSessionCreationLoading(false); // Hide loading and restore welcome message
                     });
+            } else {
+                // If session exists, just trigger file input through MultiFileUploadManager
+                if (typeof multiFileUploadManager !== 'undefined' && multiFileUploadManager !== null) {
+                    multiFileUploadManager.triggerFileSelect();
+                } else {
+                    document.getElementById('file-input').click();
+                }
             }
         });
     }

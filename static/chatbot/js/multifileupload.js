@@ -66,27 +66,45 @@ class MultiFileUploadManager {
     }
     
     /**
+     * Refresh cached DOM elements
+     * This should be called if DOM elements are replaced
+     */
+    refreshElements() {
+        this.cacheElements();
+        // Re-attach event listeners
+        this.attachEventListeners();
+    }
+    
+    /**
      * اتصال event listener ها
      * Attach event listeners
      */
     attachEventListeners() {
         // کلیک روی دکمه آپلود
-        if (this.elements.uploadBtn) {
+        if (this.elements.uploadBtn && document.contains(this.elements.uploadBtn)) {
+            // Remove any existing listeners to prevent duplicates
+            this.elements.uploadBtn.removeEventListener('click', this.triggerFileSelect);
             this.elements.uploadBtn.addEventListener('click', () => this.triggerFileSelect());
         }
         
         // تغییر فایل‌های انتخابی
-        if (this.elements.fileInput) {
+        if (this.elements.fileInput && document.contains(this.elements.fileInput)) {
+            // Remove any existing listeners to prevent duplicates
+            this.elements.fileInput.removeEventListener('change', this.handleFileSelect);
             this.elements.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
         
         // پاک کردن همه فایل‌ها
-        if (this.elements.clearAllBtn) {
+        if (this.elements.clearAllBtn && document.contains(this.elements.clearAllBtn)) {
+            // Remove any existing listeners to prevent duplicates
+            this.elements.clearAllBtn.removeEventListener('click', this.clearAllFiles);
             this.elements.clearAllBtn.addEventListener('click', () => this.clearAllFiles());
         }
         
         // تغییر متن پیام
-        if (this.elements.messageInput) {
+        if (this.elements.messageInput && document.contains(this.elements.messageInput)) {
+            // Remove any existing listeners to prevent duplicates
+            this.elements.messageInput.removeEventListener('input', this.updateSendButtonState);
             this.elements.messageInput.addEventListener('input', () => this.updateSendButtonState());
         }
     }
@@ -278,8 +296,16 @@ class MultiFileUploadManager {
      * Open file selection dialog
      */
     triggerFileSelect() {
-        if (this.elements.fileInput) {
+        // Check if the file input element is still valid
+        if (this.elements.fileInput && document.contains(this.elements.fileInput)) {
             this.elements.fileInput.click();
+        } else {
+            console.warn('File input element is no longer valid, refreshing elements');
+            this.refreshElements();
+            // Try again after refreshing
+            if (this.elements.fileInput) {
+                this.elements.fileInput.click();
+            }
         }
     }
     
@@ -288,6 +314,13 @@ class MultiFileUploadManager {
      * Handle multiple files selection from input
      */
     handleFileSelect(event) {
+        // Check if the event target is still valid
+        if (!event.target || !document.contains(event.target)) {
+            console.warn('File input element is no longer valid, refreshing elements');
+            this.refreshElements();
+            return;
+        }
+        
         const files = Array.from(event.target.files);
         if (files.length > 0) {
             this.addFiles(files);
@@ -365,7 +398,11 @@ class MultiFileUploadManager {
      * Update files preview
      */
     updateFilePreview() {
-        if (!this.elements.preview || !this.elements.filesList || !this.elements.filesCount) {
+        // Check if preview elements are still valid
+        if (!this.elements.preview || !this.elements.filesList || !this.elements.filesCount ||
+            !document.contains(this.elements.preview) || !document.contains(this.elements.filesList) || !document.contains(this.elements.filesCount)) {
+            console.warn('Preview elements are no longer valid, refreshing elements');
+            this.refreshElements();
             return;
         }
         
@@ -500,8 +537,10 @@ class MultiFileUploadManager {
      * Update send button state
      */
     updateSendButtonState() {
-        if (!this.elements.sendBtn || !this.elements.messageInput) {
-            console.log('Send button or message input not found');
+        // Check if send button and message input are still valid
+        if (!this.elements.sendBtn || !this.elements.messageInput ||
+            !document.contains(this.elements.sendBtn) || !document.contains(this.elements.messageInput)) {
+            console.log('Send button or message input not found or no longer valid');
             return;
         }
         
@@ -650,4 +689,14 @@ function hasSelectedFiles() {
         return false;
     }
     return multiFileUploadManager.hasFiles();
+}
+
+/**
+ * Refresh MultiFileUploadManager elements
+ * This should be called if DOM elements are replaced
+ */
+function refreshMultiFileUploadElements() {
+    if (multiFileUploadManager) {
+        multiFileUploadManager.refreshElements();
+    }
 }
