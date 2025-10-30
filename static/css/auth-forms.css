@@ -146,6 +146,70 @@ body {
   margin: 0;
 }
 
+/* AI Models Section */
+.ai-models-section {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-models-section h5 {
+  color: var(--white);
+  font-weight: 500;
+  margin-bottom: var(--space-md);
+  font-size: 16px;
+}
+
+.ai-models-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.ai-model-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  transition: var(--transition);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-model-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.ai-model-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  opacity: 0.9;
+}
+
+.ai-model-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-model-placeholder i {
+  color: var(--white);
+  font-size: 20px;
+  opacity: 0.7;
+}
+
 /* Auth Body */
 .auth-body {
   padding: var(--space-lg);
@@ -457,6 +521,17 @@ body {
     font-size: 14px;
   }
   
+  .ai-models-grid {
+    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+    gap: var(--space-xs);
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 45px;
+    height: 45px;
+  }
+  
   .auth-body {
     padding: var(--space-md);
   }
@@ -504,6 +579,21 @@ body {
   
   .auth-subtitle {
     font-size: 13px;
+  }
+  
+  .ai-models-grid {
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 6px;
+  }
+  
+  .ai-model-image,
+  .ai-model-placeholder {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .ai-model-placeholder i {
+    font-size: 16px;
   }
   
   .auth-body {
