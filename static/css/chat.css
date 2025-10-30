@@ -220,30 +220,34 @@ html, body {
 
 .sidebar-controls {
   display: flex;
-  gap: var(--gap-sm);
+  gap: 8px;
   align-items: center;
   position: relative;
   z-index: 1;
 }
 
-/* Control Buttons - Glass Effect */
+/* Control Buttons - Modern Design */
 .sidebar-controls .btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: var(--white);
-  padding: var(--gap-sm) var(--gap);
-  border-radius: var(--radius);
+  padding: 8px 12px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: var(--transition);
-  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .sidebar-controls .btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 /* Sessions Container - Completely Redesigned from Scratch */
@@ -1062,17 +1066,46 @@ html, body {
   max-width: 500px;
   width: 90%;
   display: none;
-  padding: 15px;
-  margin: 12px;
+  padding: 0;
+  margin: 0;
 }
 
 .floating-model-selection.show {
   display: block;
 }
 
+/* Remove excessive padding and margin from all child elements */
 .floating-model-selection * {
+  padding: 0;
+  margin: 0;
+}
+
+/* Add appropriate spacing only where needed */
+.model-selection-header {
+  padding: 12px 20px;
+  margin: 0;
+}
+
+.model-grid {
+  padding: 15px;
+  margin: 0;
+}
+
+.model-card {
   padding: 10px;
-  margin: 8px;
+  margin: 5px;
+}
+
+.model-card img {
+  margin-bottom: 8px;
+}
+
+.model-card .model-name {
+  margin-bottom: 5px;
+}
+
+.model-card .model-description {
+  margin-bottom: 5px;
 }
 
 /* Model Selection Wrapper as Floating Button */
@@ -1153,34 +1186,40 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--gap) var(--gap-lg);
-  border-bottom: 1px solid var(--border-light);
-  background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #1a73e8, #0d47a1);
+  border-radius: 12px 12px 0 0;
   color: var(--white);
+  font-family: 'Vazir', Tahoma, sans-serif;
 }
 
 .model-selection-header h6 {
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
+  font-size: 18px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .model-selection-header .btn-close {
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: var(--white);
-  padding: var(--gap-xs) var(--gap-sm);
-  border-radius: var(--radius);
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.2s ease;
   backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .model-selection-header .btn-close:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .model-grid {
