@@ -10,64 +10,77 @@ from decimal import Decimal
 from .services import UsageService
 from .usage_stats import UserUsageStatsService
 from accounts.models import User
-from zarinpal import ZarinPal
 import json
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
-# Custom ZarinPal class with sandbox support
-class CustomZarinPal(ZarinPal):
-    def __init__(self, merchant_id: str, sandbox: bool = False) -> None:
-        super().__init__(merchant_id)
-        self.sandbox = sandbox
-        if sandbox:
-            self.base_url = "https://sandbox.zarinpal.com/pg/v4/payment"
-        else:
-            self.base_url = "https://api.zarinpal.com/pg/v4/payment"
-
-    def request(self, data):
-        import requests
-        from pydantic import validate_call
-        from zarinpal.errors import ERROR_DICT
-        from zarinpal.models import RequestResponse
+# Zibal payment gateway integration
+class ZibalPayment:
+    def __init__(self, merchant_id: str = "zibal") -> None:
+        self.merchant_id = merchant_id
+        self.base_url = "https://gateway.zibal.ir/v1"
+    
+    def request_payment(self, data):
+        """
+        Request payment from Zibal gateway
+        """
+        url = f"{self.base_url}/request"
+        payload = {
+            "merchant": self.merchant_id,
+            **data
+        }
         
-        result = requests.post(
-            f"{self.base_url}/request.json",
-            json={"merchant_id": self.merchant_id, **data.model_dump(exclude_none=True)}
-        ).json()
-        if result["data"] and int(result["data"]["code"]) == 100:
-            return RequestResponse(**result)
-        else:
-            raise ERROR_DICT.get(
-                int(result["errors"]["code"]),
-                Exception(f'Code: {result["errors"]["code"]}, Message: {result["errors"]["message"]}')
-            )
-
-    def verify(self, data):
-        import requests
-        from pydantic import validate_call
-        from zarinpal.errors import ERROR_DICT
-        from zarinpal.models import VerifyResponse
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error requesting payment from Zibal: {str(e)}")
+            raise Exception(f"Error requesting payment: {str(e)}")
+    
+    def verify_payment(self, track_id):
+        """
+        Verify payment with Zibal gateway
+        """
+        url = f"{self.base_url}/verify"
+        payload = {
+            "merchant": self.merchant_id,
+            "trackId": track_id
+        }
         
-        result = requests.post(
-            f"{self.base_url}/verify.json",
-            json={"merchant_id": self.merchant_id, **data.model_dump(exclude_none=True)}
-        ).json()
-        if result["data"] and int(result["data"]["code"]) == 100:
-            return VerifyResponse(**result)
-        else:
-            raise ERROR_DICT.get(
-                int(result["errors"]["code"]),
-                Exception(f'Code: {result["errors"]["code"]}, Message: {result["errors"]["message"]}')
-            )
-
-    @staticmethod
-    def get_payment_link(authority: str, sandbox: bool = False) -> str:
-        if sandbox:
-            return f"https://sandbox.zarinpal.com/pg/StartPay/{authority}"
-        else:
-            return f"https://www.zarinpal.com/pg/StartPay/{authority}"
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error verifying payment with Zibal: {str(e)}")
+            raise Exception(f"Error verifying payment: {str(e)}")
+    
+    def inquiry_payment(self, track_id):
+        """
+        Inquiry payment status with Zibal gateway
+        """
+        url = f"{self.base_url}/inquiry"
+        payload = {
+            "merchant": self.merchant_id,
+            "trackId": track_id
+        }
+        
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error inquiring payment with Zibal: {str(e)}")
+            raise Exception(f"Error inquiring payment: {str(e)}")
+    
+    def get_payment_url(self, track_id):
+        """
+        Get payment URL for redirecting user to Zibal gateway
+        """
+        return f"https://gateway.zibal.ir/start/{track_id}"
 
 @login_required
 def purchase_subscription(request):
@@ -354,11 +367,10 @@ def initiate_payment(request, subscription_id):
         return redirect('purchase_subscription')
 
 
-    # Proceed to payment gateway
+    # Proceed to payment gateway (Zibal)
     try:
-        zarinpal_client = CustomZarinPal(
-            merchant_id=settings.ZARINPAL_MERCHANT_ID,
-            sandbox=getattr(settings, 'ZARINPAL_SANDBOX', False)
+        zibal_client = ZibalPayment(
+            merchant_id=getattr(settings, 'ZIBAL_MERCHANT_ID', 'zibal')
         )
         
         amount_in_rials = int(final_price * 10)
@@ -372,29 +384,28 @@ def initiate_payment(request, subscription_id):
             messages.error(request, 'مبلغ پرداختی بیشتر از حد مجاز است. حداکثر مبلغ 50,000,000 تومان می‌باشد.')
             return redirect('purchase_subscription')
 
-        from zarinpal import RequestInput
-        
         # Create dynamic callback URL based on current request
         callback_url = request.build_absolute_uri(reverse('payment_callback'))
-        payment_data = RequestInput(
-            amount=amount_in_rials,
-            description=f"خرید اشتراک {subscription.name}",
-            callback_url=callback_url
-        )
+        payment_data = {
+            "amount": amount_in_rials,
+            "callbackUrl": callback_url,
+            "description": f"خرید اشتراک {subscription.name}",
+            "orderId": f"SUB-{subscription.id}-{int(timezone.now().timestamp())}"
+        }
         
-        payment_response = zarinpal_client.request(payment_data)
+        payment_response = zibal_client.request_payment(payment_data)
         
-        if payment_response and hasattr(payment_response, 'data') and hasattr(payment_response.data, 'authority'):
-            authority = payment_response.data.authority
+        if payment_response and payment_response.get('result') == 100:
+            track_id = payment_response.get('trackId')
             
-            # Save payment info in session
-            request.session['payment_authority'] = authority
-            request.session['subscription_id'] = subscription.id
-            request.session['payment_amount'] = amount_in_rials
-            request.session['original_price'] = float(original_price)
-            request.session['final_price'] = float(final_price)
+            # Save payment info in session (ensure all values are stored as strings for consistency)
+            request.session['payment_track_id'] = str(track_id)
+            request.session['subscription_id'] = str(subscription.id)
+            request.session['payment_amount'] = str(amount_in_rials)
+            request.session['original_price'] = str(float(original_price))
+            request.session['final_price'] = str(float(final_price))
             if discount_code:
-                request.session['discount_code_id'] = discount_code.id
+                request.session['discount_code_id'] = str(discount_code.id)
 
             # Record pending financial transaction
             FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
@@ -408,188 +419,194 @@ def initiate_payment(request, subscription_id):
                 original_amount=original_price,
                 discount_amount=discount_amount,
                 discount_code=discount_code,
-                authority=authority
+                authority=str(track_id)  # Use track_id as authority for Zibal
             )
 
-            payment_url = zarinpal_client.get_payment_link(authority, sandbox=getattr(settings, 'ZARINPAL_SANDBOX', False))
+            payment_url = zibal_client.get_payment_url(track_id)
             return redirect(payment_url)
         else:
-            error_message = str(payment_response) if payment_response else 'پاسخ نامعتبر از سرویس پرداخت'
+            error_message = payment_response.get('message', 'پاسخ نامعتبر از سرویس پرداخت') if payment_response else 'پاسخ نامعتبر از سرویس پرداخت'
             messages.error(request, f'خطا در ایجاد پرداخت: {error_message}')
             return redirect('purchase_subscription')
             
     except Exception as e:
         logger.error(f"Error creating payment: {str(e)}")
-        # Provide more detailed error message based on common ZarinPal issues
-        error_message = str(e)
-        if "merchant_id" in error_message.lower():
-            messages.error(request, 'خطا در ایجاد پرداخت: مرچنت کد داخل تنظیمات وارد نشده است.')
-        elif "callbackurl" in error_message.lower():
-            messages.error(request, 'خطا در ایجاد پرداخت: آدرس بازگشت (callbackurl) وارد نشده است.')
-        elif "description" in error_message.lower():
-            messages.error(request, 'خطا در ایجاد پرداخت: توضیحات (description) وارد نشده است.')
-        elif "500" in error_message:
-            messages.error(request, 'خطا در ایجاد پرداخت: توضیحات از حد مجاز 500 کاراکتر بیشتر است.')
-        elif "amount" in error_message.lower():
-            messages.error(request, 'خطا در ایجاد پرداخت: مبلغ پرداختی کمتر یا بیشتر از حد مجاز است.')
-        else:
-            messages.error(request, f'خطا در ایجاد پرداخت: {error_message}')
+        messages.error(request, f'خطا در ایجاد پرداخت: {str(e)}')
         return redirect('purchase_subscription')
 
 def payment_callback(request):
-    """Handle payment callback from ZarinPal"""
-    # Initialize ZarinPal SDK with sandbox support
+    """Handle payment callback from Zibal"""
+    # Initialize Zibal SDK
     try:
-        zarinpal_client = CustomZarinPal(
-            merchant_id=settings.ZARINPAL_MERCHANT_ID,
-            sandbox=getattr(settings, 'ZARINPAL_SANDBOX', False)
+        zibal_client = ZibalPayment(
+            merchant_id=getattr(settings, 'ZIBAL_MERCHANT_ID', 'zibal')
         )
     except Exception as e:
-        logger.error(f"Error initializing ZarinPal in callback: {str(e)}")
+        logger.error(f"Error initializing Zibal in callback: {str(e)}")
         return render(request, 'subscriptions/payment_callback.html', {
             'payment_success': False,
             'error_message': 'خطا در اتصال به درگاه پرداخت'
         })
     
-    # Get payment info from session
-    authority = request.GET.get('Authority')
-    status = request.GET.get('Status')
+    # Get payment info from query parameters
+    track_id = request.GET.get('trackId')
+    success = request.GET.get('success')
+    status = request.GET.get('status')
+    
+    # Log received parameters for debugging
+    logger.info(f"Received callback parameters: trackId={track_id}, success={success}, status={status}")
     
     # Verify payment if successful
-    if status == 'OK' and authority:
+    if success == '1' and track_id:
         try:
             # Get payment details from session
-            session_authority = request.session.get('payment_authority')
+            session_track_id = request.session.get('payment_track_id')
             subscription_id = request.session.get('subscription_id')
             payment_amount = request.session.get('payment_amount')  # This is in Rials
             
-            if authority == session_authority and subscription_id and payment_amount:
-                from zarinpal import VerifyInput
+            # Log session data for debugging
+            logger.info(f"Session data: track_id={session_track_id}, subscription_id={subscription_id}, payment_amount={payment_amount}")
+            
+            # Check if all required session data exists
+            if not session_track_id:
+                logger.error("Missing payment_track_id in session")
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': False,
+                    'error_message': 'اطلاعات پرداخت نامعتبر است - track_id از دست رفته'
+                })
+            
+            if not subscription_id:
+                logger.error("Missing subscription_id in session")
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': False,
+                    'error_message': 'اطلاعات پرداخت نامعتبر است - subscription_id از دست رفته'
+                })
+            
+            if not payment_amount:
+                logger.error("Missing payment_amount in session")
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': False,
+                    'error_message': 'اطلاعات پرداخت نامعتبر است - payment_amount از دست رفته'
+                })
+            
+            # Check if track_id matches session_track_id (convert both to string for comparison)
+            if str(track_id) != str(session_track_id):
+                logger.error(f"Track ID mismatch: received {track_id} (type: {type(track_id)}), session {session_track_id} (type: {type(session_track_id)})")
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': False,
+                    'error_message': 'اطلاعات پرداخت نامعتبر است - track_id مطابقت ندارد'
+                })
+            
+            # Convert subscription_id and payment_amount back to their original types for use
+            try:
+                subscription_id = int(subscription_id)
+                payment_amount = int(payment_amount)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error converting session data: {str(e)}")
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': False,
+                    'error_message': 'اطلاعات پرداخت نامعتبر است - خطا در پردازش داده‌ها'
+                })
+
+            # Verify payment with Zibal
+            verification_response = zibal_client.verify_payment(track_id)
+            
+            if verification_response and verification_response.get('result') == 100:
+                # Payment successful, activate subscription
+                SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
+                subscription = get_object_or_404(SubscriptionType, id=subscription_id)
                 
-                # Verify payment with ZarinPal (amount should be in Rials)
-                verification_data = VerifyInput(
-                    authority=authority,
-                    amount=payment_amount  # This is already in Rials
+                # Calculate end date based on subscription duration from TODAY
+                start_date = timezone.now()
+                end_date = start_date + timezone.timedelta(days=subscription.duration_days)
+                
+                # Create or update user subscription using update_or_create to prevent IntegrityError
+                UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
+                user_subscription, created = UserSubscription.objects.update_or_create(
+                    user=request.user,
+                    defaults={
+                        'subscription_type': subscription,
+                        'is_active': True,
+                        'start_date': start_date,
+                        'end_date': end_date
+                    }
                 )
                 
-                # Use the correct method to verify payment
-                verification_response = zarinpal_client.verify(verification_data)
+                # Reset usage counters for the user when subscription is activated using the new method
+                # This method doesn't delete data, just resets counters as requested
+                UsageService.reset_user_usage(request.user, subscription)
                 
-                if verification_response and verification_response.data and verification_response.data.code == 100:
-                    # Payment successful, activate subscription
-                    SubscriptionType = apps.get_model('subscriptions', 'SubscriptionType')
-                    subscription = get_object_or_404(SubscriptionType, id=subscription_id)
-                    
-                    # Calculate end date based on subscription duration from TODAY
-                    start_date = timezone.now()
-                    end_date = start_date + timezone.timedelta(days=subscription.duration_days)
-                    
-                    # Create or update user subscription using update_or_create to prevent IntegrityError
-                    UserSubscription = apps.get_model('subscriptions', 'UserSubscription')
-                    user_subscription, created = UserSubscription.objects.update_or_create(
-                        user=request.user,
-                        defaults={
-                            'subscription_type': subscription,
-                            'is_active': True,
-                            'start_date': start_date,
-                            'end_date': end_date
-                        }
-                    )
-                    
-                    # Reset usage counters for the user when subscription is activated using the new method
-                    # This method doesn't delete data, just resets counters as requested
-                    UsageService.reset_user_usage(request.user, subscription)
-                    
-                    # ALSO reset chat session usage to ensure tokens are properly reset after payment
-                    UsageService.reset_chat_session_usage(request.user, subscription)
+                # ALSO reset chat session usage to ensure tokens are properly reset after payment
+                UsageService.reset_chat_session_usage(request.user, subscription)
 
-                    # Record discount use if applicable
-                    discount_code_id = request.session.get('discount_code_id')
-                    discount_code_obj = None
-                    if discount_code_id:
-                        try:
-                            DiscountCode = apps.get_model('subscriptions', 'DiscountCode')
-                            discount_code_obj = DiscountCode.objects.get(id=discount_code_id)
-                            original_price = request.session.get('original_price', 0)  # This is in Tomans
-                            final_price = request.session.get('final_price', 0)  # This is in Tomans
-                            discount_amount = original_price - final_price
-                            
-                            # Record the discount use
-                            DiscountUse = apps.get_model('subscriptions', 'DiscountUse')
-                            DiscountUse.objects.create(
-                                discount_code=discount_code_obj,
-                                user=request.user,
-                                subscription_type=subscription,
-                                original_price=original_price,
-                                discount_amount=discount_amount,
-                                final_price=final_price
-                            )
-                        except apps.get_model('subscriptions', 'DiscountCode').DoesNotExist:
-                            pass  # Ignore if discount code was deleted
-                    
-                    # Update financial transaction status to completed
-                    FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
+                # Record discount use if applicable
+                discount_code_id = request.session.get('discount_code_id')
+                discount_code_obj = None
+                if discount_code_id:
                     try:
-                        financial_transaction = FinancialTransaction.objects.get(authority=authority)
-                        financial_transaction.status = 'completed'
-                        financial_transaction.reference_id = authority  # Using authority as reference ID
-                        financial_transaction.save()
-                    except FinancialTransaction.DoesNotExist:
-                        # Create transaction if it doesn't exist (fallback)
-                        original_price = request.session.get('original_price', 0)
-                        final_price = request.session.get('final_price', 0)
-                        discount_amount = original_price - final_price if original_price and final_price else 0
+                        DiscountCode = apps.get_model('subscriptions', 'DiscountCode')
+                        discount_code_obj = DiscountCode.objects.get(id=discount_code_id)
+                        original_price = request.session.get('original_price', 0)  # This is in Tomans
+                        final_price = request.session.get('final_price', 0)  # This is in Tomans
+                        discount_amount = original_price - final_price
                         
-                        FinancialTransaction.objects.create(
+                        # Record the discount use
+                        DiscountUse = apps.get_model('subscriptions', 'DiscountUse')
+                        DiscountUse.objects.create(
+                            discount_code=discount_code_obj,
                             user=request.user,
                             subscription_type=subscription,
-                            transaction_type='subscription_purchase',
-                            status='completed',
-                            amount=Decimal(str(final_price)) if final_price else 0,
-                            original_amount=Decimal(str(original_price)) if original_price else 0,
-                            discount_amount=Decimal(str(discount_amount)) if discount_amount else 0,
-                            discount_code=discount_code_obj,
-                            authority=authority,
-                            reference_id=authority
+                            original_price=original_price,
+                            discount_amount=discount_amount,
+                            final_price=final_price
                         )
+                    except apps.get_model('subscriptions', 'DiscountCode').DoesNotExist:
+                        pass  # Ignore if discount code was deleted
+                
+                # Update financial transaction status to completed
+                FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
+                try:
+                    financial_transaction = FinancialTransaction.objects.get(authority=track_id)
+                    financial_transaction.status = 'completed'
+                    financial_transaction.reference_id = str(verification_response.get('refNumber', track_id))
+                    financial_transaction.save()
+                except FinancialTransaction.DoesNotExist:
+                    # Create transaction if it doesn't exist (fallback)
+                    original_price = request.session.get('original_price', 0)
+                    final_price = request.session.get('final_price', 0)
+                    discount_amount = original_price - final_price if original_price and final_price else 0
                     
-                    # Clear payment session data
-                    keys_to_delete = ['payment_authority', 'subscription_id', 'payment_amount', 
-                                    'original_price', 'final_price', 'discount_code_id']
-                    for key in keys_to_delete:
-                        if key in request.session:
-                            del request.session[key]
-                    
-                    return render(request, 'subscriptions/payment_callback.html', {
-                        'payment_success': True,
-                        'authority': authority
-                    })
-                else:
-                    if verification_response and verification_response.errors:
-                        error_message = ', '.join(verification_response.errors)
-                    elif verification_response and verification_response.data:
-                        error_message = f'کد خطا: {verification_response.data.code} - {verification_response.data.message}'
-                    else:
-                        error_message = 'پاسخ نامعتبر از سرور تأیید'
-                    
-                    # Update financial transaction status to failed
-                    FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
-                    try:
-                        financial_transaction = FinancialTransaction.objects.get(authority=authority)
-                        financial_transaction.status = 'failed'
-                        financial_transaction.save()
-                    except FinancialTransaction.DoesNotExist:
-                        pass  # Ignore if transaction doesn't exist
-                    
-                    return render(request, 'subscriptions/payment_callback.html', {
-                        'payment_success': False,
-                        'error_message': error_message
-                    })
+                    FinancialTransaction.objects.create(
+                        user=request.user,
+                        subscription_type=subscription,
+                        transaction_type='subscription_purchase',
+                        status='completed',
+                        amount=Decimal(str(final_price)) if final_price else 0,
+                        original_amount=Decimal(str(original_price)) if original_price else 0,
+                        discount_amount=Decimal(str(discount_amount)) if discount_amount else 0,
+                        discount_code=discount_code_obj,
+                        authority=track_id,
+                        reference_id=str(verification_response.get('refNumber', track_id))
+                    )
+                
+                # Clear payment session data
+                keys_to_delete = ['payment_track_id', 'subscription_id', 'payment_amount', 
+                                'original_price', 'final_price', 'discount_code_id']
+                for key in keys_to_delete:
+                    if key in request.session:
+                        del request.session[key]
+                
+                return render(request, 'subscriptions/payment_callback.html', {
+                    'payment_success': True,
+                    'authority': track_id
+                })
             else:
+                error_message = verification_response.get('message', 'خطا در تأیید پرداخت') if verification_response else 'پاسخ نامعتبر از سرور تأیید'
+                
                 # Update financial transaction status to failed
                 FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
                 try:
-                    financial_transaction = FinancialTransaction.objects.get(authority=authority)
+                    financial_transaction = FinancialTransaction.objects.get(authority=track_id)
                     financial_transaction.status = 'failed'
                     financial_transaction.save()
                 except FinancialTransaction.DoesNotExist:
@@ -597,15 +614,15 @@ def payment_callback(request):
                 
                 return render(request, 'subscriptions/payment_callback.html', {
                     'payment_success': False,
-                    'error_message': 'اطلاعات پرداخت نامعتبر است'
+                    'error_message': error_message
                 })
         except Exception as e:
-            logger.error(f"Error verifying payment: {str(e)}")
+            logger.error(f"Error verifying payment: {str(e)}", exc_info=True)
             
             # Update financial transaction status to failed
             FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
             try:
-                financial_transaction = FinancialTransaction.objects.get(authority=authority)
+                financial_transaction = FinancialTransaction.objects.get(authority=track_id)
                 financial_transaction.status = 'failed'
                 financial_transaction.save()
             except FinancialTransaction.DoesNotExist:
@@ -619,15 +636,20 @@ def payment_callback(request):
         # Update financial transaction status to failed (payment cancelled)
         FinancialTransaction = apps.get_model('subscriptions', 'FinancialTransaction')
         try:
-            financial_transaction = FinancialTransaction.objects.get(authority=authority)
+            financial_transaction = FinancialTransaction.objects.get(authority=track_id)
             financial_transaction.status = 'failed'
             financial_transaction.save()
         except FinancialTransaction.DoesNotExist:
             pass  # Ignore if transaction doesn't exist
+        except Exception as e:
+            # Handle case where track_id might be None
+            logger.error(f"Error updating financial transaction status: {str(e)}")
         
+        error_message = 'پرداخت توسط کاربر لغو شد' if success == '0' else 'پرداخت ناموفق'
+        logger.info(f"Payment failed with success={success}, trackId={track_id}")
         return render(request, 'subscriptions/payment_callback.html', {
             'payment_success': False,
-            'error_message': 'پرداخت توسط کاربر لغو شد'
+            'error_message': error_message
         })
 
         
