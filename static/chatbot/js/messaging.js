@@ -82,6 +82,30 @@ function sendMessage() {
     // Show typing indicator
     showTypingIndicator();
 
+    // Check if this is an image generation session
+    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+    const isImageEditingChatbot = sessionData.chatbot_type === 'image_editing';
+    
+    // Hide cancel button for image editing chatbots
+    const sendButton = document.getElementById('send-button');
+    if (isImageEditingChatbot) {
+        // Hide the stop icon completely for image editing chatbots
+        const stopIcon = sendButton.querySelector('.stop-icon');
+        if (stopIcon) {
+            stopIcon.style.display = 'none';
+        }
+        // Also hide the send icon to prevent cancellation
+        const sendIcon = sendButton.querySelector('.send-icon');
+        if (sendIcon) {
+            sendIcon.style.display = 'none';
+        }
+        // Disable the button completely
+        sendButton.disabled = true;
+    } else {
+        // For regular chatbots, show the stop button as usual
+        setButtonState(true); // Change button to stop state
+    }
+
     // Title will be auto-generated on server-side after first message
 
     const isWebSearchEnabled = sessionStorage.getItem(`webSearch_${currentSessionId}`) === 'true';
@@ -105,7 +129,6 @@ function sendMessage() {
     
     // ساخت یک کنترلر جدید برای هر درخواست
     abortController = new AbortController(); // ساخت یک کنترلر جدید برای هر درخواست
-    setButtonState(true); // تغییر دکمه به حالت "توقف"
 
     // Unified fetch request to 'send_message' endpoint
     fetch(`/chat/session/${currentSessionId}/send/`, {
@@ -115,7 +138,7 @@ function sendMessage() {
             'X-CSRFToken': getCookie('csrftoken')
         },
         body: formData,
-        signal: abortController.signal // اتصال کنترلر به درخواست
+        signal: abortController.signal // Connect controller to request
     })
     .then(response => {
         if (!response.ok) {
@@ -181,6 +204,9 @@ function sendMessage() {
                         // For image editing chatbots, refresh page after every AI message
                         console.log('AI message received in image editing chatbot, refreshing page...');
                         
+                        // Re-enable message input after image generation
+                        enableNewMessagesAfterImageGeneration();
+                        
                         // Refresh the page after a short delay
                         setTimeout(() => {
                             window.location.reload();
@@ -189,6 +215,9 @@ function sendMessage() {
                     } else if (sessionData.chatbot_type === 'image_editing' && hasImages) {
                         // For image editing chatbots with images, show success notification and refresh page
                         console.log('Image generated successfully, refreshing page...');
+                        
+                        // Re-enable message input after image generation
+                        enableNewMessagesAfterImageGeneration();
                         
                         // Show a brief success notification
                         showImageGenerationSuccess();
@@ -211,7 +240,14 @@ function sendMessage() {
                     // Re-enable input and reset button state
                     messageInput.disabled = false;
                     messageInput.focus();
-                    setButtonState(false);
+                    
+                    // For image editing chatbots, don't restore the button state since we hid it completely
+                    if (!isImageEditingChatbot) {
+                        setButtonState(false);
+                    } else {
+                        // Re-enable the button but keep it hidden for image editing chatbots
+                        sendButton.disabled = false;
+                    }
                     return;
                 }
 
@@ -456,6 +492,11 @@ function sendMessage() {
                     messageInput.focus();
                     setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
                     
+                    // For image editing chatbots, re-enable message input
+                    if (sessionData.chatbot_type === 'image_editing') {
+                        enableNewMessagesAfterImageGeneration();
+                    }
+                    
                     // Refresh if needed
                     if (shouldRefresh) {
                         setTimeout(() => {
@@ -483,6 +524,11 @@ function sendMessage() {
             });
         }
         read();
+    })
+    .then(data => {
+        // Handle any additional data or actions after streaming is complete
+        // For example, you can check if certain conditions are met and perform actions accordingly
+        console.log('Message streaming complete:', data);
     })
     .catch(error => {
         // Remove the streaming assistant message if it exists
@@ -540,7 +586,16 @@ function sendMessage() {
             // Re-enable input and reset button state after streaming is complete
             messageInput.disabled = false;
             messageInput.focus();
-            setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+            
+            // For image editing chatbots, don't restore the button state since we hid it completely
+            if (!isImageEditingChatbot) {
+                setButtonState(false); // Restore button to send state
+            } else {
+                // Re-enable the button but keep it hidden for image editing chatbots
+                sendButton.disabled = false;
+                // Re-enable message input for image editing chatbots
+                enableNewMessagesAfterImageGeneration();
+            }
             
             // Refresh if needed
             if (shouldRefresh) {
@@ -554,14 +609,23 @@ function sendMessage() {
             hideTypingIndicator();
             addMessageToChat({
                 type: 'assistant',
-                content: `خطا: ${error.message || 'خطای نامشخص'}`,
+                content: `Error: ${error.message || 'Unknown error'}`,
                 created_at: new Date().toISOString()
             });
             
             // Re-enable input and reset button state after streaming is complete
             messageInput.disabled = false;
             messageInput.focus();
-            setButtonState(false); // بازگرداندن دکمه به حالت "ارسال"
+            
+            // For image editing chatbots, don't restore the button state since we hid it completely
+            if (!isImageEditingChatbot) {
+                setButtonState(false); // Restore button to send state
+            } else {
+                // Re-enable the button but keep it hidden for image editing chatbots
+                sendButton.disabled = false;
+                // Re-enable message input for image editing chatbots
+                enableNewMessagesAfterImageGeneration();
+            }
         }
     });
 }
@@ -725,7 +789,7 @@ function updateOrAddAssistantMessageWithImages(content, imagesData = null) {
                         <img src="${imageUrl}" alt="Generated image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
                         <div class="mt-1">
                             <a href="${imageUrl}" download class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-download"></i> دانلود تصویر
+                                <i class="fas fa-download"></i> Download image
                             </a>
                         </div>
                     </div>`;
@@ -821,10 +885,15 @@ function setButtonState(isSending) {
 
 // رویداد ترک صفحه
 window.addEventListener('beforeunload', function() {
-    // اگر درخواستی در حال پردازش است، آن را لغو کن
-    if (abortController && !abortController.signal.aborted) {
-        abortController.abort();
+    // For image editing chatbots, don't abort the request so image generation can continue
+    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+    if (sessionData.chatbot_type !== 'image_editing') {
+        // For non-image editing chatbots, abort the request
+        if (abortController && !abortController.signal.aborted) {
+            abortController.abort();
+        }
     }
+    // For image editing chatbots, let the request continue in the background
 });
 
 /**
@@ -1147,8 +1216,8 @@ function showImageGenerationSuccess() {
         <div class="d-flex align-items-center">
             <i class="fas fa-check-circle me-2"></i>
             <div>
-                <strong>تصویر با موفقیت تولید شد!</strong><br>
-                <small>صفحه در حال به‌روزرسانی...</small>
+                <strong>Image generated successfully!</strong><br>
+                <small>Page refreshing...</small>
             </div>
             <button type="button" class="btn-close ms-2" data-bs-dismiss="alert"></button>
         </div>
@@ -1162,4 +1231,43 @@ function showImageGenerationSuccess() {
             notification.remove();
         }
     }, 5000);
+}
+
+// Add a new function to prevent new messages during image generation
+function preventNewMessagesDuringImageGeneration() {
+    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+    if (sessionData.chatbot_type === 'image_editing') {
+        // Disable the message input and send button
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        
+        if (messageInput) {
+            messageInput.disabled = true;
+            messageInput.placeholder = "لطفاً تا پایان تولید تصویر منتظر بمانید...";
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = true;
+        }
+    }
+}
+
+// Add a new function to re-enable message sending after image generation
+function enableNewMessagesAfterImageGeneration() {
+    const sessionData = JSON.parse(localStorage.getItem(`session_${currentSessionId}`) || '{}');
+    if (sessionData.chatbot_type === 'image_editing') {
+        // Re-enable the message input and send button
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        
+        if (messageInput) {
+            messageInput.disabled = false;
+            messageInput.placeholder = "پیام خود را وارد کنید...";
+            messageInput.focus();
+        }
+        
+        if (sendButton) {
+            sendButton.disabled = false;
+        }
+    }
 }
